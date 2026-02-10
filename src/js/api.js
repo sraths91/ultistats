@@ -4,7 +4,6 @@
  */
 
 import { API_CONFIG } from './constants.js';
-import * as storage from './storage.js';
 
 /**
  * @typedef {Object} APIResponse
@@ -14,31 +13,23 @@ import * as storage from './storage.js';
  */
 
 /**
- * Get authorization headers
- * @returns {Object} Headers object with Authorization
- */
-function getAuthHeaders() {
-    const { token } = storage.loadAuthState();
-    return token ? { 'Authorization': `Bearer ${token}` } : {};
-}
-
-/**
- * Make an API request with error handling
+ * Make an API request with error handling.
+ * Auth is handled via HttpOnly cookies (sent automatically with credentials: 'include').
  * @param {string} endpoint - API endpoint (without base URL)
  * @param {Object} options - Fetch options
  * @returns {Promise<APIResponse>}
  */
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`;
-    
+
     const defaultHeaders = {
-        'Content-Type': 'application/json',
-        ...getAuthHeaders()
+        'Content-Type': 'application/json'
     };
-    
+
     try {
         const response = await fetch(url, {
             ...options,
+            credentials: 'include',
             headers: {
                 ...defaultHeaders,
                 ...options.headers

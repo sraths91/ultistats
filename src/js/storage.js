@@ -62,22 +62,21 @@ export function clearAll() {
 // ==================== AUTH STORAGE ====================
 
 /**
- * Save authentication state
- * @param {string} token - JWT token
+ * Save authentication state.
+ * Token is stored in HttpOnly cookie by the server; only user info is saved here.
+ * @param {string} _token - JWT token (no longer stored client-side)
  * @param {Object} user - User object
  */
-export function saveAuthState(token, user) {
-    setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+export function saveAuthState(_token, user) {
     setItem(STORAGE_KEYS.AUTH_USER, user);
 }
 
 /**
  * Load authentication state
- * @returns {{token: string|null, user: Object|null}}
+ * @returns {{user: Object|null}}
  */
 export function loadAuthState() {
     return {
-        token: getItem(STORAGE_KEYS.AUTH_TOKEN),
         user: getItem(STORAGE_KEYS.AUTH_USER)
     };
 }

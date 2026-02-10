@@ -238,7 +238,6 @@ let playerAvatars = {}; // playerName -> { type: 'initials'|'color'|'image', val
 
 // Authentication state
 let currentUser = null;
-let authToken = null;
 let currentTeam = null;
 let userTeams = [];
 
@@ -261,8 +260,8 @@ function handleRoute() {
     const path = window.location.pathname;
     const route = routes[path] || 'auth';
     
-    // Check auth state
-    const isLoggedIn = !!localStorage.getItem(AUTH_TOKEN_KEY);
+    // Check auth state (user info in localStorage; token in HttpOnly cookie)
+    const isLoggedIn = !!localStorage.getItem(AUTH_USER_KEY);
     
     // Redirect to login if not authenticated and trying to access protected routes
     if (!isLoggedIn && route !== 'auth') {
@@ -382,12 +381,10 @@ AudioParam.prototype.exponentialDecayTo = AudioParam.prototype.exponentialDecayT
 
 function loadAuthState() {
     try {
-        const token = localStorage.getItem(AUTH_TOKEN_KEY);
         const user = localStorage.getItem(AUTH_USER_KEY);
         const team = localStorage.getItem(CURRENT_TEAM_KEY);
-        
-        if (token && user) {
-            authToken = token;
+
+        if (user) {
             currentUser = JSON.parse(user);
             if (team) {
                 currentTeam = JSON.parse(team);
@@ -402,9 +399,9 @@ function loadAuthState() {
 
 function saveAuthState(token, user) {
     try {
-        localStorage.setItem(AUTH_TOKEN_KEY, token);
+        // Token is stored in HttpOnly cookie by the server.
+        // Only save user info to localStorage for UI state.
         localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-        authToken = token;
         currentUser = user;
     } catch (e) {
         console.warn('Could not save auth state:', e);
@@ -415,10 +412,11 @@ function clearAuthState() {
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     localStorage.removeItem(CURRENT_TEAM_KEY);
-    authToken = null;
     currentUser = null;
     currentTeam = null;
     userTeams = [];
+    // Clear server cookie
+    fetch(`${API_BASE_URL}/auth/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
 }
 
 function updatePasswordStrength(value) {
@@ -562,6 +560,7 @@ async function handleLogin(event) {
         const response = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email, password })
         });
 
@@ -622,6 +621,7 @@ async function handleRegister(event) {
         const response = await fetch(`${API_BASE_URL}/auth/register`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ name, email, password })
         });
 
@@ -718,11 +718,11 @@ function handleLogout() {
 }
 
 async function loadUserTeams() {
-    if (!authToken) return;
-    
+    if (!currentUser) return;
+
     try {
         const response = await fetch(`${API_BASE_URL}/teams`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            credentials: 'include'
         });
         
         if (response.ok) {
@@ -921,10 +921,8 @@ async function handleCreateTeam(event) {
     try {
         const response = await fetch(`${API_BASE_URL}/teams`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ name })
         });
         
@@ -950,7 +948,7 @@ async function handleCreateTeam(event) {
 }
 
 async function inviteToTeam(email, role = 'coach') {
-    if (!currentTeam || !authToken) {
+    if (!currentTeam || !currentUser) {
         showToast('No team selected', 'error');
         return;
     }
@@ -958,10 +956,8 @@ async function inviteToTeam(email, role = 'coach') {
     try {
         const response = await fetch(`${API_BASE_URL}/teams/${currentTeam.id}/invite`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ email, role })
         });
         
@@ -983,11 +979,11 @@ async function inviteToTeam(email, role = 'coach') {
 }
 
 async function checkPendingInvitations() {
-    if (!authToken) return;
-    
+    if (!currentUser) return;
+
     try {
         const response = await fetch(`${API_BASE_URL}/invitations`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            credentials: 'include'
         });
         
         if (response.ok) {
@@ -1036,7 +1032,7 @@ async function acceptInvitation(invitationId) {
     try {
         const response = await fetch(`${API_BASE_URL}/invitations/${invitationId}/accept`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            credentials: 'include'
         });
         
         const data = await response.json();
@@ -1062,7 +1058,7 @@ async function declineInvitation(invitationId) {
     try {
         await fetch(`${API_BASE_URL}/invitations/${invitationId}/decline`, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            credentials: 'include'
         });
         
         document.querySelector('.fixed.top-20.right-4')?.remove();
@@ -3366,8 +3362,7 @@ async function retryFailedRosters() {
 
 // Share a tournament to the server (makes it accessible to other coaches)
 async function shareTournamentToServer(tournamentData, linkedTeamId = null, linkedTeamName = null) {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         console.log('Not logged in, skipping tournament sharing');
         return null;
     }
@@ -3375,10 +3370,8 @@ async function shareTournamentToServer(tournamentData, linkedTeamId = null, link
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 usauUrl: tournamentData.url,
                 name: tournamentData.name,
@@ -3409,16 +3402,13 @@ async function shareTournamentToServer(tournamentData, linkedTeamId = null, link
 
 // Get shared tournaments the user's teams are linked to
 async function getLinkedSharedTournaments() {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         return [];
     }
 
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -3435,16 +3425,13 @@ async function getLinkedSharedTournaments() {
 
 // Find tournaments that contain a specific team
 async function findTournamentsWithTeamName(teamName) {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         return [];
     }
 
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/find-by-team?teamName=${encodeURIComponent(teamName)}`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -3461,18 +3448,15 @@ async function findTournamentsWithTeamName(teamName) {
 
 // Link a team to an existing shared tournament
 async function linkTeamToSharedTournament(tournamentId, teamId, teamName, poolName = null) {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         return null;
     }
 
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/${tournamentId}/link`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 teamId,
                 teamName,
@@ -3494,17 +3478,14 @@ async function linkTeamToSharedTournament(tournamentId, teamId, teamName, poolNa
 
 // Update shared tournament results from USAU
 async function updateSharedTournamentResults(tournamentId) {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         return null;
     }
 
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/${tournamentId}/update`, {
             method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            credentials: 'include'
         });
 
         if (!response.ok) {
@@ -7472,8 +7453,7 @@ async function updateSharedTournaments() {
     if (!section || !container) return;
 
     // Only show if user is logged in
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) {
+    if (!currentUser) {
         section.classList.add('hidden');
         return;
     }
@@ -7492,7 +7472,7 @@ async function updateSharedTournaments() {
         const tournamentsWithLinks = await Promise.all(tournaments.map(async (tournament) => {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/shared-tournaments/${tournament.id}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -7614,12 +7594,11 @@ function viewSharedTournament(tournamentId) {
 
 // Show modal with connected coaches for a tournament
 async function showLinkedCoaches(tournamentId) {
-    const token = localStorage.getItem('ultistats_auth_token');
-    if (!token) return;
+    if (!currentUser) return;
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/shared-tournaments/${tournamentId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+            credentials: 'include'
         });
 
         if (!response.ok) {

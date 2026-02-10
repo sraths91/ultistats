@@ -8,6 +8,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const cookieParser = require('cookie-parser');
 const rateLimit = require('express-rate-limit');
 const { body, param, validationResult } = require('express-validator');
 const bcrypt = require('bcryptjs');
@@ -46,8 +47,27 @@ app.use(cors({
     },
     credentials: true
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ limit: '2mb', extended: true }));
+
+// Cookie configuration for JWT
+const COOKIE_NAME = 'ultistats_token';
+const COOKIE_OPTIONS = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days (matches JWT_EXPIRES_IN default)
+    path: '/'
+};
+
+function setAuthCookie(res, token) {
+    res.cookie(COOKIE_NAME, token, COOKIE_OPTIONS);
+}
+
+function clearAuthCookie(res) {
+    res.clearCookie(COOKIE_NAME, { path: '/' });
+}
 
 // Rate limiting for auth endpoints
 const authLimiter = rateLimit({
@@ -72,9 +92,19 @@ function handleValidationErrors(req, res, next) {
 
 // ==================== AUTH MIDDLEWARE ====================
 
-function authenticateToken(req, res, next) {
+// Extract token from cookie first, then Authorization header
+function extractToken(req) {
+    // 1. HttpOnly cookie (preferred)
+    if (req.cookies && req.cookies[COOKIE_NAME]) {
+        return req.cookies[COOKIE_NAME];
+    }
+    // 2. Authorization header (backward compat)
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    return authHeader && authHeader.split(' ')[1];
+}
+
+function authenticateToken(req, res, next) {
+    const token = extractToken(req);
 
     if (!token) {
         return res.status(401).json({ error: 'Authentication required' });
@@ -91,8 +121,7 @@ function authenticateToken(req, res, next) {
 
 // Optional authentication - allows requests without token but attaches user if valid token provided
 function optionalAuth(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    const token = extractToken(req);
 
     if (!token) {
         req.user = null;
@@ -193,7 +222,8 @@ app.post('/api/auth/register', [
         
         // Generate token
         const token = jwt.sign({ id: userId, email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-        
+        setAuthCookie(res, token);
+
         res.status(201).json({
             token,
             user: {
@@ -230,7 +260,8 @@ app.post('/api/auth/login', [
         
         // Generate token
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
-        
+        setAuthCookie(res, token);
+
         res.json({
             token,
             user: {
@@ -261,6 +292,11 @@ app.get('/api/auth/me', authenticateToken, async (req, res) => {
         console.error('Profile error:', error);
         res.status(500).json({ error: 'Failed to get profile' });
     }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+    clearAuthCookie(res);
+    res.json({ message: 'Logged out' });
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {

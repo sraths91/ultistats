@@ -105,19 +105,53 @@ function optionalAuth(req, res, next) {
     });
 }
 
-// Optional auth - adds user to request if token present
-function optionalAuth(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (token) {
-        jwt.verify(token, JWT_SECRET, (err, user) => {
-            if (!err) {
-                req.user = user;
-            }
-        });
+// Helper: verify team membership (returns team or sends error response)
+async function requireTeamMember(req, res, teamId) {
+    const team = await db.getTeamById(teamId);
+    if (!team) {
+        res.status(404).json({ error: 'Team not found' });
+        return null;
     }
-    next();
+    const isMember = team.members.some(m => m.user_id === req.user.id);
+    if (!isMember) {
+        res.status(403).json({ error: 'Not a team member' });
+        return null;
+    }
+    return team;
+}
+
+// Helper: verify team ownership (returns team or sends error response)
+async function requireTeamOwner(req, res, teamId) {
+    const team = await db.getTeamById(teamId);
+    if (!team) {
+        res.status(404).json({ error: 'Team not found' });
+        return null;
+    }
+    if (team.owner_id !== req.user.id) {
+        res.status(403).json({ error: 'Only team owner can perform this action' });
+        return null;
+    }
+    return team;
+}
+
+// Helper: verify game access via team membership (returns game or sends error response)
+async function requireGameAccess(req, res, gameId) {
+    const game = await db.getGameById(gameId);
+    if (!game) {
+        res.status(404).json({ error: 'Game not found' });
+        return null;
+    }
+    const team = await db.getTeamById(game.team_id);
+    if (!team) {
+        res.status(404).json({ error: 'Team not found' });
+        return null;
+    }
+    const isMember = team.members.some(m => m.user_id === req.user.id);
+    if (!isMember) {
+        res.status(403).json({ error: 'Not a member of this game\'s team' });
+        return null;
+    }
+    return game;
 }
 
 // ==================== AUTH ROUTES ====================
@@ -340,16 +374,19 @@ app.delete('/api/teams/:teamId', authenticateToken, async (req, res) => {
 // Team roster
 app.put('/api/teams/:teamId/roster', authenticateToken, async (req, res) => {
     try {
+        const team = await requireTeamOwner(req, res, req.params.teamId);
+        if (!team) return;
+
         const { roster } = req.body;
-        
+
         if (!Array.isArray(roster)) {
             return res.status(400).json({ error: 'Roster must be an array' });
         }
-        
+
         await db.updateTeamRoster(req.params.teamId, roster);
-        const team = await db.getTeamById(req.params.teamId);
-        
-        res.json(team);
+        const updatedTeam = await db.getTeamById(req.params.teamId);
+
+        res.json(updatedTeam);
     } catch (error) {
         console.error('Update roster error:', error);
         res.status(500).json({ error: 'Failed to update roster' });
@@ -364,12 +401,10 @@ app.post('/api/teams/:teamId/invite', authenticateToken, [
 ], async (req, res) => {
     try {
         const { email, role = 'coach' } = req.body;
-        
-        const team = await db.getTeamById(req.params.teamId);
-        if (!team) {
-            return res.status(404).json({ error: 'Team not found' });
-        }
-        
+
+        const team = await requireTeamOwner(req, res, req.params.teamId);
+        if (!team) return;
+
         const invitation = await db.createInvitation({
             id: uuidv4(),
             teamId: req.params.teamId,
@@ -437,6 +472,9 @@ app.post('/api/invitations/:invitationId/decline', authenticateToken, async (req
 
 app.get('/api/teams/:teamId/games', authenticateToken, async (req, res) => {
     try {
+        const team = await requireTeamMember(req, res, req.params.teamId);
+        if (!team) return;
+
         const games = await db.getGamesForTeam(req.params.teamId);
         res.json(games);
     } catch (error) {
@@ -453,8 +491,11 @@ app.post('/api/teams/:teamId/games', authenticateToken, [
     handleValidationErrors
 ], async (req, res) => {
     try {
+        const team = await requireTeamMember(req, res, req.params.teamId);
+        if (!team) return;
+
         const { opponentName, gameDate, tournamentId, location, notes } = req.body;
-        
+
         const game = await db.createGame({
             id: uuidv4(),
             teamId: req.params.teamId,
@@ -474,6 +515,9 @@ app.post('/api/teams/:teamId/games', authenticateToken, [
 
 app.put('/api/games/:gameId', authenticateToken, async (req, res) => {
     try {
+        const existing = await requireGameAccess(req, res, req.params.gameId);
+        if (!existing) return;
+
         const game = await db.updateGame(req.params.gameId, req.body);
         res.json(game);
     } catch (error) {
@@ -484,8 +528,11 @@ app.put('/api/games/:gameId', authenticateToken, async (req, res) => {
 
 app.post('/api/games/:gameId/end', authenticateToken, async (req, res) => {
     try {
+        const existing = await requireGameAccess(req, res, req.params.gameId);
+        if (!existing) return;
+
         const { ourScore, opponentScore, playerStats } = req.body;
-        
+
         // Update game with final score
         await db.updateGame(req.params.gameId, {
             ourScore,
@@ -518,6 +565,9 @@ app.post('/api/games/:gameId/end', authenticateToken, async (req, res) => {
 
 app.get('/api/teams/:teamId/stats', authenticateToken, async (req, res) => {
     try {
+        const team = await requireTeamMember(req, res, req.params.teamId);
+        if (!team) return;
+
         const careerStats = await db.getCareerStats(req.params.teamId);
         const games = await db.getGamesForTeam(req.params.teamId);
         
@@ -549,12 +599,15 @@ app.get('/api/teams/:teamId/stats', authenticateToken, async (req, res) => {
 
 app.post('/api/teams/:teamId/stats/sync', authenticateToken, async (req, res) => {
     try {
+        const team = await requireTeamMember(req, res, req.params.teamId);
+        if (!team) return;
+
         const { gameId, playerStats } = req.body;
-        
+
         if (gameId && playerStats) {
             await db.saveGamePlayerStats(gameId, playerStats);
         }
-        
+
         res.json({ message: 'Stats synced' });
     } catch (error) {
         console.error('Sync stats error:', error);

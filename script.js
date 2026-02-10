@@ -1002,6 +1002,8 @@ async function checkPendingInvitations() {
 }
 
 function showInvitationNotification(invitations) {
+    const safeTeamName = escapeHtml(invitations[0].teamName);
+    const safeId = escapeHtml(invitations[0].id);
     const notification = document.createElement('div');
     notification.className = 'fixed top-20 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-xl shadow-lg z-50 max-w-sm animate-fadeIn';
     notification.innerHTML = `
@@ -1011,12 +1013,12 @@ function showInvitationNotification(invitations) {
             </div>
             <div class="flex-1">
                 <p class="font-semibold">Team Invitation</p>
-                <p class="text-sm text-white/80 mt-1">You've been invited to join ${invitations[0].teamName}</p>
+                <p class="text-sm text-white/80 mt-1">You've been invited to join ${safeTeamName}</p>
                 <div class="flex gap-2 mt-3">
-                    <button onclick="acceptInvitation('${invitations[0].id}')" class="px-3 py-1.5 bg-white text-purple-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition">
+                    <button onclick="acceptInvitation('${safeId}')" class="px-3 py-1.5 bg-white text-purple-600 rounded-lg text-sm font-medium hover:bg-gray-100 transition">
                         Accept
                     </button>
-                    <button onclick="declineInvitation('${invitations[0].id}')" class="px-3 py-1.5 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition">
+                    <button onclick="declineInvitation('${safeId}')" class="px-3 py-1.5 bg-white/20 rounded-lg text-sm font-medium hover:bg-white/30 transition">
                         Decline
                     </button>
                 </div>

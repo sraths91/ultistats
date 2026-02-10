@@ -33,6 +33,26 @@ if (process.env.NODE_ENV !== 'test' && (!JWT_SECRET || JWT_SECRET.includes('chan
 // Middleware
 app.use(compression());
 
+// Security headers (CSP, etc.)
+app.use((req, res, next) => {
+    // Content-Security-Policy: restrict resource loading
+    res.setHeader('Content-Security-Policy', [
+        "default-src 'self'",
+        "script-src 'self' https://cdn.tailwindcss.com https://unpkg.com https://apis.google.com https://accounts.google.com 'unsafe-inline'",
+        "style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
+        "font-src 'self' https://fonts.gstatic.com",
+        "img-src 'self' data: blob:",
+        "connect-src 'self' http://localhost:3001 https://play.usaultimate.org",
+        "frame-src https://accounts.google.com",
+        "object-src 'none'",
+        "base-uri 'self'"
+    ].join('; '));
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
 const allowedOrigins = process.env.CLIENT_URL
     ? process.env.CLIENT_URL.split(',').map(s => s.trim())
     : ['http://localhost:3000', 'http://localhost:3001'];
@@ -69,7 +89,17 @@ function clearAuthCookie(res) {
     res.clearCookie(COOKIE_NAME, { path: '/' });
 }
 
-// Rate limiting for auth endpoints
+function setCsrfCookie(res) {
+    const token = require('crypto').randomBytes(32).toString('hex');
+    res.cookie('ultistats_csrf', token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/'
+    });
+}
+
+// Rate limiting for auth endpoints (strict)
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 20, // 20 attempts per window
@@ -77,8 +107,63 @@ const authLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false
 });
+
+// General API rate limiter (permissive)
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute
+    message: { error: 'Too many requests, please try again later' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 if (process.env.NODE_ENV !== 'test') {
     app.use('/api/auth/', authLimiter);
+    app.use('/api/', apiLimiter);
+}
+
+// CSRF protection (double-submit cookie pattern)
+const crypto = require('crypto');
+
+function csrfProtection(req, res, next) {
+    // Skip CSRF for safe methods
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+        // Set CSRF token cookie if not present
+        if (!req.cookies['ultistats_csrf']) {
+            const token = crypto.randomBytes(32).toString('hex');
+            res.cookie('ultistats_csrf', token, {
+                httpOnly: false, // Must be readable by JavaScript
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/'
+            });
+        }
+        return next();
+    }
+
+    // For state-changing methods (POST, PUT, DELETE), validate CSRF token
+    const cookieToken = req.cookies['ultistats_csrf'];
+    const headerToken = req.headers['x-csrf-token'];
+
+    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+    }
+
+    next();
+}
+
+// Apply CSRF to all API routes (except auth login/register which are initial requests)
+if (process.env.NODE_ENV !== 'test') {
+    app.use('/api/', (req, res, next) => {
+        // Skip CSRF for auth endpoints (no prior cookie on initial requests)
+        if (req.path.startsWith('/auth/login') ||
+            req.path.startsWith('/auth/register') ||
+            req.path.startsWith('/auth/forgot-password') ||
+            req.path.startsWith('/auth/logout')) {
+            return next();
+        }
+        csrfProtection(req, res, next);
+    });
 }
 
 // Validation error handler
@@ -223,6 +308,7 @@ app.post('/api/auth/register', [
         // Generate token
         const token = jwt.sign({ id: userId, email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         setAuthCookie(res, token);
+        setCsrfCookie(res);
 
         res.status(201).json({
             token,
@@ -261,6 +347,7 @@ app.post('/api/auth/login', [
         // Generate token
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
         setAuthCookie(res, token);
+        setCsrfCookie(res);
 
         res.json({
             token,
@@ -709,6 +796,17 @@ app.use('/api/usau/', usauLimiter);
 // Delegate to shared scraper module
 const fetchUSAUPage = scraper.fetchUSAUPage;
 
+// Validate that a URL points to usaultimate.org (prevents SSRF)
+function validateUsauUrl(url) {
+    try {
+        const parsed = new URL(url);
+        const allowed = ['play.usaultimate.org', 'usaultimate.org', 'www.usaultimate.org'];
+        return allowed.includes(parsed.hostname) && ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+        return false;
+    }
+}
+
 // Search for teams on USAU
 app.post('/api/usau/search-teams', optionalAuth, [
     body('query').trim().isLength({ min: 2, max: 100 }).withMessage('Search query required (2-100 characters)'),
@@ -799,6 +897,9 @@ app.get('/api/usau/team', optionalAuth, async (req, res) => {
 
         if (!url) {
             return res.status(400).json({ error: 'Team URL is required' });
+        }
+        if (!validateUsauUrl(url)) {
+            return res.status(400).json({ error: 'URL must point to usaultimate.org' });
         }
 
         const html = await fetchUSAUPage(url);
@@ -1043,6 +1144,9 @@ app.get('/api/usau/tournament', optionalAuth, async (req, res) => {
         if (!url) {
             return res.status(400).json({ error: 'Tournament URL is required' });
         }
+        if (!validateUsauUrl(url)) {
+            return res.status(400).json({ error: 'URL must point to usaultimate.org' });
+        }
 
         const html = await fetchUSAUPage(url);
         const result = scraper.parseTournamentPage(html, url);
@@ -1068,6 +1172,9 @@ app.get('/api/usau/tournament/pools', optionalAuth, async (req, res) => {
 
         if (!url) {
             return res.status(400).json({ error: 'Schedule URL is required' });
+        }
+        if (!validateUsauUrl(url)) {
+            return res.status(400).json({ error: 'URL must point to usaultimate.org' });
         }
 
         const html = await fetchUSAUPage(url);
@@ -1125,6 +1232,9 @@ app.get('/api/usau/tournament/bracket', optionalAuth, async (req, res) => {
 
         if (!url) {
             return res.status(400).json({ error: 'Bracket URL is required' });
+        }
+        if (!validateUsauUrl(url)) {
+            return res.status(400).json({ error: 'URL must point to usaultimate.org' });
         }
 
         const html = await fetchUSAUPage(url);

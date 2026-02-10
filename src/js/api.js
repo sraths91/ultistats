@@ -19,12 +19,22 @@ import { API_CONFIG } from './constants.js';
  * @param {Object} options - Fetch options
  * @returns {Promise<APIResponse>}
  */
+function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)ultistats_csrf=([^;]+)/);
+    return match ? match[1] : '';
+}
+
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_CONFIG.BASE_URL}${endpoint}`;
+    const method = (options.method || 'GET').toUpperCase();
 
     const defaultHeaders = {
         'Content-Type': 'application/json'
     };
+    // Add CSRF token for state-changing requests
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        defaultHeaders['X-CSRF-Token'] = getCsrfToken();
+    }
 
     try {
         const response = await fetch(url, {

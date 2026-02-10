@@ -14,6 +14,12 @@ function escapeHtml(str) {
 // API Configuration
 const API_BASE_URL = 'http://localhost:3001/api';
 
+// Read CSRF token from cookie for state-changing requests
+function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)ultistats_csrf=([^;]+)/);
+    return match ? match[1] : '';
+}
+
 // Game Constants
 const GAME_CONSTANTS = {
     FIELD_LENGTH_YARDS: 120,      // Total field length including end zones
@@ -921,7 +927,7 @@ async function handleCreateTeam(event) {
     try {
         const response = await fetch(`${API_BASE_URL}/teams`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
             body: JSON.stringify({ name })
         });
@@ -956,7 +962,7 @@ async function inviteToTeam(email, role = 'coach') {
     try {
         const response = await fetch(`${API_BASE_URL}/teams/${currentTeam.id}/invite`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
             body: JSON.stringify({ email, role })
         });
@@ -1032,6 +1038,7 @@ async function acceptInvitation(invitationId) {
     try {
         const response = await fetch(`${API_BASE_URL}/invitations/${invitationId}/accept`, {
             method: 'POST',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include'
         });
         
@@ -1058,6 +1065,7 @@ async function declineInvitation(invitationId) {
     try {
         await fetch(`${API_BASE_URL}/invitations/${invitationId}/decline`, {
             method: 'POST',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include'
         });
         
@@ -3370,7 +3378,7 @@ async function shareTournamentToServer(tournamentData, linkedTeamId = null, link
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
             body: JSON.stringify({
                 usauUrl: tournamentData.url,
@@ -3455,7 +3463,7 @@ async function linkTeamToSharedTournament(tournamentId, teamId, teamName, poolNa
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/${tournamentId}/link`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
             body: JSON.stringify({
                 teamId,
@@ -3485,6 +3493,7 @@ async function updateSharedTournamentResults(tournamentId) {
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/${tournamentId}/update`, {
             method: 'POST',
+            headers: { 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include'
         });
 
@@ -10269,7 +10278,8 @@ async function syncToAPI() {
         
         const response = await fetch(`${API_BASE_URL}/sync`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
+            credentials: 'include',
             body: JSON.stringify(syncData)
         });
         

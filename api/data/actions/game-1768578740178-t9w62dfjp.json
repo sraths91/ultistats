@@ -1,0 +1,46 @@
+[
+  {
+    "timestamp": "2026-01-16T15:51:50.193Z",
+    "description": "Session restored",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Disc Dynasty",
+        "opponentTeam": "UMN B",
+        "date": "2026-01-16",
+        "sheetId": "",
+        "gameType": "regular",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": []
+    },
+    "id": "950085fa-c66b-4936-8275-bc6aba368b5b",
+    "gameId": "game-1768578740178-t9w62dfjp"
+  }
+]

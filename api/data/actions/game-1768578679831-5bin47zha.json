@@ -1,0 +1,90 @@
+[
+  {
+    "timestamp": "2026-01-16T15:50:49.876Z",
+    "description": "Session restored",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Disc Dynasty",
+        "opponentTeam": "UMN B",
+        "date": "2026-01-16",
+        "sheetId": "",
+        "gameType": "regular",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": []
+    },
+    "id": "a98d2640-e5ee-4487-b349-c9b6f9c47ddd",
+    "gameId": "game-1768578679831-5bin47zha"
+  },
+  {
+    "timestamp": "2026-01-16T15:50:49.876Z",
+    "description": "Session restored",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Disc Dynasty",
+        "opponentTeam": "UMN B",
+        "date": "2026-01-16",
+        "sheetId": "",
+        "gameType": "regular",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": []
+    },
+    "id": "fe6afa83-b285-4dd3-997d-e45b8bcb50c1",
+    "gameId": "game-1768578679831-5bin47zha"
+  }
+]

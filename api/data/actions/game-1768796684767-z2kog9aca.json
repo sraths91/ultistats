@@ -1,0 +1,50 @@
+[
+  {
+    "timestamp": "2026-01-19T04:24:14.814Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "8dfefcb8-25ca-44fe-b343-d69ef785d8de",
+    "gameId": "game-1768796684767-z2kog9aca"
+  }
+]

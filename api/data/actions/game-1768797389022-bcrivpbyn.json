@@ -1,0 +1,6407 @@
+[
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "98d49fbe-c819-49f7-a1c8-33c76350e092",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "68c5a9b9-c968-41ce-8471-4abba8a815a5",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "c52ff045-8aeb-480d-b9c8-6197180cccf1",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "ddcb1cca-8fa9-48f9-8a1d-8ca75ee88c1e",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "011a33b0-4419-4b95-86d9-e5b603d2f81c",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "d093306c-39ed-4f2a-b35a-f0a516381232",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "3764ee10-f545-47c2-b4aa-08f7400a0b06",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "44d596a5-e792-45fa-8823-202bd5dcc46c",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "0d873eee-56a1-4aeb-aef5-7f3c420c1007",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "7b37a93f-aad3-4879-86bc-eceb4b95968c",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "f1b20718-09cc-44d4-8e39-90878b117288",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "d431a5bf-dd2b-44e7-9560-40029dceb593",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "2ac403fb-56d0-46f0-bfc7-af1ee8aeca26",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "06a99b07-3665-48f9-a226-b6f8c9d3ac72",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "aff194ca-8a68-4d75-b6d6-febc13a27521",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "6306ea63-e99c-41f4-9cb8-43f70b9aa06e",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "d673b4d1-7bd5-40fb-a9fa-b85b24eb7fed",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "361a5a6b-028c-4ae1-a293-526a03d102f9",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "36c4e64d-43de-401f-9107-238bdad4e148",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "49402b07-c544-454b-8f78-26801002a0f5",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "f9dc148d-2215-4cd0-8777-770dbf04b6d6",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "b28dc80f-d7a7-4d12-9d89-e1afd9bc94bc",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "0d084811-7dbe-429c-ac48-969566a5f7a3",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "cad1e916-5435-493a-9828-c9bb3518f5ed",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "e2e22646-5a1e-4174-9967-a8e9bcdc478f",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "3588b5d1-0bb2-4cc0-b089-59b0c8ef3302",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "d553d175-7d38-43e1-bf50-2719b24ebd68",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "d362afc8-61bb-455b-877f-aa65f0f09dac",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:35:59.029Z",
+    "description": "Game started",
+    "type": "system",
+    "gameState": {
+      "players": [],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {},
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "turnovers": 0,
+        "turnoversGained": 0,
+        "totalYardsThrown": 0,
+        "totalYardsCaught": 0
+      },
+      "actions": [],
+      "actionHistory": [],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [],
+      "pointInProgress": false,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [],
+      "discPosition": null,
+      "currentThrower": null,
+      "pointThrows": 0,
+      "possessionThrows": 0,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "b0d8749c-0b35-40ba-bba5-83acf3b5ce23",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  },
+  {
+    "timestamp": "2026-01-19T04:36:03.932Z",
+    "description": "Alice → Charlie (17 yards)",
+    "type": "throw",
+    "gameState": {
+      "players": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "currentGame": {
+        "ourTeam": "Test Team",
+        "opponentTeam": "Opponents",
+        "date": "2026-01-19",
+        "isActive": true
+      },
+      "playerStats": {
+        "Alice": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 17,
+          "yardsCaught": 0,
+          "throws": 1
+        },
+        "Bob": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Charlie": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 17,
+          "catches": 1
+        },
+        "Diana": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Eve": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Frank": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Grace": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Henry": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Ivy": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Jack": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Kate": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Leo": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Mia": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        },
+        "Noah": {
+          "goals": 0,
+          "assists": 0,
+          "blocks": 0,
+          "turnovers": 0,
+          "yardsThrown": 0,
+          "yardsCaught": 0
+        }
+      },
+      "teamStats": {
+        "score": 0,
+        "opponentScore": 0,
+        "totalYardsThrown": null,
+        "totalYardsCaught": null
+      },
+      "actions": [
+        {
+          "timestamp": "2026-01-19T04:35:59.029Z",
+          "description": "Game started",
+          "type": "system",
+          "gameState": {
+            "players": [],
+            "currentGame": {
+              "ourTeam": "Test Team",
+              "opponentTeam": "Opponents",
+              "date": "2026-01-19",
+              "isActive": true
+            },
+            "playerStats": {},
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0,
+              "turnovers": 0,
+              "turnoversGained": 0,
+              "totalYardsThrown": 0,
+              "totalYardsCaught": 0
+            },
+            "actions": [],
+            "actionHistory": [],
+            "lastClickPoint": null,
+            "throwInProgress": false,
+            "selectedThrower": null,
+            "selectedReceiver": null,
+            "onFieldPlayers": [],
+            "pointInProgress": false,
+            "injurySub": null,
+            "previousThrower": null,
+            "lastCompletedThrower": null,
+            "presentPlayers": [],
+            "discPosition": null,
+            "currentThrower": null,
+            "pointThrows": 0,
+            "possessionThrows": 0,
+            "totalPointThrows": [],
+            "currentPeriod": 1,
+            "periodType": "half",
+            "gameTimerSeconds": 0,
+            "gameTimerRunning": false,
+            "gameTimerInterval": null,
+            "pointNumber": 1
+          }
+        }
+      ],
+      "actionHistory": [
+        {
+          "type": "throw",
+          "data": {
+            "thrower": "Alice",
+            "receiver": "Charlie",
+            "distance": 17
+          },
+          "timestamp": 1768797363930,
+          "previousState": {
+            "playerStats": {
+              "Alice": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Bob": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Charlie": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Diana": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Eve": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Frank": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Grace": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Henry": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Ivy": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Jack": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Kate": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Leo": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Mia": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              },
+              "Noah": {
+                "goals": 0,
+                "assists": 0,
+                "blocks": 0,
+                "turnovers": 0,
+                "yardsThrown": 0,
+                "yardsCaught": 0
+              }
+            },
+            "teamStats": {
+              "score": 0,
+              "opponentScore": 0
+            }
+          }
+        }
+      ],
+      "lastClickPoint": null,
+      "throwInProgress": false,
+      "selectedThrower": null,
+      "selectedReceiver": null,
+      "onFieldPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace"
+      ],
+      "pointInProgress": true,
+      "injurySub": null,
+      "previousThrower": null,
+      "lastCompletedThrower": null,
+      "presentPlayers": [
+        "Alice",
+        "Bob",
+        "Charlie",
+        "Diana",
+        "Eve",
+        "Frank",
+        "Grace",
+        "Henry",
+        "Ivy",
+        "Jack",
+        "Kate",
+        "Leo",
+        "Mia",
+        "Noah"
+      ],
+      "discPosition": {
+        "x": 50,
+        "y": 70
+      },
+      "currentThrower": "Alice",
+      "pointThrows": 1,
+      "possessionThrows": 1,
+      "totalPointThrows": [],
+      "currentPeriod": 1,
+      "periodType": "half",
+      "gameTimerSeconds": 0,
+      "gameTimerRunning": false,
+      "gameTimerInterval": null,
+      "pointNumber": 1
+    },
+    "id": "e62af9cc-dd06-4416-b3f7-87946b13a6fa",
+    "gameId": "game-1768797389022-bcrivpbyn"
+  }
+]

@@ -13,8 +13,8 @@ package-lock.json
 *.sqlite3
 api/db/*.db
 
-# Runtime data files
-api/data/
+# Large runtime data files (>100MB)
+api/data/actions.json
 
 # Logs
 logs/

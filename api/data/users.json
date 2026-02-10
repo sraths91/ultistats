@@ -1,0 +1,12 @@
+[
+  {
+    "id": "demo-coach-001",
+    "email": "demo@demo.com",
+    "password": "$2a$10$zJ143zKmq/El/8I83MOrEe3/Tf6ZoRX5wJ4mjxAUj9Xbx7KHIy2mK",
+    "name": "Demo Coach",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "teams": [
+      "demo-team-001"
+    ]
+  }
+]

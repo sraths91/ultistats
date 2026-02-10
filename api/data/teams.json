@@ -1,0 +1,57 @@
+[
+  {
+    "id": "demo-team-001",
+    "name": "Disc Dynasty",
+    "createdAt": "2025-01-01T00:00:00.000Z",
+    "ownerId": "demo-coach-001",
+    "members": [
+      {
+        "userId": "demo-coach-001",
+        "role": "owner",
+        "joinedAt": "2025-01-01T00:00:00.000Z"
+      }
+    ],
+    "roster": [
+      "Alex Thompson",
+      "Jordan Rivera",
+      "Casey Morgan",
+      "Taylor Chen",
+      "Riley Johnson",
+      "Morgan Smith",
+      "Jamie Williams",
+      "Drew Anderson",
+      "Avery Martinez",
+      "Quinn Davis",
+      "Skyler Brown",
+      "Parker Wilson",
+      "Reese Garcia",
+      "Cameron Lee",
+      "Blake Miller",
+      "Hayden Taylor",
+      "Kendall White",
+      "Peyton Harris",
+      "Logan Clark",
+      "Charlie Lewis",
+      "Dakota Robinson"
+    ],
+    "gameHistory": [
+      "game-spring-001",
+      "game-spring-002",
+      "game-spring-003",
+      "game-spring-004",
+      "game-spring-005",
+      "game-spring-006",
+      "game-fall-001",
+      "game-fall-002",
+      "game-fall-003",
+      "game-fall-004",
+      "game-fall-005",
+      "game-fall-006"
+    ],
+    "seasonStats": {
+      "wins": 8,
+      "losses": 4,
+      "totalGames": 12
+    }
+  }
+]

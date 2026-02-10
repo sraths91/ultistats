@@ -1,0 +1,64 @@
+[
+  {
+    "id": "tournament-fall-classic",
+    "name": "Fall Classic",
+    "startDate": "2025-11-15T00:00:00.000Z",
+    "endDate": "2025-11-17T00:00:00.000Z",
+    "totalGames": 6,
+    "wins": 4,
+    "losses": 2,
+    "teamId": "demo-team-001",
+    "players": {
+      "Alex Thompson": { "goals": 9, "assists": 11, "hockeyAssists": 6, "blocks": 4, "turnovers": 2 },
+      "Jordan Rivera": { "goals": 8, "assists": 12, "hockeyAssists": 7, "blocks": 3, "turnovers": 2 },
+      "Casey Morgan": { "goals": 6, "assists": 10, "hockeyAssists": 5, "blocks": 2, "turnovers": 3 },
+      "Taylor Chen": { "goals": 5, "assists": 8, "hockeyAssists": 4, "blocks": 4, "turnovers": 2 },
+      "Riley Johnson": { "goals": 4, "assists": 7, "hockeyAssists": 3, "blocks": 3, "turnovers": 2 },
+      "Morgan Smith": { "goals": 3, "assists": 6, "hockeyAssists": 4, "blocks": 2, "turnovers": 1 },
+      "Jamie Williams": { "goals": 4, "assists": 5, "hockeyAssists": 3, "blocks": 5, "turnovers": 2 },
+      "Drew Anderson": { "goals": 3, "assists": 4, "hockeyAssists": 2, "blocks": 2, "turnovers": 1 },
+      "Avery Martinez": { "goals": 2, "assists": 5, "hockeyAssists": 3, "blocks": 1, "turnovers": 2 },
+      "Quinn Davis": { "goals": 3, "assists": 3, "hockeyAssists": 2, "blocks": 2, "turnovers": 1 }
+    }
+  },
+  {
+    "id": "tournament-spring-showdown",
+    "name": "Spring Showdown",
+    "startDate": "2025-10-05T00:00:00.000Z",
+    "endDate": "2025-10-06T00:00:00.000Z",
+    "totalGames": 6,
+    "wins": 4,
+    "losses": 2,
+    "teamId": "demo-team-001",
+    "players": {
+      "Alex Thompson": { "goals": 9, "assists": 11, "hockeyAssists": 6, "blocks": 4, "turnovers": 3 },
+      "Jordan Rivera": { "goals": 7, "assists": 12, "hockeyAssists": 7, "blocks": 3, "turnovers": 2 },
+      "Casey Morgan": { "goals": 6, "assists": 9, "hockeyAssists": 6, "blocks": 3, "turnovers": 3 },
+      "Taylor Chen": { "goals": 5, "assists": 7, "hockeyAssists": 5, "blocks": 3, "turnovers": 2 },
+      "Riley Johnson": { "goals": 4, "assists": 6, "hockeyAssists": 4, "blocks": 2, "turnovers": 2 },
+      "Morgan Smith": { "goals": 3, "assists": 5, "hockeyAssists": 3, "blocks": 2, "turnovers": 2 },
+      "Jamie Williams": { "goals": 3, "assists": 4, "hockeyAssists": 2, "blocks": 4, "turnovers": 1 },
+      "Drew Anderson": { "goals": 2, "assists": 4, "hockeyAssists": 3, "blocks": 2, "turnovers": 2 },
+      "Avery Martinez": { "goals": 2, "assists": 3, "hockeyAssists": 2, "blocks": 1, "turnovers": 1 },
+      "Quinn Davis": { "goals": 2, "assists": 3, "hockeyAssists": 2, "blocks": 1, "turnovers": 1 }
+    }
+  },
+  {
+    "id": "tournament-summer-heat",
+    "name": "Summer Heat",
+    "startDate": "2025-07-20T00:00:00.000Z",
+    "endDate": "2025-07-21T00:00:00.000Z",
+    "totalGames": 5,
+    "wins": 3,
+    "losses": 2,
+    "teamId": "demo-team-001",
+    "players": {
+      "Alex Thompson": { "goals": 7, "assists": 9, "hockeyAssists": 5, "blocks": 3, "turnovers": 2 },
+      "Jordan Rivera": { "goals": 6, "assists": 10, "hockeyAssists": 6, "blocks": 2, "turnovers": 2 },
+      "Casey Morgan": { "goals": 5, "assists": 7, "hockeyAssists": 4, "blocks": 2, "turnovers": 2 },
+      "Taylor Chen": { "goals": 4, "assists": 6, "hockeyAssists": 3, "blocks": 3, "turnovers": 1 },
+      "Riley Johnson": { "goals": 3, "assists": 5, "hockeyAssists": 3, "blocks": 2, "turnovers": 1 },
+      "Morgan Smith": { "goals": 2, "assists": 4, "hockeyAssists": 2, "blocks": 1, "turnovers": 1 }
+    }
+  }
+]

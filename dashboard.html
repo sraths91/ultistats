@@ -1,0 +1,3286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>UltiStats - Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+        
+        // Auth check - redirect to login if not authenticated
+        (function() {
+            const authToken = localStorage.getItem('ultistats_auth_token');
+            const authUser = localStorage.getItem('ultistats_auth_user');
+            if (!authToken || !authUser) {
+                window.location.href = '/index.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <!-- User Info -->
+                <div id="user-info" class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold text-sm" id="user-avatar">
+                        DC
+                    </div>
+                    <div>
+                        <p class="text-white font-medium text-sm" id="user-name">Demo Coach</p>
+                    </div>
+                </div>
+                <button onclick="handleLogout()" class="ml-4 text-gray-400 hover:text-red-400 text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="disc-3" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">UltiStats</span>
+            </div>
+            <div class="flex gap-3">
+                <button id="settings-btn" onclick="showSettingsModal()" aria-label="Settings" class="group flex items-center justify-center bg-white/10 hover:bg-white/20 text-white p-2.5 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20" title="Settings">
+                    <i data-lucide="settings" class="w-5 h-5 group-hover:rotate-45 transition-transform" aria-hidden="true"></i>
+                </button>
+                <button id="authorize_button" class="group flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl transition-all duration-300 border border-white/10 hover:border-white/20">
+                    <i data-lucide="table-2" class="w-4 h-4 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-sm font-medium">Connect Sheets</span>
+                </button>
+                <button id="signout_button" class="hidden flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-5 py-2.5 rounded-xl transition-all duration-300 border border-red-500/20">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                    <span class="text-sm font-medium">Sign Out</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard Content -->
+    <main id="main-app" class="relative z-10 container mx-auto px-6 py-8">
+        <!-- Hero Section -->
+        <section id="hero" class="text-center mb-12">
+            <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-400 px-4 py-2 rounded-full text-sm font-medium mb-6 border border-emerald-500/20">
+                <i data-lucide="zap" class="w-4 h-4"></i>
+                <span>Real-time stats tracking</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 leading-tight">
+                Track Every<br>
+                <span class="bg-gradient-to-r from-emerald-400 via-cyan-400 to-blue-500 bg-clip-text text-transparent">Ultimate Moment</span>
+            </h1>
+            <p class="text-lg text-gray-400 max-w-2xl mx-auto mb-8">
+                Professional-grade statistics tracking for ultimate frisbee. Track throws, catches, turnovers, and scores with tap-to-track field visualization.
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 mb-12">
+                <div class="flex items-center gap-2 text-gray-400 text-sm">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+                    <span>iPad Optimized</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-400 text-sm">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Google Sheets Sync</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-400 text-sm">
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Live Dashboard</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Team Selector -->
+        <section id="team-selector" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="users-round" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Teams</h2>
+                            <p class="text-gray-400 text-sm">Manage and view team stats</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="showCsvImportModal()" class="flex items-center gap-2 bg-green-500/20 hover:bg-green-500/40 border border-green-500/30 text-green-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                            Import CSV
+                        </button>
+                        <button onclick="showUsauImportModal()" class="flex items-center gap-2 bg-orange-500/20 hover:bg-orange-500/40 border border-orange-500/30 text-orange-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            Import USAU
+                        </button>
+                        <button onclick="generateSampleData()" class="flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 text-purple-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                            <i data-lucide="database" class="w-4 h-4"></i>
+                            Demo
+                        </button>
+                        <button onclick="showTeamModal()" class="flex items-center gap-2 bg-blue-500/20 hover:bg-blue-500/40 border border-blue-500/30 text-blue-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            New Team
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="team-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- Skeleton placeholders shown while loading -->
+                    <div class="skeleton-item animate-pulse bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div class="h-5 bg-white/10 rounded w-3/4 mb-3"></div>
+                        <div class="h-4 bg-white/10 rounded w-1/2"></div>
+                    </div>
+                    <div class="skeleton-item animate-pulse bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div class="h-5 bg-white/10 rounded w-3/4 mb-3"></div>
+                        <div class="h-4 bg-white/10 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tournaments Section -->
+        <section id="tournaments-section" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="trophy" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Tournaments</h2>
+                            <p class="text-gray-400 text-sm">Weekend events, regionals, and more</p>
+                        </div>
+                    </div>
+                    <a href="tournament.html" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/40 border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        Manage Tournaments
+                    </a>
+                </div>
+                <div id="dashboard-tournaments-list" class="space-y-2">
+                    <!-- Tournaments populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Leagues Section -->
+        <section id="leagues-section" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="calendar" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Leagues</h2>
+                            <p class="text-gray-400 text-sm">Season-long play with linked tournaments</p>
+                        </div>
+                    </div>
+                    <a href="league.html" class="flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/40 border border-amber-500/30 text-amber-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        Manage Leagues
+                    </a>
+                </div>
+                <div id="dashboard-leagues-list" class="space-y-2">
+                    <!-- Leagues populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Season Browser Section -->
+        <section class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="calendar-search" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Season Browser</h2>
+                            <p class="text-gray-400 text-sm">Browse USAU rankings, tournaments & team results by season</p>
+                        </div>
+                    </div>
+                    <a href="season.html" class="flex items-center gap-2 bg-indigo-500/20 hover:bg-indigo-500/40 border border-indigo-500/30 text-indigo-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="external-link" class="w-4 h-4"></i>
+                        Browse Seasons
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Shared Tournaments Section (kept for backward compat, will merge into tournaments) -->
+        <section id="shared-tournaments-section" class="max-w-4xl mx-auto mt-8 hidden">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="share-2" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Shared Tournaments</h2>
+                            <p class="text-gray-400 text-sm">Tournaments your teams are in</p>
+                        </div>
+                    </div>
+                    <button onclick="refreshSharedTournaments()" class="flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 text-purple-400 px-3 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                        Refresh
+                    </button>
+                </div>
+                <div id="shared-tournaments-list" class="space-y-2">
+                    <!-- Shared tournaments populated by JS -->
+                    <p class="text-gray-500 text-sm py-4 text-center" id="no-shared-tournaments-msg">No shared tournaments found.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Game History Dashboard -->
+        <section id="game-history" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="history" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Game History</h2>
+                            <p class="text-gray-400 text-sm" id="history-count">0 games recorded</p>
+                        </div>
+                    </div>
+                    <button onclick="showExportModal()" class="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/40 border border-emerald-500/30 text-emerald-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Export
+                    </button>
+                </div>
+                
+                <div id="game-history-list" class="space-y-3 max-h-96 overflow-y-auto">
+                    <!-- Skeleton placeholders shown while loading -->
+                    <div class="skeleton-item animate-pulse flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="w-10 h-10 bg-white/10 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-white/10 rounded w-2/3 mb-2"></div>
+                            <div class="h-3 bg-white/10 rounded w-1/3"></div>
+                        </div>
+                        <div class="h-6 bg-white/10 rounded w-16"></div>
+                    </div>
+                    <div class="skeleton-item animate-pulse flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="w-10 h-10 bg-white/10 rounded-xl flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-white/10 rounded w-2/3 mb-2"></div>
+                            <div class="h-3 bg-white/10 rounded w-1/3"></div>
+                        </div>
+                        <div class="h-6 bg-white/10 rounded w-16"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Leaderboards -->
+        <section id="leaderboards" class="max-w-6xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="trophy" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Leaderboards</h2>
+                            <p class="text-gray-400 text-sm" id="tournament-status">No active tournament</p>
+                        </div>
+                    </div>
+                    <button id="manage-tournament-btn" class="flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 text-purple-400 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        Tournament
+                    </button>
+                </div>
+
+                <!-- Leaderboard Tabs -->
+                <div class="flex gap-2 mb-4 border-b border-white/10 pb-3 overflow-x-auto">
+                    <button id="tab-game" class="leaderboard-tab px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                        This Game
+                    </button>
+                    <button id="tab-tournament" class="leaderboard-tab px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                        Tournament
+                    </button>
+                    <button id="tab-season" class="leaderboard-tab px-4 py-2 rounded-lg text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                        Season
+                    </button>
+                    <button id="tab-career" class="leaderboard-tab active px-4 py-2 rounded-lg text-sm font-medium transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                        Career
+                    </button>
+                </div>
+
+                <!-- Tournament Selector (shown when tournament tab is active) -->
+                <div id="tournament-selector-container" class="hidden mb-3">
+                    <!-- Tournament dropdown will be populated here -->
+                </div>
+
+                <!-- Sort Options -->
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button data-sort="points" aria-pressed="true" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" onclick="sortLeaderboard('points')">
+                        Points
+                    </button>
+                    <button data-sort="goals" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('goals')">
+                        Goals
+                    </button>
+                    <button data-sort="assists" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('assists')">
+                        Assists
+                    </button>
+                    <button data-sort="blocks" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('blocks')">
+                        Blocks
+                    </button>
+                    <button data-sort="turnovers" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('turnovers')">
+                        Turnovers
+                    </button>
+                    <button data-sort="yardsThrown" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('yardsThrown')">
+                        Yards Thrown
+                    </button>
+                    <button data-sort="yardsCaught" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('yardsCaught')">
+                        Yards Caught
+                    </button>
+                    <button data-sort="throws" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('throws')">
+                        Throws
+                    </button>
+                    <button data-sort="catches" class="sort-btn px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10" onclick="sortLeaderboard('catches')">
+                        Catches
+                    </button>
+                </div>
+
+                <!-- Leaderboard Content -->
+                <div id="leaderboard-content" class="space-y-2">
+                    <!-- Skeleton placeholders shown while loading -->
+                    <div class="skeleton-item animate-pulse flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                        <div class="w-8 h-8 bg-white/10 rounded-full flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                            <div class="h-3 bg-white/10 rounded w-1/4"></div>
+                        </div>
+                        <div class="h-5 bg-white/10 rounded w-12"></div>
+                    </div>
+                    <div class="skeleton-item animate-pulse flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                        <div class="w-8 h-8 bg-white/10 rounded-full flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                            <div class="h-3 bg-white/10 rounded w-1/4"></div>
+                        </div>
+                        <div class="h-5 bg-white/10 rounded w-12"></div>
+                    </div>
+                    <div class="skeleton-item animate-pulse flex items-center gap-3 p-3 bg-white/5 rounded-xl">
+                        <div class="w-8 h-8 bg-white/10 rounded-full flex-shrink-0"></div>
+                        <div class="flex-1">
+                            <div class="h-4 bg-white/10 rounded w-1/3 mb-2"></div>
+                            <div class="h-3 bg-white/10 rounded w-1/4"></div>
+                        </div>
+                        <div class="h-5 bg-white/10 rounded w-12"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Game Setup -->
+        <section id="game-setup" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+                <!-- Header with Team Info -->
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                            <i data-lucide="play-circle" class="w-6 h-6 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">New Game</h2>
+                            <p id="game-setup-team-name" class="text-gray-400 text-sm">Set up your match details</p>
+                        </div>
+                    </div>
+                    <div id="current-team-badge" class="hidden px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 rounded-xl">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-xs" id="team-badge-initials">TM</div>
+                            <span class="text-emerald-400 font-medium text-sm" id="team-badge-name">Team Name</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Match Setup -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Your Team (Auto-filled from auth) -->
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+                            Your Team
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="our-team" class="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all" placeholder="Your team name" readonly>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">Auto-filled from your team</p>
+                    </div>
+                    
+                    <!-- Opponent -->
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="shield" class="w-4 h-4 text-red-400"></i>
+                            Opponent
+                        </label>
+                        <input type="text" id="opponent-team" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all" placeholder="Opponent team name">
+                    </div>
+                </div>
+                
+                <!-- Date and Game Type -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
+                            Game Date
+                        </label>
+                        <input type="date" id="game-date" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="trophy" class="w-4 h-4 text-yellow-400"></i>
+                            Game Type
+                        </label>
+                        <select id="game-type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all">
+                            <option value="regular">Regular Season</option>
+                            <option value="tournament">Tournament</option>
+                            <option value="scrimmage">Scrimmage</option>
+                            <option value="practice">Practice</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Roster Preview -->
+                <div class="mb-8">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-cyan-400"></i>
+                            Roster Preview
+                        </h3>
+                        <span id="roster-count" class="text-sm text-gray-400">0 players</span>
+                    </div>
+                    <div id="roster-preview" class="flex flex-wrap gap-2">
+                        <span class="text-gray-500 text-sm">No players in roster</span>
+                    </div>
+                </div>
+                
+                <!-- Start Game Button -->
+                <button type="button" id="start-game-btn" onclick="startGame()" class="w-full group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40">
+                    <span class="relative z-10 flex items-center justify-center gap-2">
+                        <i data-lucide="play" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                        Start Tracking
+                    </span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Google Sheets Section -->
+        <section class="max-w-4xl mx-auto mt-8 mb-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+                    <i data-lucide="table-2" class="w-5 h-5 text-emerald-400"></i>
+                    Connect to Google Sheets (Optional)
+                </h3>
+                <div class="space-y-2">
+                    <label for="spreadsheet-id" class="text-sm font-medium text-gray-300">Google Sheet ID</label>
+                    <input type="text" id="spreadsheet-id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all" placeholder="Enter your Google Sheet ID">
+                    <p class="text-xs text-gray-500">Find this in your Google Sheet URL after /d/</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeSettingsModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="settings-modal-title" class="text-xl font-bold text-white">Settings</h2>
+                <button onclick="closeSettingsModal()" aria-label="Close settings" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Vibration Feedback</label>
+                    <div class="flex items-center gap-3">
+                        <button id="vibration-toggle" onclick="toggleVibration()" class="relative w-12 h-6 bg-emerald-500 rounded-full transition-colors">
+                            <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform translate-x-6"></span>
+                        </button>
+                        <span class="text-gray-400 text-sm">Haptic feedback on actions</span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium text-gray-300">Sound Effects</label>
+                    <div class="flex items-center gap-3">
+                        <button id="sound-toggle" onclick="toggleSound()" class="relative w-12 h-6 bg-gray-600 rounded-full transition-colors">
+                            <span class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform"></span>
+                        </button>
+                        <span class="text-gray-400 text-sm">Audio feedback</span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label for="autosave-interval" class="text-sm font-medium text-gray-300">Auto-save Interval</label>
+                    <select id="autosave-interval" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white">
+                        <option value="10">Every 10 seconds</option>
+                        <option value="30" selected>Every 30 seconds</option>
+                        <option value="60">Every minute</option>
+                    </select>
+                </div>
+                <div class="pt-4 border-t border-white/10">
+                    <button onclick="clearAllData()" class="w-full flex items-center justify-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 py-3 rounded-xl font-medium transition-all border border-red-500/30">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        Clear All Local Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Modal -->
+    <div id="team-modal" role="dialog" aria-modal="true" aria-labelledby="team-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeTeamModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-lg max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white" id="team-modal-title">Create Team</h2>
+                <button onclick="closeTeamModal()" aria-label="Close team modal" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-4">
+                <div class="space-y-2">
+                    <label for="team-name-input" class="text-sm font-medium text-gray-300">Team Name</label>
+                    <input type="text" id="team-name-input" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50" placeholder="Enter team name">
+                </div>
+                <div class="space-y-2">
+                    <label for="team-roster-input" class="text-sm font-medium text-gray-300">Team Roster (one player per line)</label>
+                    <textarea id="team-roster-input" rows="8" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none" placeholder="Player 1&#10;Player 2&#10;Player 3&#10;..."></textarea>
+                </div>
+                <!-- Player Profiles Option -->
+                <div class="p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="team-enable-profiles" checked class="mt-1 w-5 h-5 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/50">
+                        <div>
+                            <span class="text-white font-medium">Enable Player Profiles</span>
+                            <p class="text-gray-400 text-xs mt-1">Allow players to have email addresses and personal profile pages where they can view their stats.</p>
+                        </div>
+                    </label>
+                </div>
+                <button onclick="saveTeam()" class="w-full bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all">
+                    Save Team
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeExportModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="export-modal-title" class="text-xl font-bold text-white">Export Data</h2>
+                <button onclick="closeExportModal()" aria-label="Close export modal" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-3" id="export-options">
+                <button onclick="exportCareerStats()" class="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left">
+                    <div class="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="trophy" class="w-5 h-5 text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-white">Career Stats</p>
+                        <p class="text-xs text-gray-400">All-time player statistics (CSV)</p>
+                    </div>
+                </button>
+                <button onclick="exportSeasonStats()" class="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left">
+                    <div class="w-10 h-10 bg-cyan-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="calendar" class="w-5 h-5 text-cyan-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-white">Season Stats</p>
+                        <p class="text-xs text-gray-400">Current season statistics (CSV)</p>
+                    </div>
+                </button>
+                <button onclick="exportTournamentStats()" class="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left">
+                    <div class="w-10 h-10 bg-purple-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="medal" class="w-5 h-5 text-purple-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-white">Tournament Stats</p>
+                        <p class="text-xs text-gray-400">Current tournament statistics (CSV)</p>
+                    </div>
+                </button>
+                <button onclick="showPlayerExportList()" class="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left">
+                    <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="user" class="w-5 h-5 text-blue-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-white">Individual Player Stats</p>
+                        <p class="text-xs text-gray-400">Select a player to export their stats</p>
+                    </div>
+                </button>
+                <button onclick="exportFullBackup()" class="w-full flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all text-left">
+                    <div class="w-10 h-10 bg-yellow-500/20 rounded-xl flex items-center justify-center">
+                        <i data-lucide="database" class="w-5 h-5 text-yellow-400"></i>
+                    </div>
+                    <div>
+                        <p class="font-medium text-white">Full Backup</p>
+                        <p class="text-xs text-gray-400">All data including games and roster (JSON)</p>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Avatar Manager Modal -->
+    <div id="avatar-modal" role="dialog" aria-modal="true" aria-labelledby="avatar-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAvatarModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-lg max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="avatar-modal-title" class="text-xl font-bold text-white">Player Avatars</h2>
+                <button onclick="closeAvatarModal()" aria-label="Close avatar modal" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div id="avatar-list" class="flex-1 overflow-y-auto space-y-2">
+                <!-- Player avatar items populated here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-red-400"></i>
+                </div>
+                <h3 id="confirm-title" class="text-xl font-bold text-white mb-2">Confirm Action</h3>
+                <p id="confirm-message" class="text-gray-400">Are you sure you want to do this?</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="cancelConfirm()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-500 hover:bg-red-400 text-white py-3 rounded-xl font-medium transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Position Assignment Modal (shown after USAU import) -->
+    <div id="position-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="position-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closePositionModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-3xl max-h-[85vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="position-modal-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5 text-cyan-400"></i>
+                    Set Up Player Roster
+                </h2>
+                <button onclick="closePositionModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <p class="text-gray-400 text-sm mb-4">
+                Assign positions and optionally add emails to create player profiles.
+            </p>
+
+            <!-- Quick assign buttons -->
+            <div class="flex flex-wrap gap-2 mb-4 pb-4 border-b border-white/10">
+                <span class="text-sm text-gray-400 mr-2">Quick assign all positions:</span>
+                <button onclick="quickAssignPosition('Handler')" class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-medium border border-blue-500/30 hover:bg-blue-500/30 transition-all">
+                    Handler
+                </button>
+                <button onclick="quickAssignPosition('Cutter')" class="px-3 py-1 bg-green-500/20 text-green-400 rounded-lg text-xs font-medium border border-green-500/30 hover:bg-green-500/30 transition-all">
+                    Cutter
+                </button>
+                <button onclick="quickAssignPosition('Hybrid')" class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-lg text-xs font-medium border border-purple-500/30 hover:bg-purple-500/30 transition-all">
+                    Hybrid
+                </button>
+            </div>
+
+            <!-- Column headers -->
+            <div class="grid grid-cols-12 gap-2 px-3 py-2 text-xs text-gray-400 font-medium border-b border-white/10 mb-2">
+                <div class="col-span-4">Player</div>
+                <div class="col-span-3">Position</div>
+                <div class="col-span-5">Email (optional)</div>
+            </div>
+
+            <!-- Player list with position selectors and email -->
+            <div id="position-player-list" class="flex-1 overflow-y-auto space-y-2 mb-4">
+                <!-- Players populated here -->
+            </div>
+
+            <!-- Options -->
+            <div class="border-t border-white/10 pt-4 mb-4 space-y-3">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="sort-by-position" class="w-5 h-5 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/50">
+                    <span class="text-white text-sm">Sort roster by position (Handlers → Hybrids → Cutters)</span>
+                </label>
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <input type="checkbox" id="send-profile-invites" class="w-5 h-5 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/50">
+                    <span class="text-white text-sm">Generate profile links for players with emails</span>
+                </label>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-3">
+                <button onclick="closePositionModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    Skip for Now
+                </button>
+                <button onclick="savePositionAssignments()" class="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white py-3 rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                    Save & Continue
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Player Profile Links Modal -->
+    <div id="profile-links-modal" role="dialog" aria-modal="true" aria-labelledby="profile-links-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeProfileLinksModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-xl max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="profile-links-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="link" class="w-5 h-5 text-emerald-400"></i>
+                    Player Profile Links
+                </h2>
+                <button onclick="closeProfileLinksModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">
+                Share these links with your players so they can view their stats. Each link is unique to each player.
+            </p>
+            <div id="profile-links-list" class="flex-1 overflow-y-auto space-y-2 mb-4">
+                <!-- Links populated by JS -->
+            </div>
+            <div class="flex gap-3">
+                <button onclick="copyAllProfileLinks()" class="flex-1 flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    Copy All Links
+                </button>
+                <button onclick="closeProfileLinksModal()" class="flex-1 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white py-3 rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Conflict Modal -->
+    <div id="email-conflict-modal" role="dialog" aria-modal="true" aria-labelledby="email-conflict-title" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-lg bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="email-conflict-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+                    Email Already in Use
+                </h2>
+            </div>
+
+            <div class="mb-6">
+                <p class="text-gray-300 mb-4">
+                    The email <span id="conflict-email" class="text-amber-400 font-medium"></span> is already associated with another player:
+                </p>
+
+                <div class="bg-white/5 rounded-xl p-4 border border-white/10 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div id="conflict-existing-avatar" class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold">
+                            --
+                        </div>
+                        <div>
+                            <p id="conflict-existing-name" class="text-white font-medium">Existing Player</p>
+                            <p id="conflict-existing-info" class="text-gray-500 text-sm">Position</p>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-gray-400 text-sm">
+                    You're trying to assign this email to:
+                </p>
+                <div class="bg-white/5 rounded-xl p-4 border border-white/10 mt-2">
+                    <div class="flex items-center gap-3">
+                        <div id="conflict-new-avatar" class="w-12 h-12 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center text-white font-bold">
+                            --
+                        </div>
+                        <div>
+                            <p id="conflict-new-name" class="text-white font-medium">New Player</p>
+                            <p id="conflict-new-info" class="text-gray-500 text-sm">Position</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-gray-400 text-sm mb-4">
+                Are these the same person? If yes, their stats will be merged and linked to the existing profile.
+            </p>
+
+            <!-- Initial choice buttons -->
+            <div id="conflict-choice-buttons" class="flex flex-col gap-2">
+                <button onclick="confirmEmailConflict('merge')" class="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white py-3 rounded-xl font-medium transition-all">
+                    <i data-lucide="git-merge" class="w-4 h-4"></i>
+                    Yes, Same Person - Link Profiles
+                </button>
+                <button onclick="showAlternateEmailInput()" class="w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    <i data-lucide="user-x" class="w-4 h-4"></i>
+                    No, Different People
+                </button>
+                <button onclick="confirmEmailConflict('cancel')" class="w-full text-gray-400 hover:text-white py-2 text-sm transition-all">
+                    Cancel
+                </button>
+            </div>
+
+            <!-- Alternate email input (shown when "Different People" is selected) -->
+            <div id="conflict-alternate-email" class="hidden">
+                <p class="text-gray-300 text-sm mb-3">
+                    Enter a different email for <span id="conflict-player-name-alt" class="text-white font-medium"></span>:
+                </p>
+                <div class="flex gap-2 mb-3">
+                    <input type="email" id="conflict-new-email-input"
+                        placeholder="different@email.com"
+                        class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all">
+                </div>
+                <p id="conflict-email-error" class="text-red-400 text-xs mb-3 hidden"></p>
+                <div class="flex gap-2">
+                    <button onclick="hideAlternateEmailInput()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                        Back
+                    </button>
+                    <button onclick="confirmAlternateEmail()" class="flex-1 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white py-3 rounded-xl font-medium transition-all">
+                        Use This Email
+                    </button>
+                    <button onclick="confirmEmailConflict('skip')" class="flex-1 bg-white/10 hover:bg-white/20 text-gray-400 py-3 rounded-xl font-medium transition-all">
+                        Skip Email
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSV Import Modal -->
+    <div id="csv-import-modal" role="dialog" aria-modal="true" aria-labelledby="csv-import-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeCsvImportModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-2xl max-h-[85vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="csv-import-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="file-spreadsheet" class="w-5 h-5 text-green-400"></i>
+                    Import Team from CSV
+                </h2>
+                <button onclick="closeCsvImportModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Team Name Input -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Team Name</label>
+                <input type="text" id="csv-team-name" placeholder="Enter team name"
+                    class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all">
+            </div>
+
+            <!-- CSV Input Options -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="switchCsvTab('paste')" data-csv-tab="paste" class="csv-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-green-500/20 text-green-400 border border-green-500/30">
+                    Paste CSV
+                </button>
+                <button onclick="switchCsvTab('upload')" data-csv-tab="upload" class="csv-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">
+                    Upload File
+                </button>
+            </div>
+
+            <!-- Paste Tab -->
+            <div id="csv-paste-tab" class="csv-tab-content flex-1 flex flex-col overflow-hidden">
+                <div class="mb-2">
+                    <p class="text-xs text-gray-500 mb-2">
+                        Format: Name, Position, Email (one player per line). Position and Email are optional.
+                    </p>
+                    <div class="flex gap-3 mb-2">
+                        <button onclick="loadCsvExample()" class="text-xs text-green-400 hover:text-green-300 underline">
+                            Load example
+                        </button>
+                        <button onclick="downloadCsvTemplate()" class="text-xs text-cyan-400 hover:text-cyan-300 underline">
+                            Download template
+                        </button>
+                    </div>
+                </div>
+                <textarea id="csv-paste-input" rows="10"
+                    placeholder="Alex Thompson, Handler, alex@team.com&#10;Jordan Rivera, Cutter, jordan@team.com&#10;Casey Morgan, Hybrid&#10;Taylor Chen"
+                    class="flex-1 w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500/50 transition-all resize-none font-mono text-sm"></textarea>
+            </div>
+
+            <!-- Upload Tab -->
+            <div id="csv-upload-tab" class="csv-tab-content flex-1 flex flex-col overflow-hidden hidden">
+                <div class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-white/20 rounded-xl p-8 hover:border-green-500/50 transition-colors"
+                    ondragover="handleCsvDragOver(event)" ondragleave="handleCsvDragLeave(event)" ondrop="handleCsvDrop(event)">
+                    <i data-lucide="upload-cloud" class="w-12 h-12 text-gray-500 mb-4"></i>
+                    <p class="text-gray-400 mb-2">Drag & drop a CSV file here</p>
+                    <p class="text-gray-500 text-sm mb-4">or</p>
+                    <label class="cursor-pointer px-4 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-400 rounded-xl text-sm font-medium transition-all border border-green-500/30">
+                        Browse Files
+                        <input type="file" id="csv-file-input" accept=".csv,.txt" class="hidden" onchange="handleCsvFileSelect(event)">
+                    </label>
+                </div>
+                <div id="csv-file-info" class="hidden mt-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="file-check" class="w-4 h-4 text-green-400"></i>
+                        <span id="csv-file-name" class="text-white text-sm"></span>
+                        <button onclick="clearCsvFile()" class="ml-auto text-gray-400 hover:text-red-400">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview -->
+            <div id="csv-preview-section" class="mt-4 hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium text-gray-300">Preview</h3>
+                    <span id="csv-player-count" class="text-xs text-gray-500">0 players</span>
+                </div>
+                <div id="csv-preview-list" class="max-h-40 overflow-y-auto space-y-1 p-3 bg-white/5 rounded-xl border border-white/10">
+                    <!-- Preview populated by JS -->
+                </div>
+            </div>
+
+            <!-- Player Profiles Option -->
+            <div class="mt-4 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
+                <label class="flex items-start gap-3 cursor-pointer">
+                    <input type="checkbox" id="csv-enable-profiles" checked class="mt-1 w-5 h-5 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/50">
+                    <div>
+                        <span class="text-white font-medium">Enable Player Profiles</span>
+                        <p class="text-gray-400 text-xs mt-1">Allow players to have email addresses and personal profile pages where they can view their stats.</p>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Import Actions -->
+            <div class="flex gap-3 mt-4 pt-4 border-t border-white/10">
+                <button onclick="closeCsvImportModal()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    Cancel
+                </button>
+                <button onclick="parseCsvPreview()" id="csv-preview-btn" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    Preview
+                </button>
+                <button onclick="importCsvTeam()" id="csv-import-btn" class="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 rounded-xl font-medium transition-all shadow-lg shadow-green-500/25 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                    Import Team
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USAU Import Modal -->
+    <div id="usau-import-modal" role="dialog" aria-modal="true" aria-labelledby="usau-import-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeUsauImportModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-2xl max-h-[85vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="usau-import-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="download" class="w-5 h-5 text-orange-400"></i>
+                    Import from USA Ultimate
+                </h2>
+                <button onclick="closeUsauImportModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Import Type Tabs -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="switchUsauTab('team')" data-usau-tab="team" class="usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-orange-500/20 text-orange-400 border border-orange-500/30">
+                    Import Team
+                </button>
+                <button onclick="switchUsauTab('tournament')" data-usau-tab="tournament" class="usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">
+                    Import Tournament
+                </button>
+            </div>
+
+            <!-- Team Import Tab -->
+            <div id="usau-team-tab" class="usau-tab-content flex-1 overflow-hidden flex flex-col">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Team Page URL</label>
+                    <input type="url" id="usau-team-url" placeholder="https://play.usaultimate.org/teams/events/team_rankings/..."
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all">
+                    <p class="text-xs text-gray-500 mt-2">Paste a USA Ultimate team page URL to import the roster</p>
+                </div>
+                <button onclick="fetchUsauTeam()" id="usau-fetch-team-btn" class="w-full py-3 bg-orange-500/20 hover:bg-orange-500/40 text-orange-400 rounded-xl font-medium transition-all border border-orange-500/30 mb-4">
+                    Fetch Team Roster
+                </button>
+                <div id="usau-team-preview" class="flex-1 overflow-y-auto">
+                    <p class="text-gray-400 text-center py-8">Enter a team URL to preview roster</p>
+                </div>
+            </div>
+
+            <!-- Tournament Import Tab - Multi-Step Wizard -->
+            <div id="usau-tournament-tab" class="usau-tab-content flex-1 overflow-hidden flex flex-col hidden">
+
+                <!-- Step Indicator -->
+                <div id="tournament-import-steps" class="flex items-center justify-center gap-2 mb-4 pb-4 border-b border-white/10">
+                    <div class="step-indicator active" data-step="1">
+                        <span class="w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold">1</span>
+                        <span class="text-xs text-orange-400 mt-1">Search</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-white/20"></div>
+                    <div class="step-indicator" data-step="2">
+                        <span class="w-6 h-6 rounded-full bg-white/20 text-gray-400 text-xs flex items-center justify-center font-bold">2</span>
+                        <span class="text-xs text-gray-500 mt-1">Preview</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-white/20"></div>
+                    <div class="step-indicator" data-step="3">
+                        <span class="w-6 h-6 rounded-full bg-white/20 text-gray-400 text-xs flex items-center justify-center font-bold">3</span>
+                        <span class="text-xs text-gray-500 mt-1">Configure</span>
+                    </div>
+                    <div class="w-8 h-0.5 bg-white/20"></div>
+                    <div class="step-indicator" data-step="4">
+                        <span class="w-6 h-6 rounded-full bg-white/20 text-gray-400 text-xs flex items-center justify-center font-bold">4</span>
+                        <span class="text-xs text-gray-500 mt-1">Import</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: Search -->
+                <div id="tournament-step-1" class="tournament-step flex-1 overflow-hidden flex flex-col">
+                    <div class="flex gap-2 mb-4">
+                        <input type="text" id="usau-search-query" placeholder="Search tournament name (e.g., Stanford Invite)"
+                            class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all">
+                        <button onclick="searchUsauTournaments()" id="usau-search-btn" class="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/40 text-orange-400 rounded-xl font-medium transition-all border border-orange-500/30 flex items-center gap-2">
+                            <i data-lucide="search" class="w-4 h-4"></i>
+                            Search
+                        </button>
+                    </div>
+                    <div class="flex gap-2 mb-4">
+                        <select id="usau-competition-level" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                            <option value="College">College</option>
+                            <option value="Club">Club</option>
+                            <option value="High School">High School</option>
+                            <option value="Youth">Youth</option>
+                        </select>
+                        <select id="usau-gender-division" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50">
+                            <option value="Men">Men's</option>
+                            <option value="Women">Women's</option>
+                            <option value="Mixed">Mixed</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Or enter tournament URL directly:</label>
+                        <div class="flex gap-2">
+                            <input type="url" id="usau-tournament-url" placeholder="https://play.usaultimate.org/events/..."
+                                class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all">
+                            <button onclick="fetchTournamentForImport()" id="usau-fetch-btn" class="px-4 py-2 bg-orange-500/20 hover:bg-orange-500/40 text-orange-400 rounded-xl font-medium transition-all border border-orange-500/30">
+                                Fetch
+                            </button>
+                        </div>
+                    </div>
+                    <div id="usau-search-results" class="flex-1 overflow-y-auto space-y-2">
+                        <p class="text-gray-400 text-center py-8">Search for a tournament or enter a URL</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Preview -->
+                <div id="tournament-step-2" class="tournament-step flex-1 overflow-hidden flex flex-col hidden">
+                    <div class="mb-4">
+                        <h3 id="tournament-preview-name" class="text-lg font-bold text-white mb-1">Tournament Name</h3>
+                        <p id="tournament-preview-info" class="text-sm text-gray-400">0 teams</p>
+                    </div>
+
+                    <!-- Pool Preview (if available) -->
+                    <div id="tournament-pools-preview" class="mb-4 hidden">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">Pool Structure</h4>
+                        <div id="tournament-pools-grid" class="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+                            <!-- Pool cards will be inserted here -->
+                        </div>
+                    </div>
+
+                    <!-- Teams Preview -->
+                    <div class="flex-1 overflow-hidden flex flex-col">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2">Teams (<span id="tournament-team-count">0</span>)</h4>
+                        <div id="tournament-teams-preview" class="flex-1 overflow-y-auto space-y-1">
+                            <!-- Team list will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                        <button onclick="goToTournamentStep(1)" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-medium transition-all">
+                            Back
+                        </button>
+                        <button onclick="goToTournamentStep('2b')" class="flex-1 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white rounded-xl font-medium transition-all">
+                            Configure Import
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2b: Destination (standalone tournament or add to league) -->
+                <div id="tournament-step-2b" class="tournament-step flex-1 overflow-hidden flex flex-col hidden">
+                    <h3 class="text-lg font-bold text-white mb-4">Where should this tournament go?</h3>
+
+                    <div class="space-y-3 mb-4">
+                        <label class="flex items-start gap-3 p-4 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 border border-white/10 transition-all">
+                            <input type="radio" name="import-destination" value="standalone" checked class="mt-1 w-4 h-4 text-cyan-500 focus:ring-cyan-500/50">
+                            <div>
+                                <span class="text-white font-medium">Standalone Tournament</span>
+                                <p class="text-gray-400 text-xs">Create as its own event (weekend tournament, regionals, etc.)</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 p-4 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 border border-white/10 transition-all">
+                            <input type="radio" name="import-destination" value="add-to-league" class="mt-1 w-4 h-4 text-amber-500 focus:ring-amber-500/50">
+                            <div>
+                                <span class="text-white font-medium">Add to Existing League</span>
+                                <p class="text-gray-400 text-xs">Link this tournament to a season for combined standings</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- League selector (shown when "Add to League" is selected) -->
+                    <div id="league-selector-for-import" class="hidden mb-4">
+                        <label class="block text-sm font-medium text-gray-300 mb-2">Select League</label>
+                        <select id="import-target-league" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50">
+                            <option value="">-- Select a League --</option>
+                        </select>
+                        <p id="no-leagues-for-import" class="text-gray-500 text-xs mt-2 hidden">No leagues yet. Create one from the Leagues page first.</p>
+                    </div>
+
+                    <div class="flex gap-2 mt-auto pt-4 border-t border-white/10">
+                        <button onclick="goToTournamentStep(2)" class="flex-1 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all border border-white/10">
+                            Back
+                        </button>
+                        <button onclick="if (applyImportDestination() !== false) goToTournamentStep(3)" class="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white rounded-xl font-medium transition-all">
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 3: Configure -->
+                <div id="tournament-step-3" class="tournament-step flex-1 overflow-hidden flex flex-col hidden">
+                    <h3 class="text-lg font-bold text-white mb-4">Import Options</h3>
+
+                    <div class="space-y-3 mb-4">
+                        <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                            <input type="checkbox" id="import-opt-pools" checked class="w-5 h-5 rounded border-white/20 bg-white/5 text-orange-500 focus:ring-orange-500/50">
+                            <div>
+                                <span class="text-white font-medium text-sm">Import Pool Structure</span>
+                                <p class="text-gray-400 text-xs">Assign teams to pools based on USAU data</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-all">
+                            <input type="checkbox" id="import-opt-rosters" checked class="w-5 h-5 rounded border-white/20 bg-white/5 text-orange-500 focus:ring-orange-500/50">
+                            <div>
+                                <span class="text-white font-medium text-sm">Fetch Team Rosters</span>
+                                <p class="text-gray-400 text-xs">Download player lists for each team (may take a few minutes)</p>
+                            </div>
+                        </label>
+
+                        <label class="flex items-center gap-3 p-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl cursor-pointer border border-cyan-500/20">
+                            <input type="checkbox" id="import-opt-profiles" checked class="w-5 h-5 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/50">
+                            <div>
+                                <span class="text-white font-medium text-sm">Enable Player Profiles</span>
+                                <p class="text-gray-400 text-xs">Allow players to have email addresses and profile pages</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Team Selection -->
+                    <div class="flex-1 overflow-hidden flex flex-col">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="text-sm font-medium text-gray-300">Select Teams to Import</h4>
+                            <div class="flex gap-2">
+                                <button onclick="selectAllTournamentTeams(true)" class="text-xs text-orange-400 hover:text-orange-300">Select All</button>
+                                <span class="text-gray-500">|</span>
+                                <button onclick="selectAllTournamentTeams(false)" class="text-xs text-gray-400 hover:text-gray-300">Deselect All</button>
+                            </div>
+                        </div>
+                        <div id="tournament-team-selection" class="flex-1 overflow-y-auto space-y-1">
+                            <!-- Team checkboxes will be inserted here -->
+                        </div>
+                        <p id="tournament-selected-count" class="text-sm text-gray-400 mt-2">0 teams selected</p>
+                    </div>
+
+                    <div class="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                        <button onclick="goToTournamentStep(2)" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-medium transition-all">
+                            Back
+                        </button>
+                        <button onclick="startTournamentImport()" id="start-import-btn" class="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                            Start Import
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 4: Progress -->
+                <div id="tournament-step-4" class="tournament-step flex-1 overflow-hidden flex flex-col hidden">
+                    <div class="text-center mb-4">
+                        <div id="import-progress-icon" class="w-16 h-16 mx-auto mb-3 rounded-full bg-orange-500/20 flex items-center justify-center">
+                            <i data-lucide="loader-2" class="w-8 h-8 text-orange-400 animate-spin"></i>
+                        </div>
+                        <h3 id="import-progress-title" class="text-lg font-bold text-white mb-1">Importing Tournament...</h3>
+                        <p id="import-progress-message" class="text-sm text-gray-400">Preparing...</p>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="mb-4">
+                        <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+                            <div id="import-progress-bar" class="h-full bg-gradient-to-r from-orange-500 to-amber-500 transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <p id="import-progress-percent" class="text-xs text-gray-500 mt-1 text-center">0%</p>
+                    </div>
+
+                    <!-- Status List -->
+                    <div id="import-status-list" class="flex-1 overflow-y-auto space-y-1">
+                        <!-- Per-team status rows will be inserted here -->
+                    </div>
+
+                    <div class="flex gap-2 mt-4 pt-4 border-t border-white/10">
+                        <button onclick="cancelTournamentImport()" id="cancel-import-btn" class="flex-1 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl font-medium transition-all border border-red-500/30">
+                            Cancel Import
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 5: Complete -->
+                <div id="tournament-step-5" class="tournament-step flex-1 overflow-hidden flex flex-col hidden">
+                    <div class="text-center mb-6">
+                        <div id="complete-icon" class="w-16 h-16 mx-auto mb-3 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                            <i data-lucide="check" class="w-8 h-8 text-emerald-400"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-1">Import Complete!</h3>
+                        <p id="complete-message" class="text-sm text-gray-400">Your tournament has been imported successfully.</p>
+                    </div>
+
+                    <!-- Import Summary -->
+                    <div class="bg-white/5 rounded-xl p-4 mb-4 space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Tournament:</span>
+                            <span id="summary-league-name" class="text-white font-medium">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Teams Imported:</span>
+                            <span id="summary-teams" class="text-white">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Total Players:</span>
+                            <span id="summary-players" class="text-white">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Pools:</span>
+                            <span id="summary-pools" class="text-white">-</span>
+                        </div>
+                    </div>
+
+                    <!-- Failed Rosters (if any) -->
+                    <div id="failed-rosters-section" class="mb-4 hidden">
+                        <div class="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                            <h4 class="text-sm font-medium text-red-400 mb-2">
+                                <i data-lucide="alert-triangle" class="w-4 h-4 inline mr-1"></i>
+                                Failed to fetch <span id="failed-count">0</span> rosters
+                            </h4>
+                            <ul id="failed-roster-list" class="text-xs text-gray-400 space-y-1 max-h-20 overflow-y-auto">
+                                <!-- Failed teams will be listed here -->
+                            </ul>
+                            <button onclick="retryFailedRostersUI()" class="mt-2 text-xs text-orange-400 hover:text-orange-300">
+                                Retry Failed Rosters
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2 mt-auto pt-4 border-t border-white/10">
+                        <button onclick="closeUsauImportModal()" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl font-medium transition-all">
+                            Close
+                        </button>
+                        <button onclick="goToImportedTournament()" class="flex-1 px-4 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                            View Tournament
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Import Actions (for single team import) -->
+            <div id="usau-import-actions" class="border-t border-white/10 pt-4 mt-4 hidden">
+                <!-- Player Profiles Option -->
+                <div class="mb-4 p-3 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-xl border border-cyan-500/20">
+                    <label class="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" id="usau-enable-profiles" checked class="mt-0.5 w-5 h-5 rounded border-white/20 bg-white/5 text-cyan-500 focus:ring-cyan-500/50">
+                        <div>
+                            <span class="text-white font-medium text-sm">Enable Player Profiles</span>
+                            <p class="text-gray-400 text-xs mt-0.5">Allow players to have email addresses and profile pages.</p>
+                        </div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white font-medium" id="usau-selected-name">-</p>
+                        <p class="text-sm text-gray-400" id="usau-selected-info">-</p>
+                    </div>
+                    <button onclick="importUsauData()" id="usau-import-btn" class="px-6 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                        Import
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-white/10 py-6 mt-auto">
+        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <p>Built for ultimate frisbee teams • iPad optimized • Google Sheets sync</p>
+        </div>
+    </footer>
+
+    <script>
+        // Set flag to indicate this is the dashboard page
+        window.isDashboardPage = true;
+    </script>
+    <script src="script.js"></script>
+    <script type="module" src="/src/js/pages/dashboard.js"></script>
+
+    <script>
+        // ==================== TEAM CREATION (STATIC MODAL) ====================
+
+        function saveTeam() {
+            const nameInput = document.getElementById('team-name-input');
+            const rosterInput = document.getElementById('team-roster-input');
+            const enableProfilesCheckbox = document.getElementById('team-enable-profiles');
+
+            const name = nameInput?.value.trim();
+            const rosterText = rosterInput?.value.trim();
+            const enableProfiles = enableProfilesCheckbox?.checked ?? true;
+
+            if (!name) {
+                showToast('Please enter a team name', 'error');
+                return;
+            }
+
+            // Parse roster (one player per line)
+            const roster = rosterText
+                ? rosterText.split('\n').map(p => p.trim()).filter(p => p.length > 0)
+                : [];
+
+            // Create new team with profile setting
+            const newTeam = createEmptyTeam(name, null, enableProfiles);
+            newTeam.roster = roster;
+
+            // Initialize career stats for each player
+            roster.forEach(playerName => {
+                newTeam.careerStats.players[playerName] = {
+                    goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
+                    yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+                };
+
+                // Register player in player registry if not exists
+                if (!getPlayerByName(playerName)) {
+                    const playerObj = createPlayer(playerName, 'Hybrid');
+                    playerRegistry[playerObj.id] = playerObj;
+                }
+            });
+
+            teamsData.teams[newTeam.id] = newTeam;
+            teamsData.currentTeamId = newTeam.id;
+
+            savePlayerRegistry();
+            saveTeamsData();
+
+            // Update current roster
+            savedRoster = [...roster];
+            gameState.players = [...roster];
+            saveRoster();
+
+            closeTeamModal();
+            updateTeamSelector();
+            updatePlayerList();
+
+            showToast(`Team "${name}" created with ${roster.length} players!`, 'success');
+
+            // Show position assignment modal if profiles are enabled and there are players
+            if (enableProfiles && roster.length > 0) {
+                setTimeout(() => {
+                    showPositionAssignmentModal(newTeam.id, roster.map(name => ({ name, position: 'Hybrid' })));
+                }, 300);
+            }
+        }
+
+        function closeTeamModalStatic() {
+            document.getElementById('team-modal').classList.add('hidden');
+        }
+
+        // ==================== USAU IMPORT FUNCTIONALITY ====================
+
+        let usauSelectedData = null;
+        let usauImportType = 'team'; // 'team' or 'tournament'
+        const USAU_API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+
+        function showUsauImportModal() {
+            document.getElementById('usau-import-modal').classList.remove('hidden');
+            usauSelectedData = null;
+            usauImportType = 'team';
+            document.getElementById('usau-import-actions').classList.add('hidden');
+            switchUsauTab('team');
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeUsauImportModal() {
+            document.getElementById('usau-import-modal').classList.add('hidden');
+            usauSelectedData = null;
+        }
+
+        function switchUsauTab(tabName) {
+            usauImportType = tabName;
+
+            // Update tab buttons
+            document.querySelectorAll('.usau-tab').forEach(btn => {
+                if (btn.dataset.usauTab === tabName) {
+                    btn.className = 'usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-orange-500/20 text-orange-400 border border-orange-500/30';
+                } else {
+                    btn.className = 'usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.usau-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`usau-${tabName}-tab`).classList.remove('hidden');
+
+            // Reset import actions
+            document.getElementById('usau-import-actions').classList.add('hidden');
+            usauSelectedData = null;
+        }
+
+        async function fetchUsauTeam() {
+            const url = document.getElementById('usau-team-url').value.trim();
+            if (!url) {
+                showToast('Enter a team URL', 'error');
+                return;
+            }
+
+            const previewContainer = document.getElementById('usau-team-preview');
+            const fetchBtn = document.getElementById('usau-fetch-team-btn');
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+            previewContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Fetching team data...</p>';
+
+            try {
+                const token = localStorage.getItem('ultistats_auth_token');
+                const response = await fetch(`${USAU_API_BASE}/api/usau/team?url=${encodeURIComponent(url)}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Fetch failed');
+                }
+
+                const data = await response.json();
+                usauSelectedData = {
+                    type: 'team',
+                    name: data.name || 'Unknown Team',
+                    link: url,
+                    roster: data.roster || []
+                };
+
+                // Count players with positions
+                const playersWithPositions = usauSelectedData.roster.filter(p => p.position).length;
+
+                // Show preview
+                previewContainer.innerHTML = `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h3 class="font-bold text-white mb-2">${escapeHtml(usauSelectedData.name)}</h3>
+                        <p class="text-sm text-gray-400 mb-2">Found ${usauSelectedData.roster.length} players</p>
+                        ${playersWithPositions > 0 ? `
+                            <p class="text-xs text-emerald-400 mb-4">${playersWithPositions} players have positions from USAU</p>
+                        ` : `
+                            <p class="text-xs text-amber-400 mb-4">No position data - you can assign positions after import</p>
+                        `}
+                        ${usauSelectedData.roster.length > 0 ? `
+                            <div class="max-h-48 overflow-y-auto space-y-1">
+                                ${usauSelectedData.roster.slice(0, 30).map(p => `
+                                    <div class="text-sm text-white py-1 px-2 bg-white/5 rounded flex justify-between items-center">
+                                        <span>${escapeHtml(p.name)}</span>
+                                        <div class="flex items-center gap-2">
+                                            ${p.position ? `<span class="text-xs px-2 py-0.5 rounded ${
+                                                p.position.toLowerCase().includes('handler') || p.position === 'H' || p.position === 'Dump' ? 'bg-blue-500/20 text-blue-400' :
+                                                p.position.toLowerCase().includes('cutter') || p.position === 'C' || p.position === 'Mid' ? 'bg-green-500/20 text-green-400' :
+                                                'bg-purple-500/20 text-purple-400'
+                                            }">${escapeHtml(p.position)}</span>` : ''}
+                                            ${p.number ? `<span class="text-gray-500">#${p.number}</span>` : ''}
+                                        </div>
+                                    </div>
+                                `).join('')}
+                                ${usauSelectedData.roster.length > 30 ? `<p class="text-xs text-gray-500 mt-2">... and ${usauSelectedData.roster.length - 30} more</p>` : ''}
+                            </div>
+                        ` : '<p class="text-gray-500 text-sm">No roster found on page</p>'}
+                    </div>
+                `;
+
+                // Show import actions
+                if (usauSelectedData.roster.length > 0) {
+                    document.getElementById('usau-import-actions').classList.remove('hidden');
+                    document.getElementById('usau-selected-name').textContent = usauSelectedData.name;
+                    document.getElementById('usau-selected-info').textContent = `${usauSelectedData.roster.length} players`;
+                }
+
+                showToast('Team data loaded', 'success');
+            } catch (error) {
+                console.error('USAU fetch error:', error);
+                previewContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-400 mb-2">Failed to fetch team</p>
+                        <p class="text-xs text-gray-500">Check the URL and make sure the API server is running</p>
+                    </div>
+                `;
+                usauSelectedData = null;
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch Team Roster';
+            }
+        }
+
+        async function searchUsauTournaments() {
+            const query = document.getElementById('usau-search-query').value.trim();
+            if (!query || query.length < 2) {
+                showToast('Enter at least 2 characters to search', 'error');
+                return;
+            }
+
+            const competitionLevel = document.getElementById('usau-competition-level').value;
+            const genderDivision = document.getElementById('usau-gender-division').value;
+            const resultsContainer = document.getElementById('usau-search-results');
+            const searchBtn = document.getElementById('usau-search-btn');
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Searching...';
+            resultsContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Searching USAU...</p>';
+
+            try {
+                const token = localStorage.getItem('ultistats_auth_token');
+                const response = await fetch(`${USAU_API_BASE}/api/usau/search-tournaments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ query, competitionLevel, genderDivision })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const data = await response.json();
+
+                if (data.tournaments && data.tournaments.length > 0) {
+                    resultsContainer.innerHTML = data.tournaments.map(t => `
+                        <button onclick="selectUsauTournament('${encodeURIComponent(JSON.stringify(t))}')"
+                            class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
+                            <h4 class="font-medium text-white">${escapeHtml(t.name)}</h4>
+                            <p class="text-xs text-gray-400 mt-1">${escapeHtml(t.link || '')}</p>
+                        </button>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-gray-400 mb-2">No tournaments found</p>
+                            <p class="text-xs text-gray-500">Try a different search term or enter URL directly</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('USAU search error:', error);
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-400 mb-2">Search failed</p>
+                        <p class="text-xs text-gray-500">Make sure the API server is running</p>
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i> Search';
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function selectUsauTournament(encodedData) {
+            try {
+                const tournament = JSON.parse(decodeURIComponent(encodedData));
+
+                // Fetch tournament details
+                document.getElementById('usau-tournament-url').value = tournament.link || '';
+                fetchUsauTournament();
+            } catch (e) {
+                console.error('Select tournament error:', e);
+            }
+        }
+
+        async function fetchUsauTournament() {
+            const url = document.getElementById('usau-tournament-url').value.trim();
+            if (!url) {
+                showToast('Enter a tournament URL', 'error');
+                return;
+            }
+
+            const resultsContainer = document.getElementById('usau-search-results');
+            const fetchBtn = document.getElementById('usau-fetch-btn');
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+            resultsContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Fetching tournament data...</p>';
+
+            try {
+                const token = localStorage.getItem('ultistats_auth_token');
+                const response = await fetch(`${USAU_API_BASE}/api/usau/tournament?url=${encodeURIComponent(url)}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Fetch failed');
+                }
+
+                const data = await response.json();
+                usauSelectedData = {
+                    type: 'tournament',
+                    name: data.name,
+                    link: url,
+                    teams: data.teams || []
+                };
+
+                // Show preview
+                resultsContainer.innerHTML = `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h3 class="font-bold text-white mb-2">${escapeHtml(data.name)}</h3>
+                        <p class="text-sm text-gray-400 mb-4">Found ${data.teams ? data.teams.length : 0} teams</p>
+                        ${data.teams && data.teams.length > 0 ? `
+                            <div class="max-h-48 overflow-y-auto space-y-1">
+                                ${data.teams.slice(0, 20).map(t => `
+                                    <div class="text-sm text-white py-1 px-2 bg-white/5 rounded">${escapeHtml(t.name)}</div>
+                                `).join('')}
+                                ${data.teams.length > 20 ? `<p class="text-xs text-gray-500 mt-2">... and ${data.teams.length - 20} more</p>` : ''}
+                            </div>
+                        ` : '<p class="text-gray-500 text-sm">No teams found on page</p>'}
+                    </div>
+                `;
+
+                // Show import actions
+                if (data.teams && data.teams.length > 0) {
+                    document.getElementById('usau-import-actions').classList.remove('hidden');
+                    document.getElementById('usau-selected-name').textContent = data.name;
+                    document.getElementById('usau-selected-info').textContent = `${data.teams.length} teams - will create as league`;
+                }
+
+                showToast('Tournament data loaded', 'success');
+            } catch (error) {
+                console.error('USAU fetch error:', error);
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-400 mb-2">Failed to fetch tournament</p>
+                        <p class="text-xs text-gray-500">Check the URL and make sure the API server is running</p>
+                    </div>
+                `;
+                usauSelectedData = null;
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch';
+            }
+        }
+
+        async function importUsauData() {
+            if (!usauSelectedData) {
+                showToast('No data to import', 'error');
+                return;
+            }
+
+            const importBtn = document.getElementById('usau-import-btn');
+            importBtn.disabled = true;
+            importBtn.textContent = 'Importing...';
+
+            try {
+                if (usauSelectedData.type === 'team') {
+                    // Import as a new team with roster
+                    const enableProfiles = document.getElementById('usau-enable-profiles')?.checked ?? true;
+                    const newTeam = createEmptyTeam(usauSelectedData.name, null, enableProfiles);
+
+                    // Track players with their USAU data for position assignment
+                    const importedPlayers = [];
+
+                    // Add players to roster
+                    usauSelectedData.roster.forEach((player, index) => {
+                        const playerName = player.name;
+                        newTeam.roster.push(playerName);
+
+                        // Determine position from USAU data or default to Hybrid
+                        let position = 'Hybrid';
+                        if (player.position) {
+                            // Map USAU positions to our positions
+                            const posLower = player.position.toLowerCase();
+                            if (posLower.includes('handler') || posLower === 'h' || posLower === 'dump') {
+                                position = 'Handler';
+                            } else if (posLower.includes('cutter') || posLower === 'c' || posLower === 'mid' || posLower === 'deep') {
+                                position = 'Cutter';
+                            } else if (posLower.includes('hybrid')) {
+                                position = 'Hybrid';
+                            }
+                        }
+
+                        // Register player
+                        if (!getPlayerByName(playerName)) {
+                            const playerObj = createPlayer(playerName, position);
+                            if (player.number) playerObj.number = player.number;
+                            playerRegistry[playerObj.id] = playerObj;
+                        } else {
+                            // Update existing player's position if we have data
+                            const existingPlayer = getPlayerByName(playerName);
+                            if (player.position && existingPlayer) {
+                                existingPlayer.position = position;
+                            }
+                        }
+
+                        // Track for position assignment modal
+                        importedPlayers.push({
+                            name: playerName,
+                            number: player.number,
+                            position: position
+                        });
+
+                        // Initialize stats
+                        newTeam.careerStats.players[playerName] = {
+                            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
+                            yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+                        };
+                    });
+
+                    newTeam.usauLink = usauSelectedData.link;
+                    teamsData.teams[newTeam.id] = newTeam;
+                    teamsData.currentTeamId = newTeam.id;
+
+                    savePlayerRegistry();
+                    saveTeamsData();
+
+                    // Update current roster
+                    savedRoster = [...newTeam.roster];
+                    gameState.players = [...newTeam.roster];
+                    saveRoster();
+
+                    updateTeamSelector();
+                    updatePlayerList();
+
+                    showToast(`Imported "${usauSelectedData.name}" with ${usauSelectedData.roster.length} players!`, 'success');
+
+                    // Close import modal and show position assignment modal
+                    closeUsauImportModal();
+
+                    // Check how many players have positions assigned vs default
+                    const playersNeedingPositions = importedPlayers.filter(p => {
+                        const playerObj = getPlayerByName(p.name);
+                        return !playerObj || playerObj.position === 'Hybrid';
+                    });
+
+                    // Always offer to review/assign positions
+                    setTimeout(() => {
+                        showPositionAssignmentModal(newTeam.id, importedPlayers);
+                    }, 300);
+
+                    return; // Don't close modal again
+
+                } else if (usauSelectedData.type === 'tournament') {
+                    // Import as a league (redirect to league page)
+                    // Store tournament data for league page to pick up
+                    localStorage.setItem('ultistats_pending_usau_import', JSON.stringify(usauSelectedData));
+
+                    showToast('Tournament ready! Redirecting to Leagues page...', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'league.html';
+                    }, 1000);
+                    return;
+                }
+
+                closeUsauImportModal();
+
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast('Failed to import data', 'error');
+            } finally {
+                importBtn.disabled = false;
+                importBtn.textContent = 'Import';
+            }
+        }
+
+        // Handle enter key for search
+        document.getElementById('usau-search-query')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsauTournaments();
+            }
+        });
+
+        document.getElementById('usau-team-url')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchUsauTeam();
+            }
+        });
+
+        // ==================== TOURNAMENT IMPORT WIZARD ====================
+
+        let currentTournamentStep = 1;
+
+        // Step navigation
+        function goToTournamentStep(stepNumber) {
+            currentTournamentStep = stepNumber;
+
+            // Hide all steps
+            document.querySelectorAll('.tournament-step').forEach(step => {
+                step.classList.add('hidden');
+            });
+
+            // Show current step
+            const currentStepEl = document.getElementById(`tournament-step-${stepNumber}`);
+            if (currentStepEl) {
+                currentStepEl.classList.remove('hidden');
+            }
+
+            // Render team selection when going to step 3
+            if (stepNumber === 3) {
+                renderTeamSelection();
+            }
+
+            // Populate league dropdown when going to step 2b
+            if (stepNumber === '2b') {
+                populateLeagueDropdown();
+            }
+
+            // Map '2b' to a numeric value for indicator comparison
+            // Step 2b sits between step 2 and 3, so indicators treat it as step 2 active
+            const numericStep = stepNumber === '2b' ? 2.5 : Number(stepNumber);
+
+            // Update step indicators
+            document.querySelectorAll('.step-indicator').forEach(indicator => {
+                const indicatorStep = parseInt(indicator.dataset.step);
+                const circle = indicator.querySelector('span:first-child');
+                const label = indicator.querySelector('span:last-child');
+
+                if (indicatorStep < numericStep) {
+                    // Completed
+                    circle.className = 'w-6 h-6 rounded-full bg-emerald-500 text-white text-xs flex items-center justify-center font-bold';
+                    label.className = 'text-xs text-emerald-400 mt-1';
+                } else if (indicatorStep === Math.ceil(numericStep)) {
+                    // Active (for 2b, step 3's indicator shows as active since 2 is completed)
+                    circle.className = 'w-6 h-6 rounded-full bg-orange-500 text-white text-xs flex items-center justify-center font-bold';
+                    label.className = 'text-xs text-orange-400 mt-1';
+                } else {
+                    // Pending
+                    circle.className = 'w-6 h-6 rounded-full bg-white/20 text-gray-400 text-xs flex items-center justify-center font-bold';
+                    label.className = 'text-xs text-gray-500 mt-1';
+                }
+            });
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Fetch tournament for full import (goes to step 2)
+        async function fetchTournamentForImport() {
+            const url = document.getElementById('usau-tournament-url').value.trim();
+            if (!url) {
+                showToast('Enter a tournament URL', 'error');
+                return;
+            }
+
+            const fetchBtn = document.getElementById('usau-fetch-btn');
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+
+            try {
+                // Use the global fetch function from script.js
+                window.USAU_API_BASE = USAU_API_BASE;
+                await fetchCompleteTournament(url);
+
+                // Render preview
+                renderTournamentPreview();
+
+                // Go to preview step
+                goToTournamentStep(2);
+
+                showToast('Tournament data loaded', 'success');
+            } catch (error) {
+                console.error('Tournament fetch error:', error);
+                showToast('Failed to fetch tournament: ' + error.message, 'error');
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch';
+            }
+        }
+
+        // Select tournament from search results
+        function selectTournamentForImport(encodedData) {
+            try {
+                const tournament = JSON.parse(decodeURIComponent(encodedData));
+                document.getElementById('usau-tournament-url').value = tournament.link || '';
+                fetchTournamentForImport();
+            } catch (e) {
+                console.error('Select tournament error:', e);
+            }
+        }
+
+        // Render tournament preview (step 2)
+        function renderTournamentPreview() {
+            const tournament = usauImportState.tournament;
+            if (!tournament) return;
+
+            // Count pools
+            const poolCount = usauImportState.pools?.poolCount || Object.keys(usauImportState.pools?.pools || {}).length || 0;
+            const formatInfo = poolCount > 0 ? `${poolCount} pools` : 'No pool data';
+
+            // Set name and info
+            document.getElementById('tournament-preview-name').textContent = tournament.name;
+            document.getElementById('tournament-preview-info').textContent = `${tournament.teams?.length || 0} teams • ${formatInfo}`;
+            document.getElementById('tournament-team-count').textContent = tournament.teams?.length || 0;
+
+            // Render pool preview if available
+            const poolsSection = document.getElementById('tournament-pools-preview');
+            const poolsGrid = document.getElementById('tournament-pools-grid');
+
+            if (usauImportState.pools && usauImportState.pools.pools) {
+                const pools = usauImportState.pools.pools;
+                const poolNames = Object.keys(pools).sort();
+
+                if (poolNames.length > 0) {
+                    poolsSection.classList.remove('hidden');
+                    poolsGrid.innerHTML = poolNames.map(poolName => {
+                        const poolTeams = pools[poolName];
+                        return `
+                            <div class="bg-white/5 rounded-lg p-2 border border-white/10">
+                                <h5 class="text-xs font-medium text-orange-400 mb-1">${escapeHtml(poolName)}</h5>
+                                <div class="text-xs text-gray-300 space-y-0.5">
+                                    ${poolTeams.slice(0, 4).map(t => `<div class="truncate">${escapeHtml(t.name)}</div>`).join('')}
+                                    ${poolTeams.length > 4 ? `<div class="text-gray-500">+${poolTeams.length - 4} more</div>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    poolsSection.classList.add('hidden');
+                }
+            } else {
+                poolsSection.classList.add('hidden');
+            }
+
+            // Render teams preview (showing pool assignment if available)
+            const teamsContainer = document.getElementById('tournament-teams-preview');
+            if (tournament.teams && tournament.teams.length > 0) {
+                teamsContainer.innerHTML = tournament.teams.map((team, idx) => `
+                    <div class="text-sm text-white py-1 px-2 bg-white/5 rounded flex justify-between items-center">
+                        <span>${escapeHtml(team.name)}${team.seed ? ` <span class="text-gray-500">(${team.seed})</span>` : ''}</span>
+                        <div class="flex items-center gap-2">
+                            ${team.pool ? `<span class="text-xs px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400">${escapeHtml(team.pool)}</span>` : ''}
+                            ${team.link ? '<span class="text-xs text-emerald-400">✓ URL</span>' : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                teamsContainer.innerHTML = '<p class="text-gray-400 text-center py-4">No teams found</p>';
+            }
+        }
+
+        // Render team selection (step 3)
+        function renderTeamSelection() {
+            const teams = usauImportState.selectedTeams;
+            const container = document.getElementById('tournament-team-selection');
+
+            if (!teams || teams.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-4">No teams available</p>';
+                return;
+            }
+
+            container.innerHTML = teams.map((team, idx) => `
+                <label class="flex items-center gap-2 p-2 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-all">
+                    <input type="checkbox"
+                           ${team.selected ? 'checked' : ''}
+                           onchange="toggleTeamSelection(${idx})"
+                           class="w-4 h-4 rounded border-white/20 bg-white/5 text-orange-500 focus:ring-orange-500/50">
+                    <span class="text-sm text-white flex-1">${escapeHtml(team.name)}</span>
+                    ${team.pool ? `<span class="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full">${escapeHtml(team.pool)}</span>` : ''}
+                </label>
+            `).join('');
+
+            updateSelectedCount();
+        }
+
+        // Toggle team selection
+        function toggleTeamSelection(index) {
+            if (usauImportState.selectedTeams[index]) {
+                usauImportState.selectedTeams[index].selected = !usauImportState.selectedTeams[index].selected;
+                updateSelectedCount();
+            }
+        }
+
+        // Select/deselect all teams
+        function selectAllTournamentTeams(selected) {
+            usauImportState.selectedTeams.forEach(team => {
+                team.selected = selected;
+            });
+            renderTeamSelection();
+        }
+
+        // Update selected count display
+        function updateSelectedCount() {
+            const selected = usauImportState.selectedTeams.filter(t => t.selected).length;
+            const total = usauImportState.selectedTeams.length;
+            document.getElementById('tournament-selected-count').textContent = `${selected}/${total} teams selected`;
+        }
+
+        // Start the import process
+        async function startTournamentImport() {
+            // Get import options
+            usauImportState.importOptions.importPools = document.getElementById('import-opt-pools')?.checked ?? true;
+            usauImportState.importOptions.importRosters = document.getElementById('import-opt-rosters')?.checked ?? true;
+            usauImportState.importOptions.enableProfiles = document.getElementById('import-opt-profiles')?.checked ?? true;
+
+            const selectedCount = usauImportState.selectedTeams.filter(t => t.selected).length;
+            if (selectedCount === 0) {
+                showToast('Select at least one team to import', 'error');
+                return;
+            }
+
+            // Go to progress step
+            goToTournamentStep(4);
+
+            // Initialize progress display
+            const statusList = document.getElementById('import-status-list');
+            statusList.innerHTML = usauImportState.selectedTeams
+                .filter(t => t.selected)
+                .map(team => `
+                    <div class="flex items-center gap-2 p-2 bg-white/5 rounded-lg" data-team-name="${escapeHtml(team.name)}">
+                        <span class="status-icon w-4 h-4 text-gray-400">○</span>
+                        <span class="text-sm text-white flex-1">${escapeHtml(team.name)}</span>
+                        <span class="status-text text-xs text-gray-500">Pending</span>
+                    </div>
+                `).join('');
+
+            try {
+                // Run the import
+                const result = await createLeagueFromUsauTournament(usauImportState.importOptions);
+
+                // Show completion
+                showImportComplete(result);
+            } catch (error) {
+                console.error('Import failed:', error);
+                document.getElementById('import-progress-title').textContent = 'Import Failed';
+                document.getElementById('import-progress-message').textContent = error.message;
+                document.getElementById('import-progress-icon').innerHTML = '<i data-lucide="x" class="w-8 h-8 text-red-400"></i>';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+
+        // Update progress display during import
+        function updateImportProgressUI() {
+            const progress = usauImportState.progress;
+            const phase = progress.phase;
+
+            // Update title and message
+            document.getElementById('import-progress-title').textContent =
+                phase === 'creating' ? 'Creating Tournament...' :
+                phase === 'importing-teams' ? 'Importing Teams...' :
+                phase === 'fetching-rosters' ? 'Fetching Rosters...' :
+                phase === 'complete' ? 'Import Complete!' : 'Importing...';
+
+            document.getElementById('import-progress-message').textContent = progress.message;
+
+            // Update progress bar
+            let percent = 0;
+            if (phase === 'creating') {
+                percent = 10;
+            } else if (phase === 'importing-teams') {
+                percent = 10 + (progress.teamsImported / progress.teamsTotal) * 30;
+            } else if (phase === 'fetching-rosters') {
+                percent = 40 + (progress.rostersFetched / progress.rostersTotal) * 50;
+            } else if (phase === 'complete') {
+                percent = 100;
+            }
+
+            document.getElementById('import-progress-bar').style.width = `${percent}%`;
+            document.getElementById('import-progress-percent').textContent = `${Math.round(percent)}%`;
+
+            // Update team status in list
+            if (progress.currentTeam) {
+                const teamRow = document.querySelector(`[data-team-name="${escapeHtml(progress.currentTeam)}"]`);
+                if (teamRow) {
+                    const icon = teamRow.querySelector('.status-icon');
+                    const text = teamRow.querySelector('.status-text');
+                    icon.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 text-orange-400 animate-spin"></i>';
+                    text.textContent = phase === 'fetching-rosters' ? 'Fetching roster...' : 'Importing...';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+            }
+        }
+
+        // Show import completion (step 5)
+        function showImportComplete(result) {
+            goToTournamentStep(5);
+
+            const summary = getImportSummary();
+
+            document.getElementById('summary-league-name').textContent = summary.leagueName;
+            document.getElementById('summary-teams').textContent = `${summary.teamsImported} teams`;
+            document.getElementById('summary-players').textContent = `${summary.totalPlayers} players`;
+            document.getElementById('summary-pools').textContent = summary.poolCount > 0 ? `${summary.poolCount} pools` : 'No pools';
+
+            // Show failed rosters if any
+            if (summary.failedRosters > 0) {
+                document.getElementById('failed-rosters-section').classList.remove('hidden');
+                document.getElementById('failed-count').textContent = summary.failedRosters;
+                document.getElementById('failed-roster-list').innerHTML =
+                    usauImportState.progress.failed.map(f => `<li>${escapeHtml(f.teamName)}</li>`).join('');
+            } else {
+                document.getElementById('failed-rosters-section').classList.add('hidden');
+            }
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // Cancel import
+        function cancelTournamentImport() {
+            cancelUsauImport();
+            showToast('Import cancelled', 'info');
+            goToTournamentStep(1);
+            resetUsauImportState();
+        }
+
+        // Retry failed rosters
+        async function retryFailedRostersUI() {
+            document.getElementById('failed-rosters-section').classList.add('hidden');
+            goToTournamentStep(4);
+            document.getElementById('import-progress-title').textContent = 'Retrying Failed Rosters...';
+
+            try {
+                const remainingFailed = await retryFailedRosters();
+                showImportComplete({ failedCount: remainingFailed });
+            } catch (error) {
+                showToast('Retry failed: ' + error.message, 'error');
+                goToTournamentStep(5);
+            }
+        }
+
+        // Navigate to imported tournament
+        function goToImportedTournament() {
+            const targetId = usauImportState.tournamentId || usauImportState.leagueId;
+            if (targetId) {
+                window.location.href = `tournament.html?id=${targetId}`;
+            } else {
+                window.location.href = 'tournament.html';
+            }
+        }
+
+        // Backward compat alias
+        function goToImportedLeague() {
+            goToImportedTournament();
+        }
+
+        // Populate league dropdown for import destination step
+        function populateLeagueDropdown() {
+            const select = document.getElementById('import-target-league');
+            const noLeaguesMsg = document.getElementById('no-leagues-for-import');
+            if (!select) return;
+
+            // Clear existing options except placeholder
+            select.innerHTML = '<option value="">-- Select a League --</option>';
+
+            const leagues = leaguesData?.leagues || {};
+            const leagueEntries = Object.entries(leagues);
+
+            if (leagueEntries.length === 0) {
+                if (noLeaguesMsg) noLeaguesMsg.classList.remove('hidden');
+            } else {
+                if (noLeaguesMsg) noLeaguesMsg.classList.add('hidden');
+                leagueEntries.forEach(([id, league]) => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = league.name + (league.season ? ` (${league.season})` : '');
+                    select.appendChild(option);
+                });
+            }
+        }
+
+        // Apply the import destination selection before proceeding
+        function applyImportDestination() {
+            const selected = document.querySelector('input[name="import-destination"]:checked');
+            if (!selected) return;
+
+            usauImportState.importDestination = selected.value;
+
+            if (selected.value === 'add-to-league') {
+                const leagueSelect = document.getElementById('import-target-league');
+                usauImportState.targetLeagueId = leagueSelect?.value || null;
+
+                if (!usauImportState.targetLeagueId) {
+                    showToast('Please select a league', 'error');
+                    return false;
+                }
+            } else {
+                usauImportState.targetLeagueId = null;
+            }
+            return true;
+        }
+
+        // Radio button listeners for destination step
+        document.querySelectorAll('input[name="import-destination"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const leagueSelector = document.getElementById('league-selector-for-import');
+                if (this.value === 'add-to-league') {
+                    leagueSelector?.classList.remove('hidden');
+                } else {
+                    leagueSelector?.classList.add('hidden');
+                }
+            });
+        });
+
+        // Override the original selectUsauTournament to use the wizard
+        const originalSelectUsauTournament = typeof selectUsauTournament === 'function' ? selectUsauTournament : null;
+        window.selectUsauTournament = function(encodedData) {
+            selectTournamentForImport(encodedData);
+        };
+
+        // Set up progress monitoring
+        const originalCreateLeagueFromUsauTournament = createLeagueFromUsauTournament;
+        if (typeof createLeagueFromUsauTournament === 'function') {
+            // Periodically update UI during import
+            setInterval(() => {
+                if (usauImportState.progress.phase !== 'init' &&
+                    usauImportState.progress.phase !== 'complete' &&
+                    currentTournamentStep === 4) {
+                    updateImportProgressUI();
+                }
+            }, 200);
+        }
+
+        // When switching to tournament tab, make sure we're on step 1
+        const originalSwitchUsauTab = switchUsauTab;
+        switchUsauTab = function(tabName) {
+            originalSwitchUsauTab(tabName);
+            if (tabName === 'tournament') {
+                goToTournamentStep(1);
+                resetUsauImportState();
+            }
+        };
+
+        // ==================== POSITION ASSIGNMENT FUNCTIONALITY ====================
+
+        let positionAssignmentData = null; // { teamId, players: [{name, currentPosition}] }
+
+        function showPositionAssignmentModal(teamId, players) {
+            // Check if profiles are enabled for this team
+            const team = teamsData.teams[teamId];
+            const profilesEnabled = team?.enableProfiles !== false; // Default to true if not set
+
+            positionAssignmentData = {
+                teamId: teamId,
+                profilesEnabled: profilesEnabled,
+                players: players.map(p => {
+                    const name = typeof p === 'string' ? p : p.name;
+                    // Check if player already has an email in registry
+                    const existingPlayer = getPlayerByName(name);
+                    return {
+                        name: name,
+                        currentPosition: (typeof p === 'object' && p.position) ? p.position : 'Hybrid',
+                        number: typeof p === 'object' ? p.number : null,
+                        email: existingPlayer ? (existingPlayer.email || '') : ''
+                    };
+                })
+            };
+
+            // Update column headers based on profile setting
+            const headerContainer = document.querySelector('#position-assignment-modal .grid.grid-cols-12.px-3');
+            if (headerContainer) {
+                if (profilesEnabled) {
+                    headerContainer.innerHTML = `
+                        <div class="col-span-4">Player</div>
+                        <div class="col-span-3">Position</div>
+                        <div class="col-span-5">Email (optional)</div>
+                    `;
+                } else {
+                    headerContainer.innerHTML = `
+                        <div class="col-span-6">Player</div>
+                        <div class="col-span-6">Position</div>
+                    `;
+                }
+            }
+
+            // Update modal description
+            const descEl = document.querySelector('#position-assignment-modal > div > p.text-gray-400');
+            if (descEl) {
+                if (profilesEnabled) {
+                    descEl.textContent = 'Assign positions and optionally add emails to create player profiles.';
+                } else {
+                    descEl.textContent = 'Assign positions to your players.';
+                }
+            }
+
+            // Show/hide profile-related options
+            const profileOptions = document.getElementById('send-profile-invites')?.parentElement;
+            if (profileOptions) {
+                profileOptions.style.display = profilesEnabled ? '' : 'none';
+            }
+
+            const container = document.getElementById('position-player-list');
+            container.innerHTML = positionAssignmentData.players.map((player, idx) => {
+                if (profilesEnabled) {
+                    return `
+                        <div class="grid grid-cols-12 gap-2 items-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div class="col-span-4">
+                                <span class="text-white font-medium text-sm">${escapeHtml(player.name)}</span>
+                                ${player.number ? `<span class="text-gray-500 text-xs ml-1">#${player.number}</span>` : ''}
+                            </div>
+                            <div class="col-span-3">
+                                <select data-player-idx="${idx}" onchange="updatePlayerPosition(${idx}, this.value)"
+                                    class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
+                                    <option value="Handler" ${player.currentPosition === 'Handler' ? 'selected' : ''}>Handler</option>
+                                    <option value="Hybrid" ${player.currentPosition === 'Hybrid' ? 'selected' : ''}>Hybrid</option>
+                                    <option value="Cutter" ${player.currentPosition === 'Cutter' ? 'selected' : ''}>Cutter</option>
+                                </select>
+                            </div>
+                            <div class="col-span-5">
+                                <input type="email" data-email-idx="${idx}"
+                                    value="${escapeHtml(player.email)}"
+                                    onchange="updatePlayerEmail(${idx}, this.value)"
+                                    placeholder="player@email.com"
+                                    class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="grid grid-cols-12 gap-2 items-center p-3 bg-white/5 rounded-xl border border-white/10">
+                            <div class="col-span-6">
+                                <span class="text-white font-medium text-sm">${escapeHtml(player.name)}</span>
+                                ${player.number ? `<span class="text-gray-500 text-xs ml-1">#${player.number}</span>` : ''}
+                            </div>
+                            <div class="col-span-6">
+                                <select data-player-idx="${idx}" onchange="updatePlayerPosition(${idx}, this.value)"
+                                    class="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/50">
+                                    <option value="Handler" ${player.currentPosition === 'Handler' ? 'selected' : ''}>Handler</option>
+                                    <option value="Hybrid" ${player.currentPosition === 'Hybrid' ? 'selected' : ''}>Hybrid</option>
+                                    <option value="Cutter" ${player.currentPosition === 'Cutter' ? 'selected' : ''}>Cutter</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            document.getElementById('sort-by-position').checked = false;
+            if (document.getElementById('send-profile-invites')) {
+                document.getElementById('send-profile-invites').checked = false;
+            }
+            document.getElementById('position-assignment-modal').classList.remove('hidden');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function updatePlayerEmail(idx, email) {
+            if (positionAssignmentData && positionAssignmentData.players[idx]) {
+                positionAssignmentData.players[idx].email = email.trim();
+            }
+        }
+
+        function closePositionModal() {
+            document.getElementById('position-assignment-modal').classList.add('hidden');
+            positionAssignmentData = null;
+        }
+
+        function updatePlayerPosition(idx, position) {
+            if (positionAssignmentData && positionAssignmentData.players[idx]) {
+                positionAssignmentData.players[idx].currentPosition = position;
+            }
+        }
+
+        function quickAssignPosition(position) {
+            if (!positionAssignmentData) return;
+
+            positionAssignmentData.players.forEach((p, idx) => {
+                p.currentPosition = position;
+            });
+
+            // Update all dropdowns
+            document.querySelectorAll('#position-player-list select').forEach(select => {
+                select.value = position;
+            });
+
+            showToast(`All players set to ${position}`, 'info');
+        }
+
+        function savePositionAssignments() {
+            if (!positionAssignmentData) {
+                closePositionModal();
+                return;
+            }
+
+            const teamId = positionAssignmentData.teamId;
+
+            // Check for email conflicts before saving
+            const playersWithNewEmails = positionAssignmentData.players.filter(p => {
+                if (!p.email || p.email.length === 0) return false;
+                // Check if this email is new (not already assigned to this player)
+                const existingPlayer = getPlayerByName(p.name);
+                if (existingPlayer && existingPlayer.email === p.email) return false;
+                return true;
+            });
+
+            const conflicts = checkEmailConflicts(playersWithNewEmails, teamId);
+
+            if (conflicts.length > 0) {
+                // Show conflict resolution modal
+                emailConflictQueue = conflicts;
+                emailConflictCallback = () => finishSavePositionAssignments();
+                showEmailConflictModal();
+                return;
+            }
+
+            // No conflicts, proceed directly
+            finishSavePositionAssignments();
+        }
+
+        function finishSavePositionAssignments() {
+            if (!positionAssignmentData) {
+                closePositionModal();
+                return;
+            }
+
+            const teamId = positionAssignmentData.teamId;
+            const sortByPosition = document.getElementById('sort-by-position').checked;
+            const generateProfileLinks = document.getElementById('send-profile-invites').checked;
+
+            // Track players with emails for profile link generation
+            const playersWithEmails = [];
+
+            // Update player positions and emails in registry
+            positionAssignmentData.players.forEach(player => {
+                // Skip if this player was merged with existing
+                if (player.mergedWithExisting) {
+                    const existingPlayer = playerRegistry[player.existingPlayerId];
+                    if (existingPlayer && existingPlayer.email) {
+                        playersWithEmails.push({
+                            name: existingPlayer.name,
+                            email: existingPlayer.email,
+                            playerId: existingPlayer.id
+                        });
+                    }
+                    return;
+                }
+
+                const playerObj = getPlayerByName(player.name);
+                if (playerObj) {
+                    playerObj.position = player.currentPosition;
+
+                    // Save email if provided
+                    if (player.email && player.email.length > 0) {
+                        playerObj.email = player.email;
+                        playersWithEmails.push({
+                            name: player.name,
+                            email: player.email,
+                            playerId: playerObj.id
+                        });
+                    }
+                }
+            });
+
+            // Save registry
+            savePlayerRegistry();
+
+            // Sort roster if requested
+            if (sortByPosition && teamsData.teams[teamId]) {
+                const positionOrder = { 'Handler': 1, 'Hybrid': 2, 'Cutter': 3 };
+
+                teamsData.teams[teamId].roster.sort((a, b) => {
+                    const playerA = getPlayerByName(a);
+                    const playerB = getPlayerByName(b);
+                    const posA = playerA ? (positionOrder[playerA.position] || 2) : 2;
+                    const posB = playerB ? (positionOrder[playerB.position] || 2) : 2;
+                    return posA - posB;
+                });
+
+                // Update current roster if this is the active team
+                if (teamsData.currentTeamId === teamId) {
+                    savedRoster = [...teamsData.teams[teamId].roster];
+                    gameState.players = [...teamsData.teams[teamId].roster];
+                    saveRoster();
+                }
+
+                saveTeamsData();
+            }
+
+            // Generate profile links if requested and players have emails
+            if (generateProfileLinks && playersWithEmails.length > 0) {
+                generatePlayerProfileLinks(teamId, playersWithEmails);
+                showToast(`Saved! ${playersWithEmails.length} player profile links generated.`, 'success');
+            } else if (sortByPosition) {
+                showToast('Positions saved and roster sorted!', 'success');
+            } else {
+                showToast('Positions saved!', 'success');
+            }
+
+            // Refresh UI
+            updateTeamSelector();
+            updatePlayerList();
+
+            closePositionModal();
+        }
+
+        function generatePlayerProfileLinks(teamId, playersWithEmails) {
+            // Store profile link data for each player
+            // This creates a unique profile token for each player that can be shared
+            const profileLinks = JSON.parse(localStorage.getItem('ultistats_player_profiles') || '{}');
+            const generatedLinks = [];
+
+            playersWithEmails.forEach(player => {
+                // Generate a unique token for this player's profile
+                const profileToken = btoa(`${teamId}:${player.playerId}:${Date.now()}`).replace(/[=+/]/g, '').substring(0, 12);
+
+                profileLinks[profileToken] = {
+                    playerId: player.playerId,
+                    playerName: player.name,
+                    email: player.email,
+                    teamId: teamId,
+                    createdAt: new Date().toISOString()
+                };
+
+                // Also store the profile token on the player object
+                const playerObj = playerRegistry[player.playerId];
+                if (playerObj) {
+                    playerObj.profileToken = profileToken;
+                }
+
+                // Track for display
+                const profileUrl = `${window.location.origin}/player-profile.html?token=${profileToken}`;
+                generatedLinks.push({
+                    name: player.name,
+                    email: player.email,
+                    url: profileUrl
+                });
+            });
+
+            localStorage.setItem('ultistats_player_profiles', JSON.stringify(profileLinks));
+            savePlayerRegistry();
+
+            // Show modal with generated links
+            showProfileLinksModal(generatedLinks);
+        }
+
+        let currentProfileLinks = [];
+
+        function showProfileLinksModal(links) {
+            currentProfileLinks = links;
+            const container = document.getElementById('profile-links-list');
+
+            container.innerHTML = links.map((link, idx) => `
+                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                    <div class="flex-1 min-w-0">
+                        <p class="text-white font-medium truncate">${escapeHtml(link.name)}</p>
+                        <p class="text-gray-500 text-xs truncate">${escapeHtml(link.email)}</p>
+                    </div>
+                    <button onclick="copyProfileLink(${idx})" class="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-lg text-sm transition-all border border-emerald-500/30" title="Copy link">
+                        <i data-lucide="copy" class="w-3 h-3"></i>
+                        Copy
+                    </button>
+                </div>
+            `).join('');
+
+            document.getElementById('profile-links-modal').classList.remove('hidden');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeProfileLinksModal() {
+            document.getElementById('profile-links-modal').classList.add('hidden');
+            currentProfileLinks = [];
+        }
+
+        function copyProfileLink(idx) {
+            if (currentProfileLinks[idx]) {
+                navigator.clipboard.writeText(currentProfileLinks[idx].url).then(() => {
+                    showToast(`Link copied for ${currentProfileLinks[idx].name}`, 'success');
+                }).catch(() => {
+                    showToast('Failed to copy link', 'error');
+                });
+            }
+        }
+
+        function copyAllProfileLinks() {
+            if (currentProfileLinks.length === 0) return;
+
+            const allLinks = currentProfileLinks.map(link =>
+                `${link.name} (${link.email}): ${link.url}`
+            ).join('\n\n');
+
+            navigator.clipboard.writeText(allLinks).then(() => {
+                showToast(`Copied ${currentProfileLinks.length} profile links`, 'success');
+            }).catch(() => {
+                showToast('Failed to copy links', 'error');
+            });
+        }
+
+        // ==================== EMAIL CONFLICT HANDLING ====================
+
+        let emailConflictQueue = []; // Queue of conflicts to process
+        let currentConflict = null;
+        let emailConflictCallback = null; // Called when all conflicts are resolved
+
+        // Find a player by email across all players in registry
+        function findPlayerByEmail(email) {
+            if (!email) return null;
+            const emailLower = email.toLowerCase().trim();
+
+            for (const playerId in playerRegistry) {
+                const player = playerRegistry[playerId];
+                if (player.email && player.email.toLowerCase().trim() === emailLower) {
+                    return player;
+                }
+            }
+            return null;
+        }
+
+        // Check for email conflicts in a list of players
+        function checkEmailConflicts(newPlayers, currentTeamId) {
+            const conflicts = [];
+
+            newPlayers.forEach(newPlayer => {
+                if (!newPlayer.email) return;
+
+                const existingPlayer = findPlayerByEmail(newPlayer.email);
+                if (existingPlayer && existingPlayer.name.toLowerCase() !== newPlayer.name.toLowerCase()) {
+                    // Found a conflict - email belongs to a different player
+                    conflicts.push({
+                        email: newPlayer.email,
+                        newPlayer: newPlayer,
+                        existingPlayer: existingPlayer,
+                        teamId: currentTeamId,
+                        resolution: null // 'merge', 'different', or 'cancel'
+                    });
+                }
+            });
+
+            return conflicts;
+        }
+
+        // Show the email conflict modal for the next conflict in queue
+        function showEmailConflictModal() {
+            if (emailConflictQueue.length === 0) {
+                // All conflicts resolved, proceed with callback
+                if (emailConflictCallback) {
+                    emailConflictCallback();
+                    emailConflictCallback = null;
+                }
+                return;
+            }
+
+            currentConflict = emailConflictQueue.shift();
+
+            // Populate modal
+            document.getElementById('conflict-email').textContent = currentConflict.email;
+
+            // Existing player info
+            document.getElementById('conflict-existing-avatar').textContent =
+                getPlayerInitials(currentConflict.existingPlayer.name);
+            document.getElementById('conflict-existing-name').textContent =
+                currentConflict.existingPlayer.name;
+            document.getElementById('conflict-existing-info').textContent =
+                `${currentConflict.existingPlayer.position || 'No position'} • Already in system`;
+
+            // New player info
+            document.getElementById('conflict-new-avatar').textContent =
+                getPlayerInitials(currentConflict.newPlayer.name);
+            document.getElementById('conflict-new-name').textContent =
+                currentConflict.newPlayer.name;
+            document.getElementById('conflict-new-info').textContent =
+                `${currentConflict.newPlayer.position || currentConflict.newPlayer.currentPosition || 'Hybrid'}`;
+
+            // Reset modal to initial state before showing
+            resetConflictModalState();
+
+            document.getElementById('email-conflict-modal').classList.remove('hidden');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function confirmEmailConflict(action) {
+            if (!currentConflict) return;
+
+            currentConflict.resolution = action;
+
+            if (action === 'merge') {
+                // Merge: Link the new player to the existing player's profile
+                mergePlayerProfiles(currentConflict);
+                showToast(`Linked ${currentConflict.newPlayer.name} to ${currentConflict.existingPlayer.name}'s profile`, 'success');
+            } else if (action === 'skip') {
+                // Skip: Clear the email from the new player
+                currentConflict.newPlayer.email = '';
+                showToast(`Email skipped for ${currentConflict.newPlayer.name}`, 'info');
+            } else if (action === 'cancel') {
+                // Cancel: Stop the whole process
+                emailConflictQueue = [];
+                currentConflict = null;
+                document.getElementById('email-conflict-modal').classList.add('hidden');
+                resetConflictModalState();
+                showToast('Import cancelled', 'info');
+                return;
+            }
+
+            document.getElementById('email-conflict-modal').classList.add('hidden');
+            resetConflictModalState();
+            currentConflict = null;
+
+            // Process next conflict or finish
+            if (emailConflictQueue.length > 0) {
+                setTimeout(() => showEmailConflictModal(), 300);
+            } else if (emailConflictCallback) {
+                setTimeout(() => {
+                    emailConflictCallback();
+                    emailConflictCallback = null;
+                }, 300);
+            }
+        }
+
+        function resetConflictModalState() {
+            // Reset modal to initial state
+            document.getElementById('conflict-choice-buttons').classList.remove('hidden');
+            document.getElementById('conflict-alternate-email').classList.add('hidden');
+            document.getElementById('conflict-new-email-input').value = '';
+            document.getElementById('conflict-email-error').classList.add('hidden');
+        }
+
+        function showAlternateEmailInput() {
+            if (!currentConflict) return;
+
+            // Hide choice buttons, show email input
+            document.getElementById('conflict-choice-buttons').classList.add('hidden');
+            document.getElementById('conflict-alternate-email').classList.remove('hidden');
+            document.getElementById('conflict-player-name-alt').textContent = currentConflict.newPlayer.name;
+            document.getElementById('conflict-new-email-input').value = '';
+            document.getElementById('conflict-email-error').classList.add('hidden');
+            document.getElementById('conflict-new-email-input').focus();
+        }
+
+        function hideAlternateEmailInput() {
+            // Go back to choice buttons
+            document.getElementById('conflict-choice-buttons').classList.remove('hidden');
+            document.getElementById('conflict-alternate-email').classList.add('hidden');
+        }
+
+        function confirmAlternateEmail() {
+            if (!currentConflict) return;
+
+            const newEmail = document.getElementById('conflict-new-email-input').value.trim();
+            const errorEl = document.getElementById('conflict-email-error');
+
+            // Validate email format
+            if (!newEmail) {
+                errorEl.textContent = 'Please enter an email address';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            if (!newEmail.includes('@') || !newEmail.includes('.')) {
+                errorEl.textContent = 'Please enter a valid email address';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            // Check if this new email also conflicts with another player
+            const anotherConflict = findPlayerByEmail(newEmail);
+            if (anotherConflict && anotherConflict.name.toLowerCase() !== currentConflict.newPlayer.name.toLowerCase()) {
+                errorEl.textContent = `This email is already used by ${anotherConflict.name}. Please enter a different email.`;
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            // Email is valid and unique - update the player's email
+            currentConflict.newPlayer.email = newEmail;
+            currentConflict.resolution = 'alternate';
+
+            showToast(`Email updated for ${currentConflict.newPlayer.name}`, 'success');
+
+            document.getElementById('email-conflict-modal').classList.add('hidden');
+            resetConflictModalState();
+            currentConflict = null;
+
+            // Process next conflict or finish
+            if (emailConflictQueue.length > 0) {
+                setTimeout(() => showEmailConflictModal(), 300);
+            } else if (emailConflictCallback) {
+                setTimeout(() => {
+                    emailConflictCallback();
+                    emailConflictCallback = null;
+                }, 300);
+            }
+        }
+
+        function mergePlayerProfiles(conflict) {
+            const existingPlayer = conflict.existingPlayer;
+            const newPlayerData = conflict.newPlayer;
+            const teamId = conflict.teamId;
+
+            // Update the team roster to use the existing player's name
+            if (teamsData.teams[teamId]) {
+                const roster = teamsData.teams[teamId].roster;
+                const idx = roster.indexOf(newPlayerData.name);
+                if (idx !== -1) {
+                    roster[idx] = existingPlayer.name;
+                }
+
+                // Merge career stats if the new player had any initialized
+                const newStats = teamsData.teams[teamId].careerStats?.players?.[newPlayerData.name];
+                if (newStats) {
+                    // Transfer stats to existing player name
+                    if (!teamsData.teams[teamId].careerStats.players[existingPlayer.name]) {
+                        teamsData.teams[teamId].careerStats.players[existingPlayer.name] = newStats;
+                    }
+                    // Remove the duplicate entry
+                    delete teamsData.teams[teamId].careerStats.players[newPlayerData.name];
+                }
+            }
+
+            // Remove the duplicate player from registry if it was created
+            const duplicatePlayer = getPlayerByName(newPlayerData.name);
+            if (duplicatePlayer && duplicatePlayer.id !== existingPlayer.id) {
+                delete playerRegistry[duplicatePlayer.id];
+            }
+
+            // Update position assignment data if we're in that flow
+            if (positionAssignmentData) {
+                const playerInList = positionAssignmentData.players.find(p => p.name === newPlayerData.name);
+                if (playerInList) {
+                    playerInList.name = existingPlayer.name;
+                    playerInList.mergedWithExisting = true;
+                    playerInList.existingPlayerId = existingPlayer.id;
+                }
+            }
+
+            saveTeamsData();
+            savePlayerRegistry();
+        }
+
+        // ==================== CSV IMPORT FUNCTIONALITY ====================
+
+        let csvParsedPlayers = [];
+        let csvFileContent = null;
+        let csvCurrentTab = 'paste';
+
+        function showCsvImportModal() {
+            document.getElementById('csv-import-modal').classList.remove('hidden');
+            csvParsedPlayers = [];
+            csvFileContent = null;
+            document.getElementById('csv-team-name').value = '';
+            document.getElementById('csv-paste-input').value = '';
+            document.getElementById('csv-preview-section').classList.add('hidden');
+            document.getElementById('csv-import-btn').disabled = true;
+            document.getElementById('csv-file-info').classList.add('hidden');
+            switchCsvTab('paste');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeCsvImportModal() {
+            document.getElementById('csv-import-modal').classList.add('hidden');
+            csvParsedPlayers = [];
+            csvFileContent = null;
+        }
+
+        function switchCsvTab(tabName) {
+            csvCurrentTab = tabName;
+
+            // Update tab buttons
+            document.querySelectorAll('.csv-tab').forEach(btn => {
+                if (btn.dataset.csvTab === tabName) {
+                    btn.className = 'csv-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-green-500/20 text-green-400 border border-green-500/30';
+                } else {
+                    btn.className = 'csv-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.csv-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`csv-${tabName}-tab`).classList.remove('hidden');
+
+            // Reset preview when switching tabs
+            document.getElementById('csv-preview-section').classList.add('hidden');
+            document.getElementById('csv-import-btn').disabled = true;
+            csvParsedPlayers = [];
+        }
+
+        function loadCsvExample() {
+            const example = `Alex Thompson, Handler, alex@team.com
+Jordan Rivera, Handler, jordan@team.com
+Casey Morgan, Cutter, casey@team.com
+Taylor Chen, Cutter
+Riley Johnson, Hybrid, riley@team.com
+Morgan Smith, Hybrid
+Jamie Williams
+Drew Anderson, Cutter, drew@team.com`;
+
+            document.getElementById('csv-paste-input').value = example;
+            document.getElementById('csv-team-name').value = 'My Team';
+            showToast('Example loaded - click Preview to see players', 'info');
+        }
+
+        function downloadCsvTemplate() {
+            const template = `Name,Position,Email
+Alex Thompson,Handler,alex@team.com
+Jordan Rivera,Handler,
+Casey Morgan,Cutter,casey@team.com
+Taylor Chen,Hybrid,
+Riley Johnson,,riley@team.com`;
+
+            const blob = new Blob([template], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'ultistats_roster_template.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast('Template downloaded', 'success');
+        }
+
+        function handleCsvDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('border-green-500/50', 'bg-green-500/5');
+        }
+
+        function handleCsvDragLeave(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-green-500/50', 'bg-green-500/5');
+        }
+
+        function handleCsvDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('border-green-500/50', 'bg-green-500/5');
+
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                processCsvFile(files[0]);
+            }
+        }
+
+        function handleCsvFileSelect(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                processCsvFile(files[0]);
+            }
+        }
+
+        function processCsvFile(file) {
+            if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+                showToast('Please select a CSV or TXT file', 'error');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                csvFileContent = e.target.result;
+                document.getElementById('csv-file-name').textContent = file.name;
+                document.getElementById('csv-file-info').classList.remove('hidden');
+
+                // Auto-preview
+                parseCsvPreview();
+
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearCsvFile() {
+            csvFileContent = null;
+            document.getElementById('csv-file-info').classList.add('hidden');
+            document.getElementById('csv-file-input').value = '';
+            document.getElementById('csv-preview-section').classList.add('hidden');
+            document.getElementById('csv-import-btn').disabled = true;
+            csvParsedPlayers = [];
+        }
+
+        function parseCsvPreview() {
+            let csvText = '';
+
+            if (csvCurrentTab === 'paste') {
+                csvText = document.getElementById('csv-paste-input').value.trim();
+            } else if (csvFileContent) {
+                csvText = csvFileContent.trim();
+            }
+
+            if (!csvText) {
+                showToast('No CSV data to parse', 'error');
+                return;
+            }
+
+            // Parse CSV
+            csvParsedPlayers = parseCsvText(csvText);
+
+            if (csvParsedPlayers.length === 0) {
+                showToast('No valid players found in CSV', 'error');
+                return;
+            }
+
+            // Show preview
+            const previewSection = document.getElementById('csv-preview-section');
+            const previewList = document.getElementById('csv-preview-list');
+            const playerCount = document.getElementById('csv-player-count');
+
+            playerCount.textContent = `${csvParsedPlayers.length} players`;
+
+            previewList.innerHTML = csvParsedPlayers.map(player => {
+                const posClass = player.position === 'Handler' ? 'bg-blue-500/20 text-blue-400' :
+                                player.position === 'Cutter' ? 'bg-green-500/20 text-green-400' :
+                                'bg-purple-500/20 text-purple-400';
+
+                return `
+                    <div class="flex items-center justify-between py-1.5 px-2 bg-white/5 rounded-lg text-sm">
+                        <span class="text-white">${escapeHtml(player.name)}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="px-2 py-0.5 rounded text-xs ${posClass}">${player.position}</span>
+                            ${player.email ? `<span class="text-gray-500 text-xs">${escapeHtml(player.email)}</span>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            previewSection.classList.remove('hidden');
+            document.getElementById('csv-import-btn').disabled = false;
+
+            showToast(`Found ${csvParsedPlayers.length} players`, 'success');
+        }
+
+        function parseCsvText(text) {
+            const lines = text.split(/\r?\n/).filter(line => line.trim());
+            const players = [];
+            const nameSet = new Set();
+
+            // Check if first line is a header
+            const firstLine = lines[0].toLowerCase();
+            const hasHeader = firstLine.includes('name') || firstLine.includes('player') ||
+                             (firstLine.includes('position') && firstLine.includes(','));
+
+            const startIndex = hasHeader ? 1 : 0;
+
+            for (let i = startIndex; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // Parse CSV line (handle quoted fields)
+                const fields = parseCSVLine(line);
+
+                if (fields.length === 0) continue;
+
+                const name = fields[0].trim();
+                if (!name || name.length < 2 || nameSet.has(name.toLowerCase())) continue;
+
+                // Validate name (should have letters, not just numbers/special chars)
+                if (!/[a-zA-Z]/.test(name)) continue;
+
+                nameSet.add(name.toLowerCase());
+
+                // Parse position (default to Hybrid)
+                let position = 'Hybrid';
+                if (fields.length > 1 && fields[1].trim()) {
+                    const posInput = fields[1].trim().toLowerCase();
+                    if (posInput.includes('handler') || posInput === 'h') {
+                        position = 'Handler';
+                    } else if (posInput.includes('cutter') || posInput === 'c') {
+                        position = 'Cutter';
+                    } else if (posInput.includes('hybrid') || posInput === 'hy') {
+                        position = 'Hybrid';
+                    }
+                }
+
+                // Parse email
+                let email = '';
+                if (fields.length > 2 && fields[2].trim()) {
+                    const emailInput = fields[2].trim();
+                    // Basic email validation
+                    if (emailInput.includes('@') && emailInput.includes('.')) {
+                        email = emailInput;
+                    }
+                }
+
+                players.push({ name, position, email });
+            }
+
+            return players;
+        }
+
+        function parseCSVLine(line) {
+            const fields = [];
+            let current = '';
+            let inQuotes = false;
+
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if ((char === ',' || char === '\t') && !inQuotes) {
+                    fields.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+
+            fields.push(current.trim());
+            return fields;
+        }
+
+        let csvImportPendingTeamName = null;
+
+        function importCsvTeam() {
+            const teamName = document.getElementById('csv-team-name').value.trim();
+
+            if (!teamName) {
+                showToast('Please enter a team name', 'error');
+                document.getElementById('csv-team-name').focus();
+                return;
+            }
+
+            if (csvParsedPlayers.length === 0) {
+                showToast('No players to import. Click Preview first.', 'error');
+                return;
+            }
+
+            csvImportPendingTeamName = teamName;
+
+            // Check for email conflicts before creating the team
+            const playersWithEmails = csvParsedPlayers.filter(p => p.email && p.email.length > 0);
+            const conflicts = checkEmailConflicts(playersWithEmails, null);
+
+            if (conflicts.length > 0) {
+                // Show conflict resolution modal
+                emailConflictQueue = conflicts;
+                emailConflictCallback = () => finishCsvImport();
+                showEmailConflictModal();
+                return;
+            }
+
+            // No conflicts, proceed directly
+            finishCsvImport();
+        }
+
+        function finishCsvImport() {
+            const teamName = csvImportPendingTeamName;
+            if (!teamName) return;
+
+            // Get profile setting
+            const enableProfiles = document.getElementById('csv-enable-profiles')?.checked ?? true;
+
+            // Create new team with profile setting
+            const newTeam = createEmptyTeam(teamName, null, enableProfiles);
+
+            // Track players for position assignment
+            const importedPlayers = [];
+
+            // Add players to roster
+            csvParsedPlayers.forEach(player => {
+                // Check if this player was resolved as a merge with existing
+                const wasSkipped = player.email === ''; // Email was cleared due to conflict resolution
+
+                newTeam.roster.push(player.name);
+
+                // Register player
+                if (!getPlayerByName(player.name)) {
+                    const playerObj = createPlayer(player.name, player.position);
+                    if (player.email) {
+                        playerObj.email = player.email;
+                    }
+                    playerRegistry[playerObj.id] = playerObj;
+                } else {
+                    // Update existing player
+                    const existingPlayer = getPlayerByName(player.name);
+                    if (existingPlayer) {
+                        existingPlayer.position = player.position;
+                        if (player.email) {
+                            existingPlayer.email = player.email;
+                        }
+                    }
+                }
+
+                // Track for position assignment modal
+                importedPlayers.push({
+                    name: player.name,
+                    position: player.position,
+                    email: player.email
+                });
+
+                // Initialize stats
+                newTeam.careerStats.players[player.name] = {
+                    goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
+                    yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+                };
+            });
+
+            teamsData.teams[newTeam.id] = newTeam;
+            teamsData.currentTeamId = newTeam.id;
+
+            savePlayerRegistry();
+            saveTeamsData();
+
+            // Update current roster
+            savedRoster = [...newTeam.roster];
+            gameState.players = [...newTeam.roster];
+            saveRoster();
+
+            updateTeamSelector();
+            updatePlayerList();
+
+            showToast(`Imported "${teamName}" with ${csvParsedPlayers.length} players!`, 'success');
+
+            // Close CSV modal
+            closeCsvImportModal();
+
+            // Check if any players need email/position updates
+            const playersWithEmails = importedPlayers.filter(p => p.email);
+
+            // Show position assignment modal for review
+            setTimeout(() => {
+                showPositionAssignmentModal(newTeam.id, importedPlayers);
+            }, 300);
+        }
+    </script>
+</body>
+</html>

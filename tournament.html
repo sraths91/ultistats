@@ -1,0 +1,2684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>Tournaments - UltiStats</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="dashboard.html" class="text-gray-400 hover:text-white transition-colors" aria-label="Back to Dashboard">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Tournaments</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showUsauImportModal()" class="flex items-center gap-2 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-purple-500/30">
+                    <i data-lucide="download" class="w-4 h-4"></i>
+                    Import from USAU
+                </button>
+                <button onclick="showCreateLeagueModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    New Tournament
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative z-10 container mx-auto px-6 py-8">
+        <!-- League Selector -->
+        <section id="league-selector" class="max-w-6xl mx-auto">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 text-emerald-400"></i>
+                        Your Tournaments
+                    </h2>
+                </div>
+                <div id="league-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- League cards populated by JS -->
+                    <div class="skeleton-item animate-pulse bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div class="h-5 bg-white/10 rounded w-3/4 mb-3"></div>
+                        <div class="h-4 bg-white/10 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- League Details (shown when a league is selected) -->
+        <section id="league-details" class="max-w-6xl mx-auto mt-8 hidden">
+            <!-- League Header -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl mb-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 id="league-name" class="text-2xl font-bold text-white">League Name</h2>
+                        <p id="league-info" class="text-gray-400 text-sm mt-1">Format: Pool → Bracket | 0 Teams | 0 Pools</p>
+                        <p id="league-last-updated" class="text-gray-500 text-xs mt-1 hidden">Last updated: Never</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button id="update-results-btn" onclick="updateLeagueResults()" class="hidden flex items-center gap-2 bg-gradient-to-r from-orange-500/20 to-amber-500/20 hover:from-orange-500/30 hover:to-amber-500/30 text-orange-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-orange-500/30">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            Update Results
+                        </button>
+                        <button onclick="showEditLeagueModal()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-sm font-medium transition-all border border-white/10">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            Edit
+                        </button>
+                        <button onclick="confirmDeleteLeague()" class="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Delete
+                        </button>
+                        <button onclick="generateLeagueSchedule()" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-cyan-500/30">
+                            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+                            Generate Schedule
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Tabs -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <button onclick="switchLeagueTab('pools')" data-tab="pools" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0">
+                    <i data-lucide="layers" class="w-4 h-4 inline mr-1"></i>
+                    Pools & Standings
+                </button>
+                <button onclick="switchLeagueTab('bracket')" data-tab="bracket" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="git-branch" class="w-4 h-4 inline mr-1"></i>
+                    Bracket
+                </button>
+                <button onclick="switchLeagueTab('matchups')" data-tab="matchups" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
+                    All Matchups
+                </button>
+                <button onclick="switchLeagueTab('teams')" data-tab="teams" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="users" class="w-4 h-4 inline mr-1"></i>
+                    Teams
+                </button>
+                <button onclick="switchLeagueTab('synopsis')" data-tab="synopsis" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 inline mr-1"></i>
+                    Synopsis
+                </button>
+            </div>
+
+            <!-- Pools & Standings View -->
+            <div id="pools-view" class="tab-content">
+                <div id="pools-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Pools populated by JS -->
+                </div>
+
+                <!-- Recent Results Section (for USAU-imported leagues) -->
+                <div id="recent-results-section" class="hidden mt-6">
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+                                Recent Results
+                            </h3>
+                            <button onclick="updateLeagueResults()" class="text-sm text-orange-400 hover:text-orange-300 flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        <div id="recent-results-list" class="space-y-2 max-h-64 overflow-y-auto">
+                            <!-- Populated by JS -->
+                            <p class="text-gray-400 text-center py-4">No completed games yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bracket View -->
+            <div id="bracket-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="git-branch" class="w-5 h-5 text-cyan-400"></i>
+                        Elimination Bracket
+                    </h3>
+                    <div id="bracket-container" class="overflow-x-auto">
+                        <!-- Bracket populated by JS -->
+                        <p class="text-gray-400 text-center py-8">Complete pool play to generate bracket</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- All Matchups View -->
+            <div id="matchups-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-purple-400"></i>
+                            Schedule
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="filterMatchups('all')" data-filter="all" class="matchup-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/10 text-white">All</button>
+                            <button onclick="filterMatchups('upcoming')" data-filter="upcoming" class="matchup-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">Upcoming</button>
+                            <button onclick="filterMatchups('completed')" data-filter="completed" class="matchup-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">Completed</button>
+                        </div>
+                    </div>
+                    <div id="matchups-list" class="space-y-3 max-h-[60vh] overflow-y-auto">
+                        <!-- Matchups populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teams View -->
+            <div id="teams-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
+                            Teams in Tournament
+                        </h3>
+                        <button onclick="showAddTeamModal()" class="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-emerald-500/30">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            Add Team
+                        </button>
+                    </div>
+                    <div id="teams-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        <!-- Teams populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Synopsis View -->
+            <div id="synopsis-view" class="tab-content hidden">
+                <!-- No data state -->
+                <div id="synopsis-no-data">
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl text-center">
+                        <div class="w-16 h-16 bg-gradient-to-br from-purple-400/20 to-pink-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <i data-lucide="bar-chart-3" class="w-8 h-8 text-purple-400"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2">Tournament Synopsis</h3>
+                        <p class="text-gray-400 mb-6 text-sm">Fetch USAU rankings to generate tournament analysis with rating impacts, upsets, and key storylines.</p>
+                        <div id="synopsis-rankset-selector" class="mb-4 hidden">
+                            <label class="text-gray-400 text-sm mb-2 block">Select Division:</label>
+                            <select id="synopsis-rankset" class="bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2 text-sm">
+                                <option value="College-Men">College Men</option>
+                                <option value="College-Women">College Women</option>
+                                <option value="Club-Men">Club Men</option>
+                                <option value="Club-Women">Club Women</option>
+                                <option value="Club-Mixed">Club Mixed</option>
+                            </select>
+                        </div>
+                        <button onclick="fetchRankingsAndGenerateSynopsis()" class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-purple-500/25">
+                            <i data-lucide="download" class="w-4 h-4 inline mr-2"></i>
+                            Fetch Rankings & Generate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Loading state -->
+                <div id="synopsis-loading" class="hidden">
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl text-center">
+                        <div class="animate-spin w-8 h-8 border-2 border-purple-400 border-t-transparent rounded-full mx-auto mb-4"></div>
+                        <p class="text-gray-400">Fetching USAU rankings data...</p>
+                    </div>
+                </div>
+
+                <!-- Synopsis content -->
+                <div id="synopsis-content" class="hidden space-y-6">
+                    <!-- Overview Stats Cards -->
+                    <div id="synopsis-overview" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+
+                    <!-- Key Storylines -->
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                        <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-amber-400"></i>
+                            Key Storylines
+                        </h3>
+                        <div id="storylines-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                    </div>
+
+                    <!-- Narrative Summary -->
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                        <h3 class="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                            <i data-lucide="file-text" class="w-5 h-5 text-cyan-400"></i>
+                            Tournament Summary
+                        </h3>
+                        <p id="narrative-text" class="text-gray-300 leading-relaxed"></p>
+                    </div>
+
+                    <!-- Rating Impacts Table -->
+                    <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="trending-up" class="w-5 h-5 text-emerald-400"></i>
+                                Rating Impacts
+                            </h3>
+                            <button onclick="fetchRankingsAndGenerateSynopsis()" class="text-sm text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                                <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-gray-400 text-xs">
+                                        <th onclick="sortSynopsisTable('seed')" class="text-left py-2 px-2 cursor-pointer hover:text-gray-200">Seed</th>
+                                        <th onclick="sortSynopsisTable('team')" class="text-left py-2 px-2 cursor-pointer hover:text-gray-200">Team</th>
+                                        <th onclick="sortSynopsisTable('preRating')" class="text-center py-2 px-2 cursor-pointer hover:text-gray-200">Pre-Rating</th>
+                                        <th onclick="sortSynopsisTable('record')" class="text-center py-2 px-2 cursor-pointer hover:text-gray-200">Record</th>
+                                        <th onclick="sortSynopsisTable('change')" class="text-center py-2 px-2 cursor-pointer hover:text-gray-200">Proj. Change</th>
+                                        <th onclick="sortSynopsisTable('projected')" class="text-center py-2 px-2 cursor-pointer hover:text-gray-200">Proj. Rating</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="synopsis-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State (shown when no leagues) -->
+        <section id="empty-state" class="max-w-md mx-auto mt-16 text-center hidden">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+                <div class="w-20 h-20 bg-gradient-to-br from-emerald-400/20 to-cyan-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="trophy" class="w-10 h-10 text-emerald-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">No Tournaments Yet</h2>
+                <p class="text-gray-400 mb-6">Create your first league to organize tournaments with pool play and bracket elimination.</p>
+                <button onclick="showCreateLeagueModal()" class="bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i>
+                    Create Tournament
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+    <!-- Create/Edit Tournament Modal -->
+    <div id="league-modal" role="dialog" aria-modal="true" aria-labelledby="league-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeLeagueModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="league-modal-title" class="text-xl font-bold text-white">Create Tournament</h2>
+                <button onclick="closeLeagueModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="league-form" onsubmit="handleLeagueSubmit(event)" class="flex-1 overflow-y-auto space-y-4">
+                <div>
+                    <label for="league-name-input" class="block text-sm font-medium text-gray-300 mb-2">Tournament Name</label>
+                    <input type="text" id="league-name-input" required
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                        placeholder="North Central Regionals 2025">
+                </div>
+                <div>
+                    <label for="league-description-input" class="block text-sm font-medium text-gray-300 mb-2">Description (optional)</label>
+                    <textarea id="league-description-input" rows="2"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all resize-none"
+                        placeholder="Regional qualifier tournament"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="tournament-start-date" class="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+                        <input type="date" id="tournament-start-date"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                    </div>
+                    <div>
+                        <label for="tournament-end-date" class="block text-sm font-medium text-gray-300 mb-2">End Date</label>
+                        <input type="date" id="tournament-end-date"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                    </div>
+                </div>
+                <div>
+                    <label for="usau-format-input" class="block text-sm font-medium text-gray-300 mb-2">USAU Tournament Format</label>
+                    <select id="usau-format-input" required onchange="handleUsauFormatChange()"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                        <option value="">-- Select Format --</option>
+                        <optgroup label="Pool Play → Bracket (Recommended)">
+                            <option value="8-2x4">8 Teams: 2 pools of 4 → Bracket</option>
+                            <option value="10-2x5">10 Teams: 2 pools of 5 → Bracket</option>
+                            <option value="12-2x6">12 Teams: 2 pools of 6 → Bracket</option>
+                            <option value="12-3x4">12 Teams: 3 pools of 4 → Bracket</option>
+                            <option value="16-4x4">16 Teams: 4 pools of 4 → Bracket</option>
+                        </optgroup>
+                        <optgroup label="Pool Play Only">
+                            <option value="pool-4">Pool Play: 4 teams (round-robin)</option>
+                            <option value="pool-6">Pool Play: 6 teams (round-robin)</option>
+                            <option value="pool-8">Pool Play: 8 teams (round-robin)</option>
+                        </optgroup>
+                        <optgroup label="Bracket Only">
+                            <option value="bracket-4">Bracket: 4 teams (single elimination)</option>
+                            <option value="bracket-8">Bracket: 8 teams (single elimination)</option>
+                            <option value="bracket-16">Bracket: 16 teams (single elimination)</option>
+                        </optgroup>
+                        <optgroup label="Custom">
+                            <option value="custom">Custom Configuration</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div id="format-details" class="p-3 bg-white/5 rounded-xl border border-white/10 hidden">
+                    <p id="format-description" class="text-sm text-gray-300"></p>
+                    <div id="format-structure" class="mt-2 text-xs text-gray-400"></div>
+                </div>
+                <div id="custom-config" class="space-y-4 hidden">
+                    <div>
+                        <label for="league-format-input" class="block text-sm font-medium text-gray-300 mb-2">Format Type</label>
+                        <select id="league-format-input"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                            <option value="pool-to-bracket">Pool Play → Bracket</option>
+                            <option value="pool-play">Pool Play Only</option>
+                            <option value="bracket">Bracket Only</option>
+                        </select>
+                    </div>
+                    <div id="pools-count-container">
+                        <label for="league-pools-input" class="block text-sm font-medium text-gray-300 mb-2">Number of Pools</label>
+                        <select id="league-pools-input"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                            <option value="2">2 Pools (A, B)</option>
+                            <option value="3">3 Pools (A, B, C)</option>
+                            <option value="4">4 Pools (A, B, C, D)</option>
+                        </select>
+                    </div>
+                </div>
+                <input type="hidden" id="expected-teams" value="">
+                <input type="hidden" id="teams-per-pool" value="">
+                <input type="hidden" id="league-edit-id" value="">
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/25">
+                    Save Tournament
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Team Modal -->
+    <div id="add-team-modal" role="dialog" aria-modal="true" aria-labelledby="add-team-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAddTeamModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="add-team-modal-title" class="text-xl font-bold text-white">Add Team to Tournament</h2>
+                <button onclick="closeAddTeamModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-4">
+                <div id="pool-select-container">
+                    <label for="pool-select" class="block text-sm font-medium text-gray-300 mb-2">Assign to Pool</label>
+                    <select id="pool-select"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Select Team</label>
+                    <div id="available-teams-list" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- Teams populated by JS -->
+                    </div>
+                </div>
+                <div class="border-t border-white/10 pt-4">
+                    <p class="text-sm text-gray-400 mb-2">Or create a new team:</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-team-name" placeholder="Team name"
+                            class="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all">
+                        <button onclick="createAndAddTeam()" class="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-xl text-sm font-medium transition-all border border-emerald-500/30">
+                            Create
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-sm bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <h3 id="confirm-title" class="text-lg font-bold text-white mb-2">Confirm Action</h3>
+            <p id="confirm-message" class="text-gray-400 mb-6">Are you sure you want to proceed?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" onclick="executeConfirmAction()" class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USAU Import Modal -->
+    <div id="usau-import-modal" role="dialog" aria-modal="true" aria-labelledby="usau-import-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeUsauImportModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-2xl max-h-[85vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="usau-import-title" class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="download" class="w-5 h-5 text-purple-400"></i>
+                    Import from USA Ultimate
+                </h2>
+                <button onclick="closeUsauImportModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Tabs -->
+            <div class="flex gap-2 mb-4">
+                <button onclick="switchUsauTab('search')" data-usau-tab="search" class="usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                    Search Tournaments
+                </button>
+                <button onclick="switchUsauTab('url')" data-usau-tab="url" class="usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">
+                    Enter URL
+                </button>
+            </div>
+
+            <!-- Search Tab -->
+            <div id="usau-search-tab" class="usau-tab-content flex-1 overflow-hidden flex flex-col">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="usau-search-query" placeholder="Search tournament name (e.g., Stanford Invite)"
+                        class="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all">
+                    <button onclick="searchUsauTournaments()" id="usau-search-btn" class="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-xl font-medium transition-all border border-purple-500/30 flex items-center gap-2">
+                        <i data-lucide="search" class="w-4 h-4"></i>
+                        Search
+                    </button>
+                </div>
+                <div class="flex gap-2 mb-4">
+                    <select id="usau-competition-level" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                        <option value="College">College</option>
+                        <option value="Club">Club</option>
+                        <option value="High School">High School</option>
+                        <option value="Youth">Youth</option>
+                    </select>
+                    <select id="usau-gender-division" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50">
+                        <option value="Men">Men's</option>
+                        <option value="Women">Women's</option>
+                        <option value="Mixed">Mixed</option>
+                    </select>
+                </div>
+                <div id="usau-search-results" class="flex-1 overflow-y-auto space-y-2">
+                    <p class="text-gray-400 text-center py-8">Enter a tournament name to search</p>
+                </div>
+            </div>
+
+            <!-- URL Tab -->
+            <div id="usau-url-tab" class="usau-tab-content flex-1 overflow-hidden flex flex-col hidden">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Tournament URL</label>
+                    <input type="url" id="usau-tournament-url" placeholder="https://play.usaultimate.org/events/..."
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all">
+                    <p class="text-xs text-gray-500 mt-2">Paste a USA Ultimate tournament page URL</p>
+                </div>
+                <button onclick="fetchUsauTournament()" id="usau-fetch-btn" class="w-full py-3 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 rounded-xl font-medium transition-all border border-purple-500/30 mb-4">
+                    Fetch Tournament
+                </button>
+                <div id="usau-tournament-preview" class="flex-1 overflow-y-auto">
+                    <p class="text-gray-400 text-center py-8">Enter a URL to preview tournament</p>
+                </div>
+            </div>
+
+            <!-- Import Actions -->
+            <div id="usau-import-actions" class="border-t border-white/10 pt-4 mt-4 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-white font-medium" id="usau-selected-name">-</p>
+                        <p class="text-sm text-gray-400" id="usau-selected-info">-</p>
+                    </div>
+                    <button onclick="importUsauTournament()" id="usau-import-btn" class="px-6 py-2 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white rounded-xl font-medium transition-all shadow-lg shadow-emerald-500/25">
+                        Import Tournament
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Results Modal -->
+    <div id="update-results-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeUpdateResultsModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-lg max-h-[85vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-5 h-5 text-orange-400"></i>
+                    <span id="update-modal-title">Update Results</span>
+                </h2>
+                <button onclick="closeUpdateResultsModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Progress State -->
+            <div id="update-progress-state" class="text-center py-8">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <i data-lucide="loader-2" class="w-8 h-8 text-orange-400 animate-spin"></i>
+                </div>
+                <p id="update-progress-text" class="text-white font-medium mb-2">Fetching latest results...</p>
+                <div class="w-full bg-white/10 rounded-full h-2 mb-2">
+                    <div id="update-progress-bar" class="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Results State (hidden initially) -->
+            <div id="update-results-state" class="hidden flex-1 overflow-hidden flex flex-col">
+                <!-- Success Icon -->
+                <div id="update-success-icon" class="text-center py-4 hidden">
+                    <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                        <i data-lucide="check-circle" class="w-8 h-8 text-emerald-400"></i>
+                    </div>
+                    <p class="text-emerald-400 font-medium">Update Complete!</p>
+                </div>
+
+                <!-- No Changes Icon -->
+                <div id="update-no-changes-icon" class="text-center py-4 hidden">
+                    <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-gray-500/20 flex items-center justify-center">
+                        <i data-lucide="minus-circle" class="w-8 h-8 text-gray-400"></i>
+                    </div>
+                    <p class="text-gray-400 font-medium">No new results found</p>
+                </div>
+
+                <!-- Error Icon -->
+                <div id="update-error-icon" class="text-center py-4 hidden">
+                    <div class="w-16 h-16 mx-auto mb-2 rounded-full bg-red-500/20 flex items-center justify-center">
+                        <i data-lucide="alert-circle" class="w-8 h-8 text-red-400"></i>
+                    </div>
+                    <p id="update-error-text" class="text-red-400 font-medium">Update failed</p>
+                </div>
+
+                <!-- Changes Summary -->
+                <div id="update-changes-summary" class="flex-1 overflow-y-auto space-y-4">
+                    <!-- Standings Updated -->
+                    <div id="standings-updated-section" class="hidden">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                            Standings Updated
+                        </h4>
+                        <div id="standings-updated-list" class="space-y-1 max-h-32 overflow-y-auto">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Matchups Completed -->
+                    <div id="matchups-completed-section" class="hidden">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                            <i data-lucide="check-square" class="w-4 h-4 text-emerald-400"></i>
+                            Games Completed
+                        </h4>
+                        <div id="matchups-completed-list" class="space-y-1 max-h-32 overflow-y-auto">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- New Matchups Detected -->
+                    <div id="new-matchups-section" class="hidden">
+                        <h4 class="text-sm font-medium text-gray-300 mb-2 flex items-center gap-2">
+                            <i data-lucide="calendar-plus" class="w-4 h-4 text-cyan-400"></i>
+                            New Games Detected
+                        </h4>
+                        <div id="new-matchups-list" class="space-y-1 max-h-32 overflow-y-auto">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Close Button -->
+                <div class="pt-4 mt-4 border-t border-white/10">
+                    <button onclick="closeUpdateResultsModal()" class="w-full py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set flag to indicate this is the league page
+        window.isTournamentPage = true;
+        window.isDashboardPage = false;
+    </script>
+    <script src="script.js"></script>
+    <script>
+        // League page specific functionality
+        let currentMatchupFilter = 'all';
+        let confirmCallback = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderTournamentCards();
+            setupFormatToggle();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // Check for league ID in URL (e.g., ?id=xxx from tournament import)
+            const urlParams = new URLSearchParams(window.location.search);
+            const leagueIdParam = urlParams.get('id');
+            if (leagueIdParam && tournamentsData.tournaments[leagueIdParam]) {
+                selectTournament(leagueIdParam);
+                showTournamentDetails(leagueIdParam);
+                showToast('Tournament imported successfully!', 'success');
+                // Clean up URL without reload
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+
+            // Check for pending USAU tournament import from dashboard
+            const pendingImport = localStorage.getItem('ultistats_pending_usau_import');
+            if (pendingImport) {
+                try {
+                    const usauData = JSON.parse(pendingImport);
+                    localStorage.removeItem('ultistats_pending_usau_import');
+
+                    if (usauData.type === 'tournament' && usauData.teams) {
+                        // Auto-import the tournament
+                        setTimeout(() => {
+                            importPendingUsauTournament(usauData);
+                        }, 500);
+                    }
+                } catch (e) {
+                    console.error('Error processing pending USAU import:', e);
+                    localStorage.removeItem('ultistats_pending_usau_import');
+                }
+            }
+        });
+
+        // Import pending tournament from dashboard redirect
+        async function importPendingUsauTournament(usauData) {
+            try {
+                const teamCount = usauData.teams ? usauData.teams.length : 0;
+
+                // Determine format based on team count
+                let format = 'pool-to-bracket';
+                let numPools = 2;
+                let expectedTeams = 0;
+                let teamsPerPool = 0;
+                let usauFormat = '';
+
+                if (teamCount <= 4) {
+                    usauFormat = 'bracket-4';
+                    format = 'bracket';
+                    numPools = 0;
+                    expectedTeams = 4;
+                } else if (teamCount <= 8) {
+                    usauFormat = '8-2x4';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 8;
+                    teamsPerPool = 4;
+                } else if (teamCount <= 10) {
+                    usauFormat = '10-2x5';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 10;
+                    teamsPerPool = 5;
+                } else if (teamCount <= 12) {
+                    usauFormat = '12-2x6';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 12;
+                    teamsPerPool = 6;
+                } else {
+                    usauFormat = '16-4x4';
+                    format = 'pool-to-bracket';
+                    numPools = 4;
+                    expectedTeams = 16;
+                    teamsPerPool = 4;
+                }
+
+                // Create the league
+                const league = createTournament(usauData.name, `Imported from USAU: ${usauData.link || ''}`, format, numPools);
+
+                if (league) {
+                    league.usauFormat = usauFormat;
+                    league.expectedTeams = expectedTeams;
+                    league.teamsPerPool = teamsPerPool;
+                    league.importedFrom = usauData.link;
+
+                    // Import teams (reuse existing teams when possible)
+                    if (usauData.teams && usauData.teams.length > 0) {
+                        const teams = usauData.teams.slice(0, expectedTeams || 50);
+                        let poolIndex = 0;
+                        let reusedCount = 0;
+
+                        if (!league.teamSeeds) league.teamSeeds = {};
+
+                        for (const teamData of teams) {
+                            const cleanName = teamData.name.replace(/\s*[\(\[\{]\d+[\)\]\}]\s*$/, '').trim();
+                            const seedMatch = teamData.name.match(/[\(\[\{](\d+)[\)\]\}]\s*$/);
+                            const seed = seedMatch ? parseInt(seedMatch[1]) : (teamData.seed || null);
+
+                            // Check for existing team to reuse
+                            const existing = findExistingTeam(cleanName, teamData.link || null, null);
+                            let teamId;
+
+                            if (existing) {
+                                teamId = existing.id;
+                                existing.usauLink = teamData.link || null;
+                                reusedCount++;
+                            } else {
+                                const newTeam = createEmptyTeam(cleanName);
+                                newTeam.usauLink = teamData.link || null;
+                                teamsData.teams[newTeam.id] = newTeam;
+                                teamId = newTeam.id;
+                            }
+
+                            // Store seed
+                            if (seed) {
+                                league.teamSeeds[teamId] = seed;
+                            }
+
+                            if (format === 'bracket') {
+                                if (!league.teamIds) league.teamIds = [];
+                                if (!league.teamIds.includes(teamId)) {
+                                    league.teamIds.push(teamId);
+                                }
+                            } else if (league.pools.length > 0) {
+                                const targetPool = league.pools[poolIndex % league.pools.length];
+                                if (!targetPool.teamIds.includes(teamId)) {
+                                    targetPool.teamIds.push(teamId);
+                                }
+
+                                if (!league.poolStandings[targetPool.id]) {
+                                    league.poolStandings[targetPool.id] = {};
+                                }
+                                league.poolStandings[targetPool.id][teamId] = {
+                                    wins: 0, losses: 0, ties: 0,
+                                    pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+                                };
+
+                                poolIndex++;
+                            }
+                        }
+
+                        saveTeamsData();
+                    }
+
+                    saveTournamentsData();
+                    selectTournament(league.id);
+
+                    // Render immediately
+                    try {
+                        renderTournamentCards();
+                        showTournamentDetails(league.id);
+                    } catch (renderErr) {
+                        console.error('Render after import error:', renderErr);
+                    }
+
+                    // Fetch results from USAU automatically
+                    try {
+                        const result = await updateTournamentResults(league.id);
+                        const reusedMsg = reusedCount > 0 ? ` (${reusedCount} reused)` : '';
+                        if (result.success) {
+                            const total = result.summary.standingsUpdated + result.summary.matchupsCompleted;
+                            showToast(`Imported "${usauData.name}" with ${teamCount} teams${reusedMsg} and ${total} result updates`, 'success');
+                        } else {
+                            showToast(`Imported "${usauData.name}" with ${teamCount} teams${reusedMsg} (could not fetch results)`, 'success');
+                        }
+                    } catch (resultsErr) {
+                        console.warn('Could not fetch results during import:', resultsErr);
+                        const reusedMsg = reusedCount > 0 ? ` (${reusedCount} reused)` : '';
+                        showToast(`Imported "${usauData.name}" with ${teamCount} teams${reusedMsg}`, 'success');
+                    }
+
+                    // Re-render with results
+                    try {
+                        showTournamentDetails(league.id);
+                    } catch (e) {
+                        console.error('Re-render error:', e);
+                    }
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast(`Failed to import tournament: ${error.message}`, 'error');
+            }
+        }
+
+        // USAU Tournament Format Configurations
+        const USAU_FORMATS = {
+            // Pool Play → Bracket formats
+            '8-2x4': {
+                name: '8 Teams: 2 pools of 4',
+                format: 'pool-to-bracket',
+                pools: 2,
+                teamsPerPool: 4,
+                totalTeams: 8,
+                description: 'Standard 8-team format. Pool play (3 games each), then top 2 from each pool advance to single-elimination bracket.',
+                structure: 'Pool A (4) + Pool B (4) → Semifinals (A1 vs B2, B1 vs A2) → Finals'
+            },
+            '10-2x5': {
+                name: '10 Teams: 2 pools of 5',
+                format: 'pool-to-bracket',
+                pools: 2,
+                teamsPerPool: 5,
+                totalTeams: 10,
+                description: 'Each team plays 4 pool games. Top 2 from each pool advance to bracket.',
+                structure: 'Pool A (5) + Pool B (5) → Semifinals → Finals'
+            },
+            '12-2x6': {
+                name: '12 Teams: 2 pools of 6',
+                format: 'pool-to-bracket',
+                pools: 2,
+                teamsPerPool: 6,
+                totalTeams: 12,
+                description: 'Each team plays 5 pool games. Top 3 from each pool advance to 6-team bracket.',
+                structure: 'Pool A (6) + Pool B (6) → 6-team bracket'
+            },
+            '12-3x4': {
+                name: '12 Teams: 3 pools of 4',
+                format: 'pool-to-bracket',
+                pools: 3,
+                teamsPerPool: 4,
+                totalTeams: 12,
+                description: 'Each team plays 3 pool games. Pool winners + best 2nd place advance.',
+                structure: 'Pool A (4) + Pool B (4) + Pool C (4) → Bracket'
+            },
+            '16-4x4': {
+                name: '16 Teams: 4 pools of 4',
+                format: 'pool-to-bracket',
+                pools: 4,
+                teamsPerPool: 4,
+                totalTeams: 16,
+                description: 'Each team plays 3 pool games. Top 2 from each pool advance to 8-team bracket.',
+                structure: 'Pools A-D (4 each) → Quarterfinals → Semifinals → Finals'
+            },
+            // Pool Play Only
+            'pool-4': {
+                name: 'Pool Play: 4 teams',
+                format: 'pool-play',
+                pools: 1,
+                teamsPerPool: 4,
+                totalTeams: 4,
+                description: 'Round-robin with 4 teams. Each team plays 3 games.',
+                structure: 'Single pool round-robin (6 total games)'
+            },
+            'pool-6': {
+                name: 'Pool Play: 6 teams',
+                format: 'pool-play',
+                pools: 1,
+                teamsPerPool: 6,
+                totalTeams: 6,
+                description: 'Round-robin with 6 teams. Each team plays 5 games.',
+                structure: 'Single pool round-robin (15 total games)'
+            },
+            'pool-8': {
+                name: 'Pool Play: 8 teams',
+                format: 'pool-play',
+                pools: 1,
+                teamsPerPool: 8,
+                totalTeams: 8,
+                description: 'Round-robin with 8 teams. Each team plays 7 games.',
+                structure: 'Single pool round-robin (28 total games)'
+            },
+            // Bracket Only
+            'bracket-4': {
+                name: 'Bracket: 4 teams',
+                format: 'bracket',
+                pools: 0,
+                teamsPerPool: 0,
+                totalTeams: 4,
+                description: 'Single elimination bracket with 4 teams.',
+                structure: 'Semifinals → Finals (3 total games)'
+            },
+            'bracket-8': {
+                name: 'Bracket: 8 teams',
+                format: 'bracket',
+                pools: 0,
+                teamsPerPool: 0,
+                totalTeams: 8,
+                description: 'Single elimination bracket with 8 teams.',
+                structure: 'Quarterfinals → Semifinals → Finals (7 total games)'
+            },
+            'bracket-16': {
+                name: 'Bracket: 16 teams',
+                format: 'bracket',
+                pools: 0,
+                teamsPerPool: 0,
+                totalTeams: 16,
+                description: 'Single elimination bracket with 16 teams.',
+                structure: 'Round of 16 → Quarterfinals → Semifinals → Finals (15 total games)'
+            }
+        };
+
+        // Handle USAU format selection
+        function handleUsauFormatChange() {
+            const usauSelect = document.getElementById('usau-format-input');
+            const formatDetails = document.getElementById('format-details');
+            const customConfig = document.getElementById('custom-config');
+            const formatInput = document.getElementById('league-format-input');
+            const poolsInput = document.getElementById('league-pools-input');
+            const expectedTeams = document.getElementById('expected-teams');
+            const teamsPerPool = document.getElementById('teams-per-pool');
+
+            const selectedValue = usauSelect.value;
+
+            if (selectedValue === 'custom') {
+                formatDetails.classList.add('hidden');
+                customConfig.classList.remove('hidden');
+                expectedTeams.value = '';
+                teamsPerPool.value = '';
+                return;
+            }
+
+            if (selectedValue && USAU_FORMATS[selectedValue]) {
+                const config = USAU_FORMATS[selectedValue];
+
+                // Show format details
+                formatDetails.classList.remove('hidden');
+                customConfig.classList.add('hidden');
+
+                document.getElementById('format-description').textContent = config.description;
+                document.getElementById('format-structure').innerHTML = `<strong>Structure:</strong> ${config.structure}`;
+
+                // Set hidden values for form submission
+                formatInput.value = config.format;
+                poolsInput.value = config.pools;
+                expectedTeams.value = config.totalTeams;
+                teamsPerPool.value = config.teamsPerPool;
+            } else {
+                formatDetails.classList.add('hidden');
+                customConfig.classList.add('hidden');
+                expectedTeams.value = '';
+                teamsPerPool.value = '';
+            }
+        }
+
+        // Setup format toggle for custom config
+        function setupFormatToggle() {
+            const formatSelect = document.getElementById('league-format-input');
+            const poolsContainer = document.getElementById('pools-count-container');
+
+            if (formatSelect) {
+                formatSelect.addEventListener('change', function() {
+                    if (poolsContainer) {
+                        poolsContainer.style.display = this.value === 'bracket' ? 'none' : 'block';
+                    }
+                });
+            }
+        }
+
+        // Render league cards
+        function renderTournamentCards() {
+            const container = document.getElementById('league-cards');
+            const emptyState = document.getElementById('empty-state');
+            const leagueDetails = document.getElementById('league-details');
+            const leagues = Object.values(tournamentsData.tournaments);
+
+            if (leagues.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                leagueDetails.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            const formatLabels = {
+                'pool-play': 'Pool Play',
+                'bracket': 'Bracket',
+                'pool-to-bracket': 'Pool → Bracket'
+            };
+
+            container.innerHTML = leagues.map(league => {
+                const teamCount = getLeagueTeamCount(league.id);
+                const isSelected = league.id === tournamentsData.currentTournamentId;
+                const expectedTeams = league.expectedTeams;
+                const teamStatus = expectedTeams ? `${teamCount}/${expectedTeams}` : teamCount;
+                const isReady = expectedTeams && teamCount >= expectedTeams;
+
+                // Get format name
+                let formatName = formatLabels[league.format];
+                if (league.usauFormat && USAU_FORMATS[league.usauFormat]) {
+                    formatName = USAU_FORMATS[league.usauFormat].name.split(':')[0]; // Just "8 Teams" part
+                }
+
+                // Format date range
+                let dateStr = '';
+                if (league.startDate) {
+                    const start = new Date(league.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    if (league.endDate && league.endDate !== league.startDate) {
+                        const end = new Date(league.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        dateStr = `${start} - ${end}`;
+                    } else {
+                        dateStr = new Date(league.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    }
+                }
+
+                return `
+                    <button onclick="selectAndShowLeague('${league.id}')"
+                        class="text-left p-4 rounded-xl border transition-all ${isSelected
+                            ? 'bg-emerald-500/20 border-emerald-500/40'
+                            : 'bg-white/5 border-white/10 hover:bg-white/10'}">
+                        <h3 class="font-bold text-white mb-1">${escapeHtml(league.name)}</h3>
+                        <p class="text-sm text-gray-400">${teamStatus} teams | ${formatName}</p>
+                        ${dateStr ? `<p class="text-xs text-cyan-400 mt-1"><i data-lucide="calendar" class="w-3 h-3 inline mr-1"></i>${dateStr}</p>` : ''}
+                        ${isReady
+                            ? '<p class="text-xs text-emerald-400 mt-1">Ready to generate schedule</p>'
+                            : expectedTeams
+                                ? `<p class="text-xs text-amber-400 mt-1">Need ${expectedTeams - teamCount} more teams</p>`
+                                : league.pools.length > 0 ? `<p class="text-xs text-gray-500 mt-1">${league.pools.length} pools</p>` : ''
+                        }
+                    </button>
+                `;
+            }).join('');
+
+            // Show current league details if one is selected
+            if (tournamentsData.currentTournamentId) {
+                showTournamentDetails(tournamentsData.currentTournamentId);
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Select and show league
+        function selectAndShowLeague(leagueId) {
+            selectTournament(leagueId);
+            renderTournamentCards();
+            showTournamentDetails(leagueId);
+        }
+
+        // Show league details
+        function showTournamentDetails(leagueId) {
+            const league = tournamentsData.tournaments[leagueId];
+            if (!league) return;
+
+            const detailsSection = document.getElementById('league-details');
+            detailsSection.classList.remove('hidden');
+
+            // Update header
+            document.getElementById('league-name').textContent = league.name;
+
+            const formatLabels = {
+                'pool-play': 'Pool Play',
+                'bracket': 'Bracket',
+                'pool-to-bracket': 'Pool → Bracket'
+            };
+            const teamCount = getLeagueTeamCount(leagueId);
+            const expectedTeams = league.expectedTeams || '∞';
+            const teamStatus = league.expectedTeams
+                ? `${teamCount}/${expectedTeams} Teams`
+                : `${teamCount} Teams`;
+
+            const poolInfo = league.pools.length > 0 ? ` | ${league.pools.length} Pools` : '';
+
+            // Show USAU format name if available
+            let formatName = formatLabels[league.format];
+            if (league.usauFormat && USAU_FORMATS[league.usauFormat]) {
+                formatName = USAU_FORMATS[league.usauFormat].name;
+            }
+
+            let dateInfo = '';
+            if (league.startDate) {
+                const start = new Date(league.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                if (league.endDate && league.endDate !== league.startDate) {
+                    const end = new Date(league.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                    dateInfo = ` | ${start} - ${end}`;
+                } else {
+                    dateInfo = ` | ${new Date(league.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                }
+            }
+
+            document.getElementById('league-info').textContent = `${formatName} | ${teamStatus}${poolInfo}${dateInfo}`;
+
+            // Show/hide Update Results button (only for USAU-imported leagues)
+            const updateBtn = document.getElementById('update-results-btn');
+            const lastUpdatedEl = document.getElementById('league-last-updated');
+
+            if (league.importedFrom) {
+                updateBtn.classList.remove('hidden');
+                updateBtn.classList.add('flex');
+
+                // Show last updated timestamp
+                if (league.lastUpdated) {
+                    const lastUpdated = new Date(league.lastUpdated);
+                    const timeAgo = getTimeAgo(lastUpdated);
+                    lastUpdatedEl.textContent = `Last updated: ${timeAgo}`;
+                    lastUpdatedEl.classList.remove('hidden');
+                } else if (league.importedAt) {
+                    const importedAt = new Date(league.importedAt);
+                    lastUpdatedEl.textContent = `Imported: ${importedAt.toLocaleDateString()}`;
+                    lastUpdatedEl.classList.remove('hidden');
+                } else {
+                    lastUpdatedEl.classList.add('hidden');
+                }
+            } else {
+                updateBtn.classList.add('hidden');
+                updateBtn.classList.remove('flex');
+                lastUpdatedEl.classList.add('hidden');
+            }
+
+            // Render current tab content
+            const activeTab = document.querySelector('.league-tab.bg-emerald-500\\/20');
+            const tabName = activeTab ? activeTab.dataset.tab : 'pools';
+            renderTabContent(tabName);
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Switch tab
+        function switchLeagueTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.league-tab').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.className = 'league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex-shrink-0';
+                } else {
+                    btn.className = 'league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0';
+                }
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${tabName}-view`).classList.remove('hidden');
+
+            renderTabContent(tabName);
+        }
+
+        // Render tab content
+        function renderTabContent(tabName) {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            switch(tabName) {
+                case 'pools':
+                    renderPoolsView(league);
+                    break;
+                case 'bracket':
+                    renderBracketView(league);
+                    break;
+                case 'matchups':
+                    renderMatchupsView(league);
+                    break;
+                case 'teams':
+                    renderTeamsView(league);
+                    break;
+                case 'synopsis':
+                    renderSynopsisView(league);
+                    break;
+            }
+        }
+
+        // Render pools view
+        function renderPoolsView(league) {
+            const container = document.getElementById('pools-container');
+
+            if (league.format === 'bracket') {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-2">This tournament uses bracket format only (no pools)</p>';
+                return;
+            }
+
+            if (league.pools.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-2">No pools configured</p>';
+                return;
+            }
+
+            container.innerHTML = league.pools.map(pool => {
+                const standings = league.poolStandings[pool.id] || {};
+                const ranking = getPoolRanking(league.id, pool.id);
+                const matchups = league.poolMatchups.filter(m => m.poolId === pool.id);
+                const poolTeamCount = pool.teamIds.length;
+                const expectedPerPool = league.teamsPerPool;
+                const isFull = expectedPerPool && poolTeamCount >= expectedPerPool;
+                const teamCountDisplay = expectedPerPool ? `${poolTeamCount}/${expectedPerPool}` : poolTeamCount;
+
+                return `
+                    <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-5 border border-white/10">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                                <i data-lucide="layers" class="w-5 h-5 text-cyan-400"></i>
+                                ${escapeHtml(pool.name)}
+                            </h3>
+                            <span class="text-xs px-2 py-1 rounded-lg ${isFull ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/10 text-gray-400'}">${teamCountDisplay} teams</span>
+                        </div>
+
+                        <!-- Standings Table -->
+                        <div class="overflow-x-auto mb-4">
+                            <table class="w-full text-sm">
+                                <thead>
+                                    <tr class="text-gray-400 text-xs">
+                                        <th class="text-left py-2 px-2">#</th>
+                                        <th class="text-left py-2 px-2">Team</th>
+                                        <th class="text-center py-2 px-1">W</th>
+                                        <th class="text-center py-2 px-1">L</th>
+                                        <th class="text-center py-2 px-1">Diff</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${ranking.length === 0 ? '<tr><td colspan="5" class="text-gray-500 py-4 text-center">No teams in pool</td></tr>' :
+                                        ranking.map((teamId, idx) => {
+                                            const team = teamsData.teams[teamId];
+                                            const stats = standings[teamId] || { wins: 0, losses: 0, pointDiff: 0 };
+                                            const seed = (league.teamSeeds && league.teamSeeds[teamId]) ? league.teamSeeds[teamId] : null;
+                                            const seedBadge = seed ? `<span class="text-xs text-gray-500 font-normal ml-1">(${seed})</span>` : '';
+                                            return `
+                                                <tr class="border-t border-white/5">
+                                                    <td class="py-2 px-2 text-gray-400">${idx + 1}</td>
+                                                    <td class="py-2 px-2 text-white font-medium">${team ? escapeHtml(team.name) : 'Unknown'}${seedBadge}</td>
+                                                    <td class="py-2 px-1 text-center text-emerald-400">${stats.wins}</td>
+                                                    <td class="py-2 px-1 text-center text-red-400">${stats.losses}</td>
+                                                    <td class="py-2 px-1 text-center ${stats.pointDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}">${stats.pointDiff >= 0 ? '+' : ''}${stats.pointDiff}</td>
+                                                </tr>
+                                            `;
+                                        }).join('')
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pool Matchups -->
+                        <div class="border-t border-white/10 pt-3">
+                            <p class="text-xs text-gray-400 mb-2">Pool Matchups:</p>
+                            <div class="space-y-1">
+                                ${matchups.length === 0 ? '<p class="text-gray-500 text-xs">No matchups scheduled</p>' :
+                                    matchups.map(m => {
+                                        const home = teamsData.teams[m.homeTeamId];
+                                        const away = teamsData.teams[m.awayTeamId];
+                                        const isComplete = m.status === 'completed';
+                                        return `
+                                            <div class="flex items-center justify-between text-xs py-1">
+                                                <span class="text-white">${home ? escapeHtml(home.name) : '?'} vs ${away ? escapeHtml(away.name) : '?'}</span>
+                                                ${isComplete
+                                                    ? `<span class="text-emerald-400">${m.homeScore}-${m.awayScore}</span>`
+                                                    : m.status === 'in_progress'
+                                                        ? '<span class="text-amber-400">In Progress</span>'
+                                                        : `<button onclick="startMatchupGame('${league.id}', '${m.id}', 'pool')" class="text-cyan-400 hover:text-cyan-300">Play</button>`
+                                                }
+                                            </div>
+                                        `;
+                                    }).join('')
+                                }
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Render recent results section (for USAU-imported leagues)
+            const recentSection = document.getElementById('recent-results-section');
+            const recentList = document.getElementById('recent-results-list');
+
+            if (league.importedFrom) {
+                recentSection.classList.remove('hidden');
+
+                // Get recent completed games
+                const recentResults = getRecentResults(league.id, 10);
+
+                if (recentResults.length > 0) {
+                    recentList.innerHTML = recentResults.map(m => `
+                        <div class="bg-white/5 rounded-lg px-4 py-3 flex items-center justify-between">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-white font-medium">${escapeHtml(m.homeTeam)}</span>
+                                    <span class="text-gray-400 text-xs">vs</span>
+                                    <span class="text-white font-medium">${escapeHtml(m.awayTeam)}</span>
+                                </div>
+                                <span class="text-xs text-gray-500">${m.type === 'pool' ? 'Pool Play' : 'Bracket'}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-lg font-bold ${m.homeScore > m.awayScore ? 'text-emerald-400' : 'text-gray-300'}">${m.homeScore}</span>
+                                <span class="text-gray-500 mx-1">-</span>
+                                <span class="text-lg font-bold ${m.awayScore > m.homeScore ? 'text-emerald-400' : 'text-gray-300'}">${m.awayScore}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    recentList.innerHTML = '<p class="text-gray-400 text-center py-4">No completed games yet</p>';
+                }
+            } else {
+                recentSection.classList.add('hidden');
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Render bracket view
+        function renderBracketView(league) {
+            const container = document.getElementById('bracket-container');
+
+            if (league.bracketMatchups.length === 0) {
+                if (league.format === 'bracket') {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-8">Generate schedule to create bracket</p>';
+                } else {
+                    container.innerHTML = '<p class="text-gray-400 text-center py-8">Complete pool play, then generate bracket</p>';
+                }
+                return;
+            }
+
+            // Group matchups by bracket section
+            const sections = {};
+            league.bracketMatchups.forEach(m => {
+                const sec = m.bracketSection || 'Bracket';
+                if (!sections[sec]) sections[sec] = [];
+                sections[sec].push(m);
+            });
+
+            // Sort sections: "1st Place" first, then by number
+            const sectionOrder = Object.keys(sections).sort((a, b) => {
+                const numA = parseInt(a) || 999;
+                const numB = parseInt(b) || 999;
+                if (a.includes('1st') || a.toLowerCase() === 'championship') return -1;
+                if (b.includes('1st') || b.toLowerCase() === 'championship') return 1;
+                return numA - numB;
+            });
+
+            const defaultRoundNames = { 1: 'Finals', 2: 'Semifinals', 3: 'Quarterfinals', 4: 'Round of 16', 5: 'Round of 32' };
+
+            function renderMatchupCard(m) {
+                const home = m.homeTeamId ? teamsData.teams[m.homeTeamId] : null;
+                const away = m.awayTeamId ? teamsData.teams[m.awayTeamId] : null;
+                const isPending = m.status === 'pending';
+                const isComplete = m.status === 'completed';
+                const homeSeed = (home && league.teamSeeds && league.teamSeeds[m.homeTeamId]) ? league.teamSeeds[m.homeTeamId] : null;
+                const awaySeed = (away && league.teamSeeds && league.teamSeeds[m.awayTeamId]) ? league.teamSeeds[m.awayTeamId] : null;
+                const homeWon = isComplete && m.homeScore > m.awayScore;
+                const awayWon = isComplete && m.awayScore > m.homeScore;
+
+                return `
+                    <div class="bg-white/5 rounded-lg border border-white/10 overflow-hidden">
+                        <div class="flex justify-between items-center px-3 py-1.5 ${homeWon ? 'bg-emerald-500/10' : ''}">
+                            <span class="text-sm ${homeWon ? 'text-white font-semibold' : 'text-gray-300'} truncate">
+                                ${homeSeed ? `<span class="text-xs text-gray-500">(${homeSeed})</span> ` : ''}${home ? escapeHtml(home.name) : (m.homeSeed || 'TBD')}
+                            </span>
+                            ${isComplete ? `<span class="text-sm font-mono ml-2 ${homeWon ? 'text-emerald-400 font-bold' : 'text-gray-500'}">${m.homeScore}</span>` : ''}
+                        </div>
+                        <div class="border-t border-white/5"></div>
+                        <div class="flex justify-between items-center px-3 py-1.5 ${awayWon ? 'bg-emerald-500/10' : ''}">
+                            <span class="text-sm ${awayWon ? 'text-white font-semibold' : 'text-gray-300'} truncate">
+                                ${awaySeed ? `<span class="text-xs text-gray-500">(${awaySeed})</span> ` : ''}${away ? escapeHtml(away.name) : (m.awaySeed || 'TBD')}
+                            </span>
+                            ${isComplete ? `<span class="text-sm font-mono ml-2 ${awayWon ? 'text-emerald-400 font-bold' : 'text-gray-500'}">${m.awayScore}</span>` : ''}
+                        </div>
+                        ${!isPending && !isComplete && home && away
+                            ? `<div class="border-t border-white/5"><button onclick="startMatchupGame('${league.id}', '${m.id}', 'bracket')" class="w-full py-1 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 text-xs transition-all">Start Game</button></div>`
+                            : ''
+                        }
+                    </div>
+                `;
+            }
+
+            container.innerHTML = sectionOrder.map(sectionName => {
+                const matchups = sections[sectionName];
+
+                // Group by round within this section
+                const rounds = {};
+                matchups.forEach(m => {
+                    const r = m.round || 1;
+                    if (!rounds[r]) rounds[r] = { matchups: [], name: m.roundName || null };
+                    rounds[r].matchups.push(m);
+                });
+
+                const roundKeys = Object.keys(rounds).map(Number).sort((a, b) => b - a); // highest (earliest) first
+
+                return `
+                    <div class="mb-8">
+                        <h3 class="text-base font-bold text-white mb-4 flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+                            ${escapeHtml(sectionName)}
+                        </h3>
+                        <div class="overflow-x-auto">
+                            <div class="flex gap-6 min-w-max items-start">
+                                ${roundKeys.map(roundNum => {
+                                    const roundData = rounds[roundNum];
+                                    const roundLabel = roundData.name || defaultRoundNames[roundNum] || `Round ${roundNum}`;
+                                    // Calculate vertical spacing to align with bracket tree
+                                    // Each round should have increasing gaps to center matchups
+                                    return `
+                                        <div class="flex-shrink-0 w-52">
+                                            <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-3 text-center">${escapeHtml(roundLabel)}</h4>
+                                            <div class="flex flex-col gap-3" style="justify-content: space-around; min-height: ${roundKeys[0] === roundNum ? 'auto' : (roundData.matchups.length * 80) + 'px'};">
+                                                ${roundData.matchups.map(m => renderMatchupCard(m)).join('')}
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Render matchups view
+        function renderMatchupsView(league) {
+            const container = document.getElementById('matchups-list');
+
+            let allMatchups = [
+                ...league.poolMatchups.map(m => ({ ...m, type: 'pool' })),
+                ...league.bracketMatchups.map(m => ({ ...m, type: 'bracket' }))
+            ];
+
+            // Apply filter
+            if (currentMatchupFilter === 'upcoming') {
+                allMatchups = allMatchups.filter(m => m.status === 'scheduled');
+            } else if (currentMatchupFilter === 'completed') {
+                allMatchups = allMatchups.filter(m => m.status === 'completed');
+            }
+
+            if (allMatchups.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">No matchups found</p>';
+                return;
+            }
+
+            container.innerHTML = allMatchups.map(m => {
+                const home = m.homeTeamId ? teamsData.teams[m.homeTeamId] : null;
+                const away = m.awayTeamId ? teamsData.teams[m.awayTeamId] : null;
+                const pool = m.poolId ? league.pools.find(p => p.id === m.poolId) : null;
+
+                const statusColors = {
+                    'scheduled': 'bg-cyan-500/20 text-cyan-400',
+                    'in_progress': 'bg-amber-500/20 text-amber-400',
+                    'completed': 'bg-emerald-500/20 text-emerald-400',
+                    'pending': 'bg-gray-500/20 text-gray-400'
+                };
+
+                return `
+                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-white font-medium">${home ? escapeHtml(home.name) : m.homeSeed || 'TBD'}</span>
+                                <span class="text-gray-500">vs</span>
+                                <span class="text-white font-medium">${away ? escapeHtml(away.name) : m.awaySeed || 'TBD'}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-gray-400">
+                                ${pool ? `<span>${escapeHtml(pool.name)}</span><span>•</span>` : ''}
+                                <span>Round ${m.round}</span>
+                                ${m.type === 'bracket' ? '<span>• Bracket</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${m.status === 'completed'
+                                ? `<span class="text-lg font-bold text-white">${m.homeScore} - ${m.awayScore}</span>`
+                                : ''
+                            }
+                            <span class="px-2 py-1 rounded-lg text-xs font-medium ${statusColors[m.status]}">${m.status}</span>
+                            ${m.status === 'scheduled' && home && away
+                                ? `<button onclick="startMatchupGame('${league.id}', '${m.id}', '${m.type}')" class="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 text-xs rounded-lg font-medium transition-all">Play</button>`
+                                : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Filter matchups
+        function filterMatchups(filter) {
+            currentMatchupFilter = filter;
+
+            document.querySelectorAll('.matchup-filter').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.className = 'matchup-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/10 text-white';
+                } else {
+                    btn.className = 'matchup-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+
+            const league = getCurrentTournament();
+            if (league) {
+                renderMatchupsView(league);
+            }
+        }
+
+        // Render teams view
+        function renderTeamsView(league) {
+            const container = document.getElementById('teams-grid');
+            const teamIds = getLeagueTeams(league.id);
+
+            if (teamIds.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-full">No teams added yet</p>';
+                return;
+            }
+
+            container.innerHTML = teamIds.map(teamId => {
+                const team = teamsData.teams[teamId];
+                if (!team) return '';
+
+                // Find which pool this team is in
+                let poolName = null;
+                for (const pool of league.pools) {
+                    if (pool.teamIds.includes(teamId)) {
+                        poolName = pool.name;
+                        break;
+                    }
+                }
+
+                return `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 relative group">
+                        <button onclick="removeTeamFromLeagueUI('${league.id}', '${teamId}')"
+                            class="absolute top-2 right-2 w-6 h-6 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                            aria-label="Remove team">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <h4 class="font-medium text-white mb-1">${escapeHtml(team.name)}${(league.teamSeeds && league.teamSeeds[teamId]) ? ` <span class="text-xs text-gray-500 font-normal">(${league.teamSeeds[teamId]})</span>` : ''}</h4>
+                        ${poolName ? `<p class="text-xs text-cyan-400">${escapeHtml(poolName)}</p>` : '<p class="text-xs text-gray-500">No pool assigned</p>'}
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // ==================== SYNOPSIS TAB ====================
+
+        let synopsisData = null;
+        let synopsisSortKey = 'seed';
+        let synopsisSortAsc = true;
+
+        function renderSynopsisView(league) {
+            const cachedRankings = getCachedRankings(league);
+
+            // Show/hide division selector if metadata missing
+            const selectorDiv = document.getElementById('synopsis-rankset-selector');
+            if (!league.competitionLevel || !league.genderDivision) {
+                selectorDiv.classList.remove('hidden');
+            } else {
+                selectorDiv.classList.add('hidden');
+            }
+
+            if (cachedRankings && synopsisData) {
+                showSynopsisContent(synopsisData);
+            } else if (cachedRankings) {
+                generateAndShowSynopsis(league, cachedRankings);
+            } else {
+                document.getElementById('synopsis-no-data').classList.remove('hidden');
+                document.getElementById('synopsis-content').classList.add('hidden');
+                document.getElementById('synopsis-loading').classList.add('hidden');
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        async function fetchRankingsAndGenerateSynopsis() {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            // Determine rankSet - use selector if metadata missing
+            let rankSet;
+            if (!league.competitionLevel || !league.genderDivision) {
+                const selector = document.getElementById('synopsis-rankset');
+                rankSet = selector ? selector.value : 'College-Men';
+            } else {
+                rankSet = buildRankSet(league);
+            }
+
+            document.getElementById('synopsis-no-data').classList.add('hidden');
+            document.getElementById('synopsis-loading').classList.remove('hidden');
+            document.getElementById('synopsis-content').classList.add('hidden');
+
+            try {
+                const apiBase = window.USAU_API_BASE || '';
+                const response = await fetch(`${apiBase}/api/usau/rankings?rankSet=${encodeURIComponent(rankSet)}`);
+                if (!response.ok) throw new Error(`Rankings fetch failed: ${response.status}`);
+
+                const data = await response.json();
+                cacheRankings(league, data);
+                generateAndShowSynopsis(league, data);
+                showToast(`Fetched ${data.fetchedCount} team rankings`, 'success');
+            } catch (error) {
+                console.error('Failed to fetch rankings:', error);
+                document.getElementById('synopsis-loading').classList.add('hidden');
+                document.getElementById('synopsis-no-data').classList.remove('hidden');
+                showToast('Failed to fetch USAU rankings: ' + error.message, 'error');
+            }
+        }
+
+        function generateAndShowSynopsis(league, rankingsData) {
+            const rankingsMap = {};
+            for (const entry of rankingsData.rankings) {
+                rankingsMap[entry.teamName.toLowerCase().trim()] = entry;
+            }
+            synopsisData = generateTournamentSynopsis(league.id, rankingsMap);
+            showSynopsisContent(synopsisData);
+        }
+
+        function showSynopsisContent(data) {
+            document.getElementById('synopsis-loading').classList.add('hidden');
+            document.getElementById('synopsis-no-data').classList.add('hidden');
+            document.getElementById('synopsis-content').classList.remove('hidden');
+
+            renderOverviewCards(data.overview);
+            renderStorylines(data.storylines);
+            document.getElementById('narrative-text').textContent = data.narrative;
+            renderSynopsisTable(data.teamImpacts);
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function renderOverviewCards(overview) {
+            document.getElementById('synopsis-overview').innerHTML = `
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 text-center">
+                    <p class="text-2xl font-bold text-white">${overview.completedGames}/${overview.totalGames}</p>
+                    <p class="text-xs text-gray-400 mt-1">Games Played</p>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 text-center">
+                    <p class="text-2xl font-bold text-emerald-400">${overview.completionPct}%</p>
+                    <p class="text-xs text-gray-400 mt-1">Complete</p>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 text-center">
+                    <p class="text-2xl font-bold text-white">${overview.avgWinnerScore}-${overview.avgLoserScore}</p>
+                    <p class="text-xs text-gray-400 mt-1">Avg Score</p>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 text-center">
+                    <p class="text-2xl font-bold text-purple-400">${overview.avgMargin}</p>
+                    <p class="text-xs text-gray-400 mt-1">Avg Margin</p>
+                </div>
+            `;
+        }
+
+        function renderStorylines(storylines) {
+            const cards = [];
+
+            if (storylines.biggestUpsetBySeed) {
+                const u = storylines.biggestUpsetBySeed;
+                cards.push(`
+                    <div class="bg-amber-500/10 rounded-xl p-4 border border-amber-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                            <span class="text-sm font-bold text-amber-400">Biggest Upset (Seed)</span>
+                        </div>
+                        <p class="text-white font-medium">#${u.winnerSeed} ${escapeHtml(u.winnerName)} def. #${u.loserSeed} ${escapeHtml(u.loserName)}</p>
+                        <p class="text-gray-400 text-xs mt-1">${u.score}</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.biggestUpsetByRating) {
+                const u = storylines.biggestUpsetByRating;
+                cards.push(`
+                    <div class="bg-orange-500/10 rounded-xl p-4 border border-orange-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="flame" class="w-4 h-4 text-orange-400"></i>
+                            <span class="text-sm font-bold text-orange-400">Biggest Upset (Rating)</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(u.winnerName)} (${u.winnerRating}) def. ${escapeHtml(u.loserName)} (${u.loserRating})</p>
+                        <p class="text-gray-400 text-xs mt-1">${u.score} | ${u.ratingGap} rating gap</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.closestGame) {
+                const c = storylines.closestGame;
+                cards.push(`
+                    <div class="bg-cyan-500/10 rounded-xl p-4 border border-cyan-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="timer" class="w-4 h-4 text-cyan-400"></i>
+                            <span class="text-sm font-bold text-cyan-400">Closest Game</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(c.team1)} vs ${escapeHtml(c.team2)}</p>
+                        <p class="text-gray-400 text-xs mt-1">${c.score} (${c.margin}-pt margin)</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.biggestBlowout) {
+                const b = storylines.biggestBlowout;
+                cards.push(`
+                    <div class="bg-red-500/10 rounded-xl p-4 border border-red-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="skull" class="w-4 h-4 text-red-400"></i>
+                            <span class="text-sm font-bold text-red-400">Biggest Blowout</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(b.winnerName)} def. ${escapeHtml(b.loserName)}</p>
+                        <p class="text-gray-400 text-xs mt-1">${b.score} (${b.margin}-pt margin)</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.cinderellaTeam) {
+                const ct = storylines.cinderellaTeam;
+                const details = [];
+                if (ct.seed) details.push(`Seed #${ct.seed}`);
+                if (ct.rating) details.push(`Rating: ${ct.rating}`);
+                cards.push(`
+                    <div class="bg-pink-500/10 rounded-xl p-4 border border-pink-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="crown" class="w-4 h-4 text-pink-400"></i>
+                            <span class="text-sm font-bold text-pink-400">Cinderella Story</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(ct.teamName)}</p>
+                        <p class="text-gray-400 text-xs mt-1">${details.join(' | ')} | Record: ${ct.record}</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.groupOfDeath) {
+                const g = storylines.groupOfDeath;
+                cards.push(`
+                    <div class="bg-purple-500/10 rounded-xl p-4 border border-purple-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="shield-alert" class="w-4 h-4 text-purple-400"></i>
+                            <span class="text-sm font-bold text-purple-400">Group of Death</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(g.poolName)}</p>
+                        <p class="text-gray-400 text-xs mt-1">Avg Rating: ${g.avgRating} | ${g.teamCount} teams</p>
+                    </div>
+                `);
+            }
+
+            if (storylines.dominantPerformance) {
+                const d = storylines.dominantPerformance;
+                cards.push(`
+                    <div class="bg-emerald-500/10 rounded-xl p-4 border border-emerald-500/20">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i data-lucide="award" class="w-4 h-4 text-emerald-400"></i>
+                            <span class="text-sm font-bold text-emerald-400">Dominant Performance</span>
+                        </div>
+                        <p class="text-white font-medium">${escapeHtml(d.teamName)}</p>
+                        <p class="text-gray-400 text-xs mt-1">${d.record} | Point Diff: ${d.pointDiff}</p>
+                    </div>
+                `);
+            }
+
+            document.getElementById('storylines-grid').innerHTML = cards.length > 0
+                ? cards.join('')
+                : '<p class="text-gray-500 text-sm col-span-2 text-center py-4">No completed games to analyze yet</p>';
+        }
+
+        function renderSynopsisTable(teamImpacts) {
+            const tbody = document.getElementById('synopsis-table-body');
+            let entries = Object.entries(teamImpacts)
+                .map(([teamId, data]) => ({ teamId, ...data }));
+
+            entries.sort((a, b) => {
+                switch (synopsisSortKey) {
+                    case 'seed': return (a.seed || 999) - (b.seed || 999);
+                    case 'team': return a.teamName.localeCompare(b.teamName);
+                    case 'preRating': return (b.preRating || 0) - (a.preRating || 0);
+                    case 'record': return (b.wins - b.losses) - (a.wins - a.losses);
+                    case 'change': return (b.ratingChange || 0) - (a.ratingChange || 0);
+                    case 'projected': return (b.projectedRating || 0) - (a.projectedRating || 0);
+                    default: return 0;
+                }
+            });
+            if (!synopsisSortAsc) entries.reverse();
+
+            tbody.innerHTML = entries.map(t => {
+                const changeColor = (t.ratingChange || 0) >= 0 ? 'text-emerald-400' : 'text-red-400';
+                const changePrefix = (t.ratingChange || 0) >= 0 ? '+' : '';
+                return `
+                    <tr class="border-t border-white/5 hover:bg-white/5">
+                        <td class="py-2 px-2 text-gray-400">${t.seed || '-'}</td>
+                        <td class="py-2 px-2 text-white font-medium">${escapeHtml(t.teamName)}</td>
+                        <td class="py-2 px-2 text-center text-gray-300">${t.preRating ?? 'N/A'}</td>
+                        <td class="py-2 px-2 text-center text-gray-300">${t.wins}-${t.losses}</td>
+                        <td class="py-2 px-2 text-center ${changeColor}">${t.ratingChange != null ? changePrefix + t.ratingChange : 'N/A'}</td>
+                        <td class="py-2 px-2 text-center text-gray-300">${t.projectedRating ?? 'N/A'}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function sortSynopsisTable(key) {
+            if (synopsisSortKey === key) {
+                synopsisSortAsc = !synopsisSortAsc;
+            } else {
+                synopsisSortKey = key;
+                synopsisSortAsc = true;
+            }
+            if (synopsisData) {
+                renderSynopsisTable(synopsisData.teamImpacts);
+            }
+        }
+
+        // Modal functions
+        function showCreateLeagueModal() {
+            document.getElementById('league-modal-title').textContent = 'Create Tournament';
+            document.getElementById('league-form').reset();
+            document.getElementById('league-edit-id').value = '';
+            document.getElementById('usau-format-input').value = '';
+            document.getElementById('format-details').classList.add('hidden');
+            document.getElementById('custom-config').classList.add('hidden');
+            document.getElementById('expected-teams').value = '';
+            document.getElementById('teams-per-pool').value = '';
+            document.getElementById('league-modal').classList.remove('hidden');
+            document.getElementById('league-name-input').focus();
+        }
+
+        function showEditLeagueModal() {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            document.getElementById('league-modal-title').textContent = 'Edit Tournament';
+            document.getElementById('league-name-input').value = league.name;
+            document.getElementById('league-description-input').value = league.description || '';
+            document.getElementById('tournament-start-date').value = league.startDate || '';
+            document.getElementById('tournament-end-date').value = league.endDate || '';
+
+            // Try to match to a USAU format
+            const usauSelect = document.getElementById('usau-format-input');
+            let matchedFormat = null;
+
+            for (const [key, config] of Object.entries(USAU_FORMATS)) {
+                if (config.format === league.format &&
+                    config.pools === league.pools.length &&
+                    config.totalTeams === (league.expectedTeams || getLeagueTeamCount(league.id))) {
+                    matchedFormat = key;
+                    break;
+                }
+            }
+
+            if (matchedFormat) {
+                usauSelect.value = matchedFormat;
+                handleUsauFormatChange();
+            } else {
+                usauSelect.value = 'custom';
+                document.getElementById('format-details').classList.add('hidden');
+                document.getElementById('custom-config').classList.remove('hidden');
+                document.getElementById('league-format-input').value = league.format;
+                document.getElementById('league-pools-input').value = league.pools.length || 2;
+            }
+
+            document.getElementById('league-edit-id').value = league.id;
+            document.getElementById('league-modal').classList.remove('hidden');
+        }
+
+        function closeLeagueModal() {
+            document.getElementById('league-modal').classList.add('hidden');
+        }
+
+        function handleLeagueSubmit(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('league-name-input').value.trim();
+            const description = document.getElementById('league-description-input').value.trim();
+            const startDate = document.getElementById('tournament-start-date').value || null;
+            const endDate = document.getElementById('tournament-end-date').value || null;
+            const usauFormat = document.getElementById('usau-format-input').value;
+            const editId = document.getElementById('league-edit-id').value;
+
+            if (!name) {
+                showToast('Please enter a tournament name', 'error');
+                return;
+            }
+
+            if (!usauFormat) {
+                showToast('Please select a tournament format', 'error');
+                return;
+            }
+
+            if (editId) {
+                updateTournament(editId, { name, description, startDate, endDate });
+                showToast('Tournament updated', 'success');
+            } else {
+                let format, numPools, expectedTeams, teamsPerPool;
+
+                if (usauFormat === 'custom') {
+                    format = document.getElementById('league-format-input').value;
+                    numPools = parseInt(document.getElementById('league-pools-input').value) || 2;
+                    expectedTeams = 0;
+                    teamsPerPool = 0;
+                } else {
+                    const config = USAU_FORMATS[usauFormat];
+                    format = config.format;
+                    numPools = config.pools;
+                    expectedTeams = config.totalTeams;
+                    teamsPerPool = config.teamsPerPool;
+                }
+
+                const league = createTournament(name, description, format, numPools, startDate, endDate);
+
+                // Store expected configuration
+                if (league) {
+                    league.usauFormat = usauFormat;
+                    league.expectedTeams = expectedTeams;
+                    league.teamsPerPool = teamsPerPool;
+                    saveTournamentsData();
+                }
+
+                showToast(`Tournament created: ${name}`, 'success');
+            }
+
+            closeLeagueModal();
+            renderTournamentCards();
+        }
+
+        function showAddTeamModal() {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            // Check if at capacity
+            const currentTeamCount = getLeagueTeamCount(league.id);
+            if (league.expectedTeams && currentTeamCount >= league.expectedTeams) {
+                showToast(`Tournament is at capacity (${league.expectedTeams} teams)`, 'error');
+                return;
+            }
+
+            // Populate pool select with team counts
+            const poolSelect = document.getElementById('pool-select');
+            const poolContainer = document.getElementById('pool-select-container');
+
+            if (league.format === 'bracket') {
+                poolContainer.style.display = 'none';
+            } else {
+                poolContainer.style.display = 'block';
+                poolSelect.innerHTML = league.pools.map(p => {
+                    const poolTeamCount = p.teamIds.length;
+                    const maxTeams = league.teamsPerPool || '?';
+                    const isFull = league.teamsPerPool && poolTeamCount >= league.teamsPerPool;
+                    return `<option value="${p.id}" ${isFull ? 'disabled' : ''}>${escapeHtml(p.name)} (${poolTeamCount}/${maxTeams})${isFull ? ' - Full' : ''}</option>`;
+                }).join('');
+            }
+
+            // Populate available teams (exclude teams already in league)
+            const leagueTeamIds = getLeagueTeams(league.id);
+            const availableTeams = Object.values(teamsData.teams).filter(t => !leagueTeamIds.includes(t.id));
+
+            const teamsList = document.getElementById('available-teams-list');
+            if (availableTeams.length === 0) {
+                teamsList.innerHTML = '<p class="text-gray-400 text-sm">No available teams. Create a new team below.</p>';
+            } else {
+                teamsList.innerHTML = availableTeams.map(team => `
+                    <button onclick="addExistingTeam('${team.id}')"
+                        class="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
+                        <span class="text-white font-medium">${escapeHtml(team.name)}</span>
+                    </button>
+                `).join('');
+            }
+
+            document.getElementById('new-team-name').value = '';
+            document.getElementById('add-team-modal').classList.remove('hidden');
+        }
+
+        function closeAddTeamModal() {
+            document.getElementById('add-team-modal').classList.add('hidden');
+        }
+
+        function addExistingTeam(teamId) {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            if (league.format === 'bracket') {
+                addTeamToLeague(league.id, teamId);
+            } else {
+                const poolId = document.getElementById('pool-select').value;
+                addTeamToPool(league.id, poolId, teamId);
+            }
+
+            closeAddTeamModal();
+            showToast('Team added to league', 'success');
+            showTournamentDetails(league.id);
+        }
+
+        function createAndAddTeam() {
+            const name = document.getElementById('new-team-name').value.trim();
+            if (!name) {
+                showToast('Please enter a team name', 'error');
+                return;
+            }
+
+            // Create new team using existing function
+            const newTeam = createEmptyTeam(name);
+            teamsData.teams[newTeam.id] = newTeam;
+            saveTeamsData();
+
+            // Add to league
+            addExistingTeam(newTeam.id);
+        }
+
+        function removeTeamFromLeagueUI(leagueId, teamId) {
+            const league = tournamentsData.tournaments[leagueId];
+            if (!league) return;
+
+            if (league.format === 'bracket') {
+                const idx = league.teamIds.indexOf(teamId);
+                if (idx !== -1) {
+                    league.teamIds.splice(idx, 1);
+                }
+            } else {
+                for (const pool of league.pools) {
+                    const idx = pool.teamIds.indexOf(teamId);
+                    if (idx !== -1) {
+                        pool.teamIds.splice(idx, 1);
+                        if (league.poolStandings[pool.id]) {
+                            delete league.poolStandings[pool.id][teamId];
+                        }
+                        break;
+                    }
+                }
+            }
+
+            saveTournamentsData();
+            showToast('Team removed', 'success');
+            showTournamentDetails(leagueId);
+        }
+
+        // Schedule generation
+        function generateLeagueSchedule() {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            const teamCount = getLeagueTeamCount(league.id);
+            if (teamCount < 2) {
+                showToast('Add at least 2 teams first', 'error');
+                return;
+            }
+
+            // Validate team count for USAU formats
+            if (league.expectedTeams && teamCount !== league.expectedTeams) {
+                const diff = league.expectedTeams - teamCount;
+                if (diff > 0) {
+                    showToast(`Need ${diff} more team${diff > 1 ? 's' : ''} for this format (${teamCount}/${league.expectedTeams})`, 'error');
+                    return;
+                } else {
+                    showToast(`Too many teams for this format. Expected ${league.expectedTeams}, have ${teamCount}`, 'error');
+                    return;
+                }
+            }
+
+            // Validate pool distribution
+            if (league.teamsPerPool && league.pools.length > 0) {
+                for (const pool of league.pools) {
+                    if (pool.teamIds.length !== league.teamsPerPool) {
+                        showToast(`${pool.name} needs exactly ${league.teamsPerPool} teams (has ${pool.teamIds.length})`, 'error');
+                        return;
+                    }
+                }
+            }
+
+            if (league.format === 'bracket') {
+                generateSingleEliminationBracket(league.id);
+                showToast('Bracket generated', 'success');
+            } else {
+                generatePoolPlaySchedule(league.id);
+                showToast('Pool play schedule generated', 'success');
+
+                // If pool-to-bracket, also check if we should generate bracket
+                if (league.format === 'pool-to-bracket') {
+                    const allPoolsComplete = league.poolMatchups.every(m => m.status === 'completed');
+                    if (allPoolsComplete && league.poolMatchups.length > 0) {
+                        generateBracketFromPools(league.id);
+                        showToast('Bracket generated from pool results', 'success');
+                    }
+                }
+            }
+
+            showTournamentDetails(league.id);
+        }
+
+        // Confirm modal functions
+        function confirmDeleteLeague() {
+            const league = getCurrentTournament();
+            if (!league) return;
+
+            document.getElementById('confirm-title').textContent = 'Delete Tournament?';
+            document.getElementById('confirm-message').textContent = `Are you sure you want to delete "${league.name}"? This cannot be undone.`;
+            confirmCallback = () => {
+                deleteTournament(league.id);
+                showToast('Tournament deleted', 'success');
+                renderTournamentCards();
+                document.getElementById('league-details').classList.add('hidden');
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        function executeConfirmAction() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        }
+
+        // ==================== USAU IMPORT FUNCTIONALITY ====================
+
+        let usauSelectedTournament = null;
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '/api';
+
+        function showUsauImportModal() {
+            document.getElementById('usau-import-modal').classList.remove('hidden');
+            document.getElementById('usau-search-query').focus();
+            usauSelectedTournament = null;
+            document.getElementById('usau-import-actions').classList.add('hidden');
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeUsauImportModal() {
+            document.getElementById('usau-import-modal').classList.add('hidden');
+            usauSelectedTournament = null;
+        }
+
+        // Update Results Functions
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / (1000 * 60));
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
+            if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+            if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+            return date.toLocaleDateString();
+        }
+
+        async function updateLeagueResults() {
+            const league = getCurrentTournament();
+            if (!league || !league.importedFrom) {
+                showToast('This tournament was not imported from USAU', 'error');
+                return;
+            }
+
+            // Show modal in progress state
+            const modal = document.getElementById('update-results-modal');
+            const progressState = document.getElementById('update-progress-state');
+            const resultsState = document.getElementById('update-results-state');
+
+            modal.classList.remove('hidden');
+            progressState.classList.remove('hidden');
+            resultsState.classList.add('hidden');
+
+            // Reset progress
+            document.getElementById('update-progress-bar').style.width = '0%';
+            document.getElementById('update-progress-text').textContent = 'Connecting to USA Ultimate...';
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            try {
+                // Call the update function with progress callback
+                const result = await updateTournamentResults(league.id, (message, progress) => {
+                    document.getElementById('update-progress-text').textContent = message;
+                    document.getElementById('update-progress-bar').style.width = `${progress}%`;
+                });
+
+                // Switch to results state
+                progressState.classList.add('hidden');
+                resultsState.classList.remove('hidden');
+
+                // Hide all icons first
+                document.getElementById('update-success-icon').classList.add('hidden');
+                document.getElementById('update-no-changes-icon').classList.add('hidden');
+                document.getElementById('update-error-icon').classList.add('hidden');
+
+                if (!result.success) {
+                    // Show error state
+                    document.getElementById('update-error-icon').classList.remove('hidden');
+                    document.getElementById('update-error-text').textContent = result.error || 'Update failed';
+                } else if (result.summary.standingsUpdated === 0 && result.summary.matchupsCompleted === 0 && result.summary.newMatchups === 0) {
+                    // Show no changes state
+                    document.getElementById('update-no-changes-icon').classList.remove('hidden');
+                } else {
+                    // Show success state with changes
+                    document.getElementById('update-success-icon').classList.remove('hidden');
+                    displayUpdateChanges(result.changes);
+                }
+
+                // Refresh the league display
+                showTournamentDetails(league.id);
+
+            } catch (error) {
+                console.error('Update failed:', error);
+                progressState.classList.add('hidden');
+                resultsState.classList.remove('hidden');
+                document.getElementById('update-error-icon').classList.remove('hidden');
+                document.getElementById('update-error-text').textContent = error.message || 'Update failed';
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function displayUpdateChanges(changes) {
+            // Standings Updated
+            const standingsSection = document.getElementById('standings-updated-section');
+            const standingsList = document.getElementById('standings-updated-list');
+            if (changes.standingsUpdated && changes.standingsUpdated.length > 0) {
+                standingsSection.classList.remove('hidden');
+                standingsList.innerHTML = changes.standingsUpdated.map(s => `
+                    <div class="text-sm bg-white/5 rounded-lg px-3 py-2 flex justify-between items-center">
+                        <span class="text-white">${escapeHtml(s.teamName)}</span>
+                        <span class="text-gray-400">
+                            <span class="text-red-400 line-through">${s.oldRecord}</span>
+                            <span class="mx-1">→</span>
+                            <span class="text-emerald-400">${s.newRecord}</span>
+                        </span>
+                    </div>
+                `).join('');
+            } else {
+                standingsSection.classList.add('hidden');
+            }
+
+            // Matchups Completed
+            const matchupsSection = document.getElementById('matchups-completed-section');
+            const matchupsList = document.getElementById('matchups-completed-list');
+            if (changes.matchupsCompleted && changes.matchupsCompleted.length > 0) {
+                matchupsSection.classList.remove('hidden');
+                matchupsList.innerHTML = changes.matchupsCompleted.map(m => `
+                    <div class="text-sm bg-white/5 rounded-lg px-3 py-2 flex justify-between items-center">
+                        <span class="text-white">${escapeHtml(m.homeTeam)} vs ${escapeHtml(m.awayTeam)}</span>
+                        <span class="text-emerald-400 font-medium">${m.score}</span>
+                    </div>
+                `).join('');
+            } else {
+                matchupsSection.classList.add('hidden');
+            }
+
+            // New Matchups
+            const newMatchupsSection = document.getElementById('new-matchups-section');
+            const newMatchupsList = document.getElementById('new-matchups-list');
+            if (changes.newMatchups && changes.newMatchups.length > 0) {
+                newMatchupsSection.classList.remove('hidden');
+                newMatchupsList.innerHTML = changes.newMatchups.map(m => `
+                    <div class="text-sm bg-white/5 rounded-lg px-3 py-2 flex justify-between items-center">
+                        <span class="text-white">${escapeHtml(m.homeTeam)} vs ${escapeHtml(m.awayTeam)}</span>
+                        <span class="${m.status === 'completed' ? 'text-emerald-400' : 'text-gray-400'}">${m.score}</span>
+                    </div>
+                `).join('');
+            } else {
+                newMatchupsSection.classList.add('hidden');
+            }
+        }
+
+        function closeUpdateResultsModal() {
+            document.getElementById('update-results-modal').classList.add('hidden');
+        }
+
+        function switchUsauTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.usau-tab').forEach(btn => {
+                if (btn.dataset.usauTab === tabName) {
+                    btn.className = 'usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-purple-500/20 text-purple-400 border border-purple-500/30';
+                } else {
+                    btn.className = 'usau-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.usau-tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`usau-${tabName}-tab`).classList.remove('hidden');
+        }
+
+        async function searchUsauTournaments() {
+            const query = document.getElementById('usau-search-query').value.trim();
+            if (!query || query.length < 2) {
+                showToast('Enter at least 2 characters to search', 'error');
+                return;
+            }
+
+            const competitionLevel = document.getElementById('usau-competition-level').value;
+            const genderDivision = document.getElementById('usau-gender-division').value;
+            const resultsContainer = document.getElementById('usau-search-results');
+            const searchBtn = document.getElementById('usau-search-btn');
+
+            searchBtn.disabled = true;
+            searchBtn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Searching...';
+            resultsContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Searching USAU...</p>';
+
+            try {
+                const token = localStorage.getItem('ultistats_auth_token');
+                const response = await fetch(`${API_BASE}/api/usau/search-tournaments`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    },
+                    body: JSON.stringify({ query, competitionLevel, genderDivision })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Search failed');
+                }
+
+                const data = await response.json();
+
+                if (data.tournaments && data.tournaments.length > 0) {
+                    resultsContainer.innerHTML = data.tournaments.map(t => `
+                        <button onclick="selectUsauTournament('${encodeURIComponent(JSON.stringify(t))}')"
+                            class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
+                            <h4 class="font-medium text-white">${escapeHtml(t.name)}</h4>
+                            <p class="text-xs text-gray-400 mt-1">${escapeHtml(t.link)}</p>
+                        </button>
+                    `).join('');
+                } else {
+                    resultsContainer.innerHTML = `
+                        <div class="text-center py-8">
+                            <p class="text-gray-400 mb-2">No tournaments found</p>
+                            <p class="text-xs text-gray-500">Try a different search term or use the URL tab</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('USAU search error:', error);
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-400 mb-2">Search failed</p>
+                        <p class="text-xs text-gray-500">Make sure the API server is running, or try the URL tab</p>
+                    </div>
+                `;
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = '<i data-lucide="search" class="w-4 h-4"></i> Search';
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function selectUsauTournament(encodedData) {
+            try {
+                const tournament = JSON.parse(decodeURIComponent(encodedData));
+                usauSelectedTournament = tournament;
+
+                // Update selection UI
+                document.getElementById('usau-import-actions').classList.remove('hidden');
+                document.getElementById('usau-selected-name').textContent = tournament.name;
+                document.getElementById('usau-selected-info').textContent = tournament.link || 'No URL';
+
+                // Highlight selected item
+                document.querySelectorAll('#usau-search-results button').forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-purple-500');
+                });
+                event.currentTarget.classList.add('ring-2', 'ring-purple-500');
+
+                showToast('Tournament selected', 'success');
+            } catch (e) {
+                console.error('Select tournament error:', e);
+            }
+        }
+
+        async function fetchUsauTournament() {
+            const url = document.getElementById('usau-tournament-url').value.trim();
+            if (!url) {
+                showToast('Enter a tournament URL', 'error');
+                return;
+            }
+
+            const previewContainer = document.getElementById('usau-tournament-preview');
+            const fetchBtn = document.getElementById('usau-fetch-btn');
+
+            fetchBtn.disabled = true;
+            fetchBtn.textContent = 'Fetching...';
+            previewContainer.innerHTML = '<p class="text-gray-400 text-center py-8">Fetching tournament data...</p>';
+
+            try {
+                const token = localStorage.getItem('ultistats_auth_token');
+                const response = await fetch(`${API_BASE}/api/usau/tournament?url=${encodeURIComponent(url)}`, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Fetch failed');
+                }
+
+                const data = await response.json();
+                usauSelectedTournament = {
+                    name: data.name,
+                    link: url,
+                    teams: data.teams || [],
+                    scheduleLinks: data.scheduleLinks || []
+                };
+
+                // Show preview
+                previewContainer.innerHTML = `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10">
+                        <h3 class="font-bold text-white mb-2">${escapeHtml(data.name)}</h3>
+                        <p class="text-sm text-gray-400 mb-4">Found ${data.teams ? data.teams.length : 0} teams</p>
+                        ${data.teams && data.teams.length > 0 ? `
+                            <div class="max-h-40 overflow-y-auto space-y-1">
+                                ${data.teams.slice(0, 20).map(t => `
+                                    <div class="text-sm text-white py-1 px-2 bg-white/5 rounded">${escapeHtml(t.name)}</div>
+                                `).join('')}
+                                ${data.teams.length > 20 ? `<p class="text-xs text-gray-500 mt-2">... and ${data.teams.length - 20} more</p>` : ''}
+                            </div>
+                        ` : '<p class="text-gray-500 text-sm">No teams found on page</p>'}
+                    </div>
+                `;
+
+                // Show import actions
+                document.getElementById('usau-import-actions').classList.remove('hidden');
+                document.getElementById('usau-selected-name').textContent = data.name;
+                document.getElementById('usau-selected-info').textContent = `${data.teams ? data.teams.length : 0} teams found`;
+
+                showToast('Tournament data loaded', 'success');
+            } catch (error) {
+                console.error('USAU fetch error:', error);
+                previewContainer.innerHTML = `
+                    <div class="text-center py-8">
+                        <p class="text-red-400 mb-2">Failed to fetch tournament</p>
+                        <p class="text-xs text-gray-500">Check the URL and make sure the API server is running</p>
+                    </div>
+                `;
+                usauSelectedTournament = null;
+            } finally {
+                fetchBtn.disabled = false;
+                fetchBtn.textContent = 'Fetch Tournament';
+            }
+        }
+
+        async function importUsauTournament() {
+            if (!usauSelectedTournament) {
+                showToast('Select a tournament first', 'error');
+                return;
+            }
+
+            const importBtn = document.getElementById('usau-import-btn');
+            importBtn.disabled = true;
+            importBtn.textContent = 'Importing...';
+
+            try {
+                // Determine format based on team count
+                let format = 'pool-to-bracket';
+                let numPools = 2;
+                let expectedTeams = 0;
+                let teamsPerPool = 0;
+                let usauFormat = '';
+
+                const teamCount = usauSelectedTournament.teams ? usauSelectedTournament.teams.length : 0;
+
+                // Match to closest USAU format
+                if (teamCount <= 4) {
+                    usauFormat = 'bracket-4';
+                    format = 'bracket';
+                    numPools = 0;
+                    expectedTeams = 4;
+                } else if (teamCount <= 8) {
+                    usauFormat = '8-2x4';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 8;
+                    teamsPerPool = 4;
+                } else if (teamCount <= 10) {
+                    usauFormat = '10-2x5';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 10;
+                    teamsPerPool = 5;
+                } else if (teamCount <= 12) {
+                    usauFormat = '12-2x6';
+                    format = 'pool-to-bracket';
+                    numPools = 2;
+                    expectedTeams = 12;
+                    teamsPerPool = 6;
+                } else {
+                    usauFormat = '16-4x4';
+                    format = 'pool-to-bracket';
+                    numPools = 4;
+                    expectedTeams = 16;
+                    teamsPerPool = 4;
+                }
+
+                // Create the league
+                const league = createTournament(usauSelectedTournament.name, `Imported from USAU: ${usauSelectedTournament.link || ''}`, format, numPools);
+
+                if (league) {
+                    league.usauFormat = usauFormat;
+                    league.expectedTeams = expectedTeams;
+                    league.teamsPerPool = teamsPerPool;
+                    league.importedFrom = usauSelectedTournament.link;
+
+                    // Import teams (reuse existing teams when possible)
+                    if (usauSelectedTournament.teams && usauSelectedTournament.teams.length > 0) {
+                        const teams = usauSelectedTournament.teams.slice(0, expectedTeams || 50);
+                        let poolIndex = 0;
+                        let reusedCount = 0;
+
+                        if (!league.teamSeeds) league.teamSeeds = {};
+
+                        for (const teamData of teams) {
+                            // Clean team name: strip seed like "(1)" or "[3]"
+                            const cleanName = teamData.name.replace(/\s*[\(\[\{]\d+[\)\]\}]\s*$/, '').trim();
+                            const seedMatch = teamData.name.match(/[\(\[\{](\d+)[\)\]\}]\s*$/);
+                            const seed = seedMatch ? parseInt(seedMatch[1]) : (teamData.seed || null);
+
+                            // Check for existing team to reuse
+                            const existing = findExistingTeam(cleanName, teamData.link || null, null);
+                            let teamId;
+
+                            if (existing) {
+                                teamId = existing.id;
+                                existing.usauLink = teamData.link || null;
+                                reusedCount++;
+                            } else {
+                                const newTeam = createEmptyTeam(cleanName);
+                                newTeam.usauLink = teamData.link || null;
+                                teamsData.teams[newTeam.id] = newTeam;
+                                teamId = newTeam.id;
+                            }
+
+                            // Store seed
+                            if (seed) {
+                                league.teamSeeds[teamId] = seed;
+                            }
+
+                            // Add to pool (or league if bracket only)
+                            if (format === 'bracket') {
+                                if (!league.teamIds) league.teamIds = [];
+                                if (!league.teamIds.includes(teamId)) {
+                                    league.teamIds.push(teamId);
+                                }
+                            } else if (league.pools.length > 0) {
+                                // Distribute teams across pools
+                                const targetPool = league.pools[poolIndex % league.pools.length];
+                                if (!targetPool.teamIds.includes(teamId)) {
+                                    targetPool.teamIds.push(teamId);
+                                }
+
+                                // Initialize standings
+                                if (!league.poolStandings[targetPool.id]) {
+                                    league.poolStandings[targetPool.id] = {};
+                                }
+                                league.poolStandings[targetPool.id][teamId] = {
+                                    wins: 0, losses: 0, ties: 0,
+                                    pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+                                };
+
+                                poolIndex++;
+                            }
+                        }
+
+                        saveTeamsData();
+                    }
+
+                    saveTournamentsData();
+                    selectTournament(league.id);
+
+                    // Save name before closing modal (closeUsauImportModal nulls usauSelectedTournament)
+                    const importedName = usauSelectedTournament.name;
+                    closeUsauImportModal();
+
+                    // Render immediately so user sees the tournament structure
+                    try {
+                        renderTournamentCards();
+                        showTournamentDetails(league.id);
+                    } catch (renderErr) {
+                        console.error('Render after import error:', renderErr);
+                    }
+
+                    // Now fetch results from USAU automatically
+                    showToast(`Importing results for "${importedName}"...`, 'success');
+                    try {
+                        const result = await updateTournamentResults(league.id);
+                        const reusedMsg = reusedCount > 0 ? ` (${reusedCount} reused)` : '';
+                        if (result.success) {
+                            const total = result.summary.standingsUpdated + result.summary.matchupsCompleted;
+                            showToast(`Imported "${importedName}" with ${teamCount} teams${reusedMsg} and ${total} result updates`, 'success');
+                        } else {
+                            showToast(`Imported "${importedName}" with ${teamCount} teams${reusedMsg} (could not fetch results)`, 'success');
+                        }
+                    } catch (resultsErr) {
+                        console.warn('Could not fetch results during import:', resultsErr);
+                        const reusedMsg = reusedCount > 0 ? ` (${reusedCount} reused)` : '';
+                        showToast(`Imported "${importedName}" with ${teamCount} teams${reusedMsg}`, 'success');
+                    }
+
+                    // Re-render with updated results
+                    try {
+                        showTournamentDetails(league.id);
+                    } catch (e) {
+                        console.error('Re-render error:', e);
+                    }
+                }
+            } catch (error) {
+                console.error('Import error:', error);
+                showToast(`Failed to import tournament: ${error.message}`, 'error');
+            } finally {
+                importBtn.disabled = false;
+                importBtn.textContent = 'Import Tournament';
+            }
+        }
+
+        // Handle enter key for search
+        document.getElementById('usau-search-query')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchUsauTournaments();
+            }
+        });
+    </script>
+</body>
+</html>

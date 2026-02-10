@@ -1,0 +1,25 @@
+{
+  "name": "UltiStats - Ultimate Frisbee Tracker",
+  "short_name": "UltiStats",
+  "description": "Track ultimate frisbee stats in real-time with field visualization",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1b4b",
+  "theme_color": "#10b981",
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["sports", "utilities"]
+}

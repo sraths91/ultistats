@@ -1,0 +1,1190 @@
+/* Custom styles for Ultimate Frisbee Stats Tracker */
+
+/* Animated background blobs */
+@keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+}
+
+.animate-blob {
+    animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+/* Field styling */
+.field-line {
+    stroke: rgba(255, 255, 255, 0.8);
+    stroke-width: 0.15;
+    fill: none;
+}
+
+.endzone {
+    fill: #166534;
+}
+
+.endzone-text {
+    fill: rgba(255, 255, 255, 0.6);
+    font-size: 2px;
+    font-weight: bold;
+    text-anchor: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.2px;
+}
+
+.brick-mark {
+    stroke: rgba(250, 204, 21, 0.6);
+    stroke-width: 0.15;
+    stroke-dasharray: 0.3, 0.2;
+}
+
+.click-point {
+    fill: #f472b6;
+    stroke: white;
+    stroke-width: 0.1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    filter: drop-shadow(0 0 2px rgba(244, 114, 182, 0.5));
+}
+
+.click-point:hover {
+    fill: #ec4899;
+    transform: scale(1.3);
+}
+
+.throw-line {
+    stroke: #22d3ee;
+    stroke-width: 0.2;
+    stroke-dasharray: 0.4, 0.2;
+    fill: none;
+    pointer-events: none;
+    filter: drop-shadow(0 0 2px rgba(34, 211, 238, 0.5));
+}
+
+.turnover-marker {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.turnover-our {
+    background: radial-gradient(circle, #f87171 0%, #dc2626 100%);
+    border: 2px solid #fca5a5;
+}
+
+.turnover-their {
+    background: radial-gradient(circle, #4ade80 0%, #16a34a 100%);
+    border: 2px solid #86efac;
+}
+
+/* Modern player card */
+.player-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 1rem;
+    border-radius: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.player-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(236, 72, 153, 0.4) 100%);
+}
+
+.player-card.selected {
+    border: 2px solid #fbbf24;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.4);
+}
+
+.stat-number {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Action item animations */
+.action-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Modern action log styling */
+.action-log-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid #3b82f6;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    color: white;
+}
+
+.action-log-item.turnover {
+    border-left-color: #ef4444;
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.action-log-item.score {
+    border-left-color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.action-log-item.turnover-gained {
+    border-left-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.1);
+}
+
+.action-log-item.system {
+    border-left-color: #6366f1;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+.action-log-item.throw {
+    border-left-color: #22d3ee;
+    background: rgba(34, 211, 238, 0.1);
+}
+
+.action-log-item.block {
+    border-left-color: #a855f7;
+    background: rgba(168, 85, 247, 0.1);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+/* iPad-specific optimizations */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .container {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+    
+    #field-svg {
+        cursor: crosshair;
+    }
+    
+    .click-point {
+        r: 0.5;
+    }
+}
+
+/* Prevent double-tap zoom on all game page interactive elements */
+#field-container,
+#field-section,
+#quick-actions,
+#quick-player-select,
+#attendance-grid,
+#line-selection-grid,
+#on-field-display,
+#recent-actions {
+    touch-action: manipulation;
+}
+
+/* Touch-friendly interface */
+@media (pointer: coarse) {
+    button, select, input {
+        min-height: 48px;
+        font-size: 16px;
+    }
+
+    .click-point {
+        r: 0.6;
+    }
+}
+
+/* Loading spinner */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid #10b981;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Stats table styling for dark theme */
+#player-stats-table tr {
+    transition: background-color 0.2s ease;
+}
+
+#player-stats-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+#player-stats-table td {
+    padding: 0.75rem 1rem;
+    color: white;
+}
+
+/* Date input styling for dark theme */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Select dropdown styling */
+select option {
+    background-color: #1e293b;
+    color: white;
+}
+
+/* Focus states */
+input:focus, select:focus, button:focus {
+    outline: none;
+}
+
+/* Pulse animation for live indicator */
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Toast notifications */
+.toast-notification {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, 0);
+    }
+}
+
+.animate-fadeOut {
+    animation: fadeOut 0.3s ease-out forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+}
+
+/* Player quick select buttons */
+.player-quick-btn {
+    min-height: 44px;
+    min-width: 60px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.player-quick-btn:active {
+    transform: scale(0.95);
+}
+
+/* Quick action buttons */
+.quick-action-btn {
+    min-height: 56px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+/* Mobile phone optimizations */
+@media (max-width: 640px) {
+    .quick-action-btn {
+        font-size: 14px;
+        padding: 12px 8px;
+    }
+
+    .player-quick-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* Stack stats in 2x2 grid on phones */
+    #stats-dashboard .grid-cols-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Smaller section padding on phones */
+    section > div {
+        padding: 1rem;
+    }
+
+    /* Hide animated blobs on mobile to save battery */
+    .animate-blob {
+        display: none;
+    }
+
+    /* Compact game header on phones */
+    #game-header .container {
+        padding: 0.375rem 0.75rem;
+    }
+
+    /* Compact on-field display */
+    #on-field-display {
+        padding: 0.5rem;
+    }
+}
+
+/* Landscape tablet: side-by-side field + controls */
+@media (min-width: 768px) and (orientation: landscape) {
+    #field-layout {
+        display: grid;
+        grid-template-columns: 3fr 2fr;
+        gap: 1rem;
+        align-items: start;
+        max-width: 100%;
+    }
+
+    #field-col #field-container {
+        max-height: 75vh;
+    }
+
+    /* Hide the portrait selection status, show landscape copy */
+    #field-col .landscape-hide {
+        display: none;
+    }
+    #selection-status-landscape {
+        display: block !important;
+    }
+
+    /* Quick actions: always 2-col grid in landscape sidebar */
+    #controls-col #quick-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        overflow: visible;
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+
+    /* Compact recent actions in landscape */
+    #recent-actions .max-w-4xl {
+        max-width: 100%;
+    }
+}
+
+/* Landscape phone optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+    /* Reduce padding in landscape */
+    main {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    section {
+        margin-top: 0.5rem;
+    }
+
+    /* Make field taller in landscape */
+    #field-section .relative {
+        padding-bottom: 45%;
+    }
+}
+
+/* Prevent text selection during rapid tapping */
+.no-select {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* Improve touch targets */
+@media (pointer: coarse) {
+    .player-card {
+        min-height: 80px;
+    }
+    
+    select, input, button {
+        min-height: 48px;
+    }
+    
+    /* Larger field click points for touch */
+    .click-point {
+        r: 1.2;
+    }
+    
+    .turnover-marker {
+        width: 24px;
+        height: 24px;
+    }
+    
+    /* Enhanced touch targets for game page buttons */
+    #quick-actions button {
+        min-height: 52px;
+        min-width: 80px;
+        padding: 12px 16px;
+    }
+    
+    #quick-player-select button {
+        min-height: 56px;
+        padding: 10px 14px;
+    }
+    
+    /* Larger attendance grid buttons */
+    #attendance-grid button,
+    #line-selection-grid button {
+        min-height: 60px;
+        font-size: 14px;
+    }
+
+    /* Field popup buttons: larger for sideline use */
+    #field-player-popup button {
+        min-height: 48px;
+        padding: 12px 14px;
+        margin-bottom: 2px;
+    }
+
+    /* Score display: larger tap targets */
+    #our-score, #opponent-score {
+        min-width: 48px;
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Ensure spacing between adjacent quick-action buttons */
+    #quick-actions {
+        gap: 8px;
+    }
+
+    /* Secondary action row spacing */
+    #undo-btn, #undo-btn + button {
+        min-height: 48px;
+    }
+}
+
+/* Safe area for notched devices */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(0px, env(safe-area-inset-left));
+        padding-right: max(0px, env(safe-area-inset-right));
+        padding-bottom: max(0px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Line selection buttons */
+.line-select-btn {
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Injury modal buttons */
+.injury-out-btn, .injury-in-btn {
+    min-height: 44px;
+    touch-action: manipulation;
+}
+
+/* On-field player badges */
+#on-field-display span {
+    white-space: nowrap;
+}
+
+/* Leaderboard styling */
+.leaderboard-row {
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.leaderboard-tab, .sort-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollable sort buttons on mobile */
+@media (max-width: 640px) {
+    .sort-btn {
+        flex-shrink: 0;
+    }
+    
+    .leaderboard-row .flex.gap-4 {
+        gap: 0.5rem;
+    }
+    
+    .leaderboard-row .text-sm {
+        font-size: 0.7rem;
+    }
+}
+
+/* Game history styling */
+.game-history-item {
+    animation: fadeIn 0.2s ease-out;
+}
+
+.game-history-item:active {
+    transform: scale(0.98);
+}
+
+#game-history-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+#game-history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#game-history-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#game-history-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+/* Game detail modal scrollable area */
+#game-detail-modal .max-h-64 {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Improved field section sticky header */
+#field-section .sticky {
+    margin-left: -2rem;
+    margin-right: -2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+@media (max-width: 640px) {
+    #field-section .sticky {
+        margin-left: -1rem;
+        margin-right: -1rem;
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+}
+
+/* Possession indicator pulse */
+#possession-indicator .animate-pulse {
+    animation: possessionPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes possessionPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+/* Improved quick action buttons */
+.quick-action-btn {
+    min-height: 64px;
+    font-size: 1.125rem;
+}
+
+@media (min-width: 768px) {
+    .quick-action-btn {
+        min-height: 72px;
+        font-size: 1.25rem;
+    }
+}
+
+/* Field popup styling */
+#field-player-popup {
+    animation: popupSlideIn 0.15s ease-out;
+}
+
+@keyframes popupSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -90%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -100%) scale(1);
+    }
+}
+
+/* Score display animation on change */
+@keyframes scoreChange {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.score-changed {
+    animation: scoreChange 0.3s ease-out;
+}
+
+/* Endzone highlight on tap */
+.endzone-highlight {
+    fill: rgba(16, 185, 129, 0.4);
+    animation: endzoneGlow 0.5s ease-out;
+}
+
+@keyframes endzoneGlow {
+    0% { fill: rgba(16, 185, 129, 0.6); }
+    100% { fill: rgba(16, 185, 129, 0.2); }
+}
+
+/* ==================== LIGHT MODE THEME ==================== */
+body.light-mode {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+}
+
+body.light-mode header {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .bg-white\/5 {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode .text-white {
+    color: #1e293b !important;
+}
+
+body.light-mode .text-gray-400 {
+    color: #64748b !important;
+}
+
+body.light-mode .text-gray-300 {
+    color: #475569 !important;
+}
+
+body.light-mode .bg-gradient-to-r.from-white {
+    background: linear-gradient(to right, #1e293b, #475569) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+}
+
+body.light-mode .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode .bg-white\/10 {
+    background: rgba(0, 0, 0, 0.05) !important;
+}
+
+body.light-mode .hover\:bg-white\/20:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode select option {
+    background-color: #ffffff;
+    color: #1e293b;
+}
+
+body.light-mode .player-card {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+body.light-mode .player-card:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%);
+}
+
+body.light-mode .action-log-item {
+    background: rgba(0, 0, 0, 0.03);
+    color: #1e293b;
+}
+
+body.light-mode .leaderboard-row {
+    background: rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-mode .leaderboard-row:hover {
+    background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-mode footer {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+body.light-mode .animate-blob {
+    opacity: 0.1;
+}
+
+body.light-mode #field-player-popup,
+body.light-mode #settings-modal > div:last-child,
+body.light-mode #avatar-modal > div:last-child,
+body.light-mode #confirm-modal > div:last-child {
+    background: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ==================== OUTDOOR / SUNLIGHT MODE ==================== */
+/* High-contrast light theme for outdoor readability in bright sunlight */
+body.outdoor-mode {
+    background: #ffffff !important;
+}
+
+body.outdoor-mode #game-header {
+    background: rgba(255, 255, 255, 0.97) !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+body.outdoor-mode .text-white,
+body.outdoor-mode #game-our-team,
+body.outdoor-mode #game-opponent,
+body.outdoor-mode #game-our-team-mobile,
+body.outdoor-mode #game-opponent-mobile {
+    color: #000000 !important;
+}
+
+body.outdoor-mode .text-gray-400,
+body.outdoor-mode .text-gray-500,
+body.outdoor-mode .text-gray-300 {
+    color: #374151 !important;
+}
+
+body.outdoor-mode #our-score {
+    color: #047857 !important;
+    font-weight: 900 !important;
+}
+
+body.outdoor-mode #opponent-score {
+    color: #dc2626 !important;
+    font-weight: 900 !important;
+}
+
+body.outdoor-mode #game-timer {
+    color: #b45309 !important;
+}
+
+body.outdoor-mode #period-value {
+    color: #0369a1 !important;
+}
+
+/* Outdoor mode: panels and cards */
+body.outdoor-mode .bg-white\/5,
+body.outdoor-mode #on-field-display,
+body.outdoor-mode #selection-status,
+body.outdoor-mode #selection-status-landscape,
+body.outdoor-mode #recent-actions .bg-white\/5 {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Outdoor mode: quick action buttons - bold, high contrast */
+body.outdoor-mode #quick-actions button {
+    font-weight: 700;
+    font-size: 0.9375rem;
+    border-width: 2px;
+}
+body.outdoor-mode #quick-actions button:nth-child(1) { /* Goal */
+    background: rgba(16, 185, 129, 0.25) !important;
+    color: #047857 !important;
+    border-color: #047857 !important;
+}
+body.outdoor-mode #quick-actions button:nth-child(2) { /* Turnover */
+    background: rgba(239, 68, 68, 0.2) !important;
+    color: #b91c1c !important;
+    border-color: #b91c1c !important;
+}
+body.outdoor-mode #quick-actions button:nth-child(3) { /* Block */
+    background: rgba(147, 51, 234, 0.2) !important;
+    color: #7e22ce !important;
+    border-color: #7e22ce !important;
+}
+body.outdoor-mode #quick-actions button:nth-child(4) { /* Opp Score */
+    background: rgba(249, 115, 22, 0.2) !important;
+    color: #c2410c !important;
+    border-color: #c2410c !important;
+}
+
+/* Outdoor mode: field popups */
+body.outdoor-mode #field-player-popup {
+    background: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.outdoor-mode #field-player-popup button {
+    color: #111827 !important;
+    font-weight: 700;
+}
+
+/* Outdoor mode: player quick-select buttons */
+body.outdoor-mode #quick-player-select button {
+    background: rgba(0, 0, 0, 0.08) !important;
+    color: #111827 !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+    font-weight: 600;
+}
+
+/* Outdoor mode: on-field badges */
+body.outdoor-mode #on-field-display span {
+    color: #111827 !important;
+    font-weight: 700;
+}
+
+/* Outdoor mode: undo + injury sub */
+body.outdoor-mode #undo-btn {
+    color: #374151 !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Outdoor mode: hide animated blobs */
+body.outdoor-mode .animate-blob {
+    display: none;
+}
+
+/* Outdoor mode: offline banner */
+body.outdoor-mode #offline-banner {
+    background: #f59e0b !important;
+    color: #000000 !important;
+}
+
+/* Outdoor mode: action log items */
+body.outdoor-mode .action-log-item {
+    background: rgba(0, 0, 0, 0.04) !important;
+    color: #111827 !important;
+}
+
+/* Outdoor mode: confirm modal */
+body.outdoor-mode #confirm-modal > div:last-child {
+    background: #ffffff !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Outdoor mode: quick-throw toggle */
+body.outdoor-mode #quick-throw-toggle {
+    background: rgba(0, 0, 0, 0.1) !important;
+    color: #0e7490 !important;
+    border-color: rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Quick-throw toggle animation */
+#quick-throw-toggle {
+    transition: all 0.2s ease;
+}
+#quick-throw-toggle:active {
+    transform: scale(0.95);
+}
+
+/* Sync queue badge pulse when offline */
+#sync-queue-badge:not(.hidden) {
+    animation: syncPulse 2s ease-in-out infinite;
+}
+@keyframes syncPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Smart-ordered receiver highlight in popup */
+#field-player-popup button.bg-emerald-500\/10 {
+    position: relative;
+}
+#field-player-popup button.bg-emerald-500\/10::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 25%;
+    bottom: 25%;
+    width: 3px;
+    background: #10b981;
+    border-radius: 2px;
+}
+
+/* Toggle switch styling */
+#theme-toggle-dot,
+#haptic-toggle-dot,
+#sound-toggle-dot,
+#confirm-toggle-dot {
+    transition: all 0.2s ease;
+}
+
+/* Section transitions */
+.section-transition {
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.section-transition.section-hidden {
+    opacity: 0;
+    transform: translateY(8px);
+    pointer-events: none;
+    visibility: hidden;
+    height: 0;
+    overflow: hidden;
+}
+
+/* Quick actions scroll fade indicator (only on sm+ where flex scroll is used) */
+@media (min-width: 640px) {
+    #quick-actions {
+        -webkit-mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+        mask-image: linear-gradient(to right, black 0%, black 85%, transparent 100%);
+    }
+    #quick-actions.scrolled-start {
+        -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+    }
+    #quick-actions.scrolled-end {
+        -webkit-mask-image: none;
+        mask-image: none;
+    }
+}
+
+/* ==================== USAU Tournament Import Wizard ==================== */
+
+/* Step indicator */
+.step-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 3rem;
+}
+
+.step-indicator span:first-child {
+    transition: all 0.3s ease;
+}
+
+.step-indicator span:last-child {
+    transition: color 0.3s ease;
+}
+
+/* Progress bar animation */
+#import-progress-bar {
+    transition: width 0.3s ease-out;
+}
+
+/* Status icons */
+.status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Team selection grid */
+#tournament-team-selection {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+#tournament-team-selection::-webkit-scrollbar {
+    width: 6px;
+}
+
+#tournament-team-selection::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#tournament-team-selection::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+/* Import status list */
+#import-status-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+
+#import-status-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#import-status-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#import-status-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 3px;
+}
+
+/* Spinner animation */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ==================== Live Stats Analysis ==================== */
+
+/* Analysis tabs */
+.analysis-tab {
+    background: rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+}
+.analysis-tab.active {
+    background: rgba(139, 92, 246, 0.3);
+    color: #c4b5fd;
+}
+.analysis-tab:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+/* CSS bar charts */
+.stat-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(139, 92, 246, 0.15);
+    overflow: hidden;
+}
+.stat-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: #8b5cf6;
+    transition: width 0.3s ease;
+}
+
+/* Plus/minus coloring */
+.plus-minus-pos { color: #34d399; }
+.plus-minus-neg { color: #f87171; }
+.plus-minus-zero { color: #9ca3af; }
+
+/* Outdoor mode: analysis panel */
+body.outdoor-mode #stats-analysis .bg-white\/5 {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+}
+body.outdoor-mode #stats-analysis h3,
+body.outdoor-mode #stats-analysis .text-white {
+    color: #111827 !important;
+}
+body.outdoor-mode #stats-analysis .text-gray-400,
+body.outdoor-mode #stats-analysis .text-gray-500,
+body.outdoor-mode #stats-analysis .text-gray-600 {
+    color: #6b7280 !important;
+}
+body.outdoor-mode .analysis-tab {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #374151 !important;
+}
+body.outdoor-mode .analysis-tab.active {
+    background: rgba(139, 92, 246, 0.4) !important;
+    color: #5b21b6 !important;
+}
+body.outdoor-mode .stat-bar {
+    background: rgba(0, 0, 0, 0.1);
+}
+body.outdoor-mode .stat-bar-fill {
+    background: #7c3aed;
+}
+body.outdoor-mode .plus-minus-pos { color: #047857 !important; }
+body.outdoor-mode .plus-minus-neg { color: #b91c1c !important; }
+body.outdoor-mode .plus-minus-zero { color: #6b7280 !important; }
+
+/* Outdoor mode: analysis button */
+body.outdoor-mode #stats-analysis-btn {
+    background: rgba(139, 92, 246, 0.2) !important;
+    color: #5b21b6 !important;
+    border-color: rgba(91, 33, 182, 0.4) !important;
+}
+
+/* Mobile responsive: analysis panel */
+@media (max-width: 640px) {
+    #analysis-content { max-height: 200px; }
+    .analysis-pair-row { flex-direction: column; gap: 0.25rem; }
+    .analysis-pair-row .flex-shrink-0:first-child { width: 100% !important; }
+}
+
+/* ==================== Player Sort Pills ==================== */
+
+.sort-pill {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    font-weight: 500;
+    background: rgba(255, 255, 255, 0.06);
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.sort-pill:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.12);
+    color: #d1d5db;
+}
+.sort-pill.active {
+    background: rgba(6, 182, 212, 0.25);
+    color: #67e8f9;
+    border-color: rgba(6, 182, 212, 0.4);
+}
+
+/* Sort pill stat annotation */
+.sort-stat {
+    font-size: 0.6rem;
+    opacity: 0.7;
+    margin-left: 2px;
+}
+
+/* Outdoor mode: sort pills */
+body.outdoor-mode .sort-pill {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #374151 !important;
+    border-color: rgba(0, 0, 0, 0.12) !important;
+}
+body.outdoor-mode .sort-pill:hover:not(.active) {
+    background: rgba(0, 0, 0, 0.1) !important;
+}
+body.outdoor-mode .sort-pill.active {
+    background: rgba(6, 182, 212, 0.3) !important;
+    color: #0e7490 !important;
+    border-color: rgba(6, 182, 212, 0.5) !important;
+}
+
+/* Mobile: sort pills scroll */
+@media (max-width: 640px) {
+    #sort-buttons {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+    #sort-buttons::-webkit-scrollbar { display: none; }
+}

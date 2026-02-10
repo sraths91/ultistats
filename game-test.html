@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>UltiStats - Game Test Page</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    <!-- Animated background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Game Header -->
+    <header id="game-header" class="relative z-10 sticky top-0 bg-slate-900/95 backdrop-blur-md border-b border-white/10">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <button onclick="exportGameData()" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-cyan-500/30" title="Export game data">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="confirmEndGame()" class="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                        <i data-lucide="square" class="w-4 h-4"></i>
+                        End Game
+                    </button>
+                    <div class="text-white">
+                        <span id="game-our-team" class="font-bold">Test Team</span>
+                        <span class="text-gray-400">vs</span>
+                        <span id="game-opponent" class="font-bold">Opponents</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <!-- Game Timer -->
+                    <button onclick="toggleGameTimer()" class="flex flex-col items-center px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all" title="Click to start/stop timer">
+                        <span class="text-xs text-gray-400">Time</span>
+                        <span id="game-timer" class="text-lg font-bold text-amber-400 font-mono">00:00</span>
+                    </button>
+                    
+                    <!-- Period/Half Indicator -->
+                    <button onclick="togglePeriod()" class="flex flex-col items-center px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                        <span id="period-label" class="text-xs text-gray-400">Half</span>
+                        <span id="period-value" class="text-lg font-bold text-cyan-400">1</span>
+                    </button>
+                    
+                    <div class="flex items-center gap-4">
+                        <div class="text-center cursor-pointer hover:opacity-80 transition-opacity" onclick="adjustOurScore()" title="Click to adjust">
+                            <div class="text-3xl font-bold text-emerald-400" id="our-score">0</div>
+                            <div class="text-xs text-gray-400">Us</div>
+                        </div>
+                        <div class="text-gray-600">-</div>
+                        <div class="text-center cursor-pointer hover:opacity-80 transition-opacity" onclick="adjustOpponentScore()" title="Click to adjust">
+                            <div class="text-3xl font-bold text-red-400" id="opponent-score">0</div>
+                            <div class="text-xs text-gray-400">Them</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Line Selection Section -->
+    <section id="line-selection" class="relative z-10 hidden">
+        <div class="container mx-auto px-4 py-6">
+            <div class="max-w-4xl mx-auto">
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+                    <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                        <i data-lucide="users" class="w-5 h-5 text-cyan-400"></i>
+                        Select Line for Point
+                    </h2>
+                    
+                    <div id="line-selection-grid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-7 gap-2 mb-4">
+                        <!-- Players populated by JS -->
+                    </div>
+                    
+                    <div class="flex items-center justify-between mt-4">
+                        <div class="text-sm text-gray-400">
+                            <span id="selected-count">0</span>/7 players selected
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="selectLastLine()" class="px-4 py-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-lg text-sm transition-all border border-purple-500/30">
+                                <i data-lucide="history" class="w-4 h-4 inline mr-1"></i>
+                                Last Line
+                            </button>
+                            <button onclick="startPoint()" id="start-point-btn" class="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Start Point
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Possession Selection -->
+                <div class="mt-4 bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-300">Starting Possession</h3>
+                    <div class="flex gap-2">
+                        <button onclick="setStartingPossession('offense')" id="offense-btn" class="flex-1 py-3 rounded-xl font-medium transition-all bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30">
+                            <i data-lucide="disc" class="w-4 h-4 inline mr-1"></i>
+                            We Have Disc
+                        </button>
+                        <button onclick="setStartingPossession('defense')" id="defense-btn" class="flex-1 py-3 rounded-xl font-medium transition-all bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10">
+                            <i data-lucide="shield" class="w-4 h-4 inline mr-1"></i>
+                            They Have Disc
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Field Section -->
+    <section id="field-section" class="relative z-10 hidden">
+        <div class="container mx-auto px-4 py-4">
+            <div class="max-w-2xl mx-auto">
+                <!-- On-Field Players Display -->
+                <div class="mb-3 flex items-center justify-between">
+                    <div class="flex flex-wrap gap-1" id="on-field-display">
+                        <!-- On-field player badges -->
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="undoLastAction()" class="px-3 py-1 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg text-xs transition-all border border-yellow-500/30" title="Undo (U)">
+                            <i data-lucide="undo" class="w-3 h-3 inline"></i> Undo
+                        </button>
+                        <button onclick="showSubstitutionModal()" class="px-3 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-lg text-xs transition-all border border-blue-500/30">
+                            <i data-lucide="refresh-cw" class="w-3 h-3 inline"></i> Sub
+                        </button>
+                        <button onclick="showInjurySubModal()" class="px-3 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-xs transition-all border border-red-500/30">
+                            <i data-lucide="heart-pulse" class="w-3 h-3 inline"></i>
+                            Injury Sub
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Field - CSS/HTML based for simpler click positioning -->
+                <div id="field-container" class="relative rounded-2xl overflow-hidden border-4 border-white/20 shadow-2xl aspect-[2/3] max-h-[70vh] cursor-crosshair select-none"
+                     style="background: linear-gradient(to bottom, #166534 0%, #15803d 50%, #166534 100%);">
+                    
+                    <!-- Their End Zone (top 13.3% = 20/150) -->
+                    <div class="absolute top-0 left-0 right-0 h-[13.3%] bg-red-500/30 border-b-2 border-white/50 flex items-center justify-center pointer-events-none">
+                        <span class="text-white/70 text-xs font-medium">THEIR END ZONE</span>
+                    </div>
+                    
+                    <!-- Our End Zone (bottom 13.3%) -->
+                    <div class="absolute bottom-0 left-0 right-0 h-[13.3%] bg-green-500/30 border-t-2 border-white/50 flex items-center justify-center pointer-events-none">
+                        <span class="text-white/70 text-xs font-medium">OUR END ZONE</span>
+                    </div>
+                    
+                    <!-- Yard markers (every 10 yards = ~6.7% of playing field) -->
+                    <div class="absolute top-[20%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">10</span>
+                    </div>
+                    <div class="absolute top-[33.3%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">20</span>
+                    </div>
+                    <div class="absolute top-[46.6%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">30</span>
+                    </div>
+                    
+                    <!-- Center line (dashed) -->
+                    <div class="absolute top-1/2 left-0 right-0 border-t-2 border-dashed border-white/40 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/40">40</span>
+                    </div>
+                    
+                    <div class="absolute top-[53.3%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">30</span>
+                    </div>
+                    <div class="absolute top-[66.6%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">20</span>
+                    </div>
+                    <div class="absolute top-[80%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                        <span class="absolute right-1 -top-3 text-[8px] text-white/30">10</span>
+                    </div>
+                    
+                    <!-- Brick marks -->
+                    <div class="absolute left-1/2 top-[26.6%] w-2 h-2 bg-white/50 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" title="Brick"></div>
+                    <div class="absolute left-1/2 top-[73.3%] w-2 h-2 bg-white/50 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" title="Brick"></div>
+                    
+                    <!-- Disc marker (positioned via JS) -->
+                    <div id="disc-marker" class="absolute hidden pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2">
+                        <div class="w-6 h-6 bg-yellow-400 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                        <div id="disc-player-label" class="absolute -top-5 left-1/2 -translate-x-1/2 text-white text-xs font-bold whitespace-nowrap bg-black/50 px-1 rounded"></div>
+                    </div>
+                    
+                    <!-- Turnover markers container -->
+                    <div id="turnover-markers" class="absolute inset-0 pointer-events-none"></div>
+                    
+                    <!-- Tap instruction overlay -->
+                    <div id="tap-instruction" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                        <div class="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-xl text-white text-sm font-medium">
+                            Tap field to place disc
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Actions -->
+                <div id="quick-actions" class="mt-4 grid grid-cols-4 gap-2">
+                    <button onclick="recordTurnover()" class="py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                        <i data-lucide="x-circle" class="w-4 h-4 mx-auto mb-1"></i>
+                        Turnover
+                    </button>
+                    <button onclick="recordDrop()" class="py-3 bg-orange-500/20 hover:bg-orange-500/30 text-orange-400 rounded-xl text-sm font-medium transition-all border border-orange-500/30">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 mx-auto mb-1"></i>
+                        Drop
+                    </button>
+                    <button onclick="recordBlock()" class="py-3 bg-purple-500/20 hover:bg-purple-500/30 text-purple-400 rounded-xl text-sm font-medium transition-all border border-purple-500/30">
+                        <i data-lucide="shield" class="w-4 h-4 mx-auto mb-1"></i>
+                        Block
+                    </button>
+                    <button onclick="recordGoal()" class="py-3 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-xl text-sm font-medium transition-all border border-emerald-500/30">
+                        <i data-lucide="target" class="w-4 h-4 mx-auto mb-1"></i>
+                        Goal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Actions Panel -->
+    <section id="recent-actions" class="relative z-10">
+        <div class="container mx-auto px-4 py-4">
+            <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+                        Recent Actions
+                        <span id="point-counter" class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">Point 1</span>
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="clearActionsList()" class="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10 transition-all" title="Clear actions">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>
+                        <button onclick="toggleActionsExpanded()" class="text-gray-400 hover:text-white text-xs">
+                            <i data-lucide="chevron-down" class="w-4 h-4" id="actions-chevron"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="actions-list" class="space-y-1 max-h-32 overflow-y-auto text-xs transition-all duration-300">
+                    <div class="text-gray-500">No actions yet</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Substitution Modal -->
+    <div id="substitution-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-slate-800 rounded-2xl p-6 max-w-md w-full border border-white/20 shadow-2xl">
+            <h3 class="text-xl font-bold mb-4 flex items-center gap-2">
+                <i data-lucide="refresh-cw" class="w-5 h-5 text-blue-400"></i>
+                Substitution
+            </h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Player Out</label>
+                    <select id="sub-out" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="">Select player leaving</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-2">Player In</label>
+                    <select id="sub-in" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white">
+                        <option value="">Select player entering</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-2 mt-6">
+                <button onclick="hideSubstitutionModal()" class="flex-1 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-all">Cancel</button>
+                <button onclick="confirmSubstitution()" class="flex-1 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg font-medium transition-all">Confirm Sub</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // Set flag to indicate this is the game page
+        window.isGamePage = true;
+        window.isDashboardPage = false;
+        window.isTestPage = true;
+        
+        // Pre-populate localStorage with test data BEFORE script.js loads
+        const testGameSetup = {
+            ourTeam: 'Test Team',
+            opponentTeam: 'Opponents',
+            date: new Date().toISOString().split('T')[0],
+            location: 'Test Field'
+        };
+        
+        const testPlayers = [
+            'Alice', 'Bob', 'Charlie', 'Diana', 'Eve', 'Frank', 'Grace',
+            'Henry', 'Ivy', 'Jack', 'Kate', 'Leo', 'Mia', 'Noah'
+        ];
+        
+        const testUser = {
+            id: 'test-user',
+            email: 'test@example.com',
+            name: 'Test User'
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('ultistats_game_setup', JSON.stringify(testGameSetup));
+        localStorage.setItem('ultistats_current_user', JSON.stringify(testUser));
+        localStorage.setItem('ultistats_auth_token', 'test-token-12345');
+        
+        // Store players as season data
+        const seasonData = {
+            players: testPlayers,
+            teamName: 'Test Team'
+        };
+        localStorage.setItem('ultistats_season_data', JSON.stringify(seasonData));
+    </script>
+    <script src="script.js?v=18"></script>
+    <script>
+        // Initialize the test game after script.js loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Override gameState with test data
+            if (typeof gameState !== 'undefined') {
+                gameState.players = testPlayers;
+                gameState.presentPlayers = testPlayers;
+                gameState.currentGame = {
+                    ourTeam: 'Test Team',
+                    opponentTeam: 'Opponents',
+                    date: new Date().toISOString().split('T')[0],
+                    isActive: true
+                };
+                gameState.teamStats = {
+                    score: 0,
+                    opponentScore: 0
+                };
+                gameState.playerStats = {};
+                testPlayers.forEach(p => {
+                    gameState.playerStats[p] = {
+                        goals: 0, assists: 0, blocks: 0, turnovers: 0,
+                        yardsThrown: 0, yardsCaught: 0
+                    };
+                });
+                
+                // AUTO-START: Skip line selection and go straight to field with offense
+                // Set 7 players on field
+                gameState.onFieldPlayers = testPlayers.slice(0, 7);
+                gameState.pointInProgress = true;
+                gameState.currentThrower = testPlayers[0]; // Alice has the disc
+                gameState.discPosition = { x: 50, y: 70 }; // Center of our half
+                
+                // Save line for "Last Line" button (since we're bypassing startPoint)
+                window.lastUsedLine = [...gameState.onFieldPlayers];
+                
+                // Show field directly, hide line selection
+                document.getElementById('line-selection').classList.add('hidden');
+                document.getElementById('field-section').classList.remove('hidden');
+                
+                // Update displays
+                if (typeof updateOnFieldDisplay === 'function') {
+                    updateOnFieldDisplay();
+                }
+                if (typeof updateQuickPlayerSelect === 'function') {
+                    updateQuickPlayerSelect();
+                }
+                if (typeof updateScoreDisplay === 'function') {
+                    updateScoreDisplay();
+                }
+                if (typeof updatePointCounter === 'function') {
+                    updatePointCounter();
+                }
+                
+                // Show disc marker
+                const marker = document.getElementById('disc-marker');
+                if (marker) {
+                    marker.classList.remove('hidden');
+                    marker.style.left = '50%';
+                    marker.style.top = '70%';
+                    const label = document.getElementById('disc-player-label');
+                    if (label) label.textContent = testPlayers[0];
+                }
+                
+                // Initialize Lucide icons
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                
+                console.log('Test game AUTO-STARTED with:', testPlayers[0], 'holding disc');
+                console.log('On-field players:', gameState.onFieldPlayers);
+                if (typeof showToast === 'function') {
+                    showToast(`${testPlayers[0]} has disc - tap field for next catch`);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

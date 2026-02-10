@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>Leagues - UltiStats</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="dashboard.html" class="text-gray-400 hover:text-white transition-colors" aria-label="Back to Dashboard">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/25">
+                    <i data-lucide="calendar" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Leagues</span>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="showCreateLeagueModal()" class="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg shadow-amber-500/25">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    New League
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative z-10 container mx-auto px-6 py-8">
+        <!-- League Selector -->
+        <section id="league-selector" class="max-w-6xl mx-auto">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="layout-grid" class="w-5 h-5 text-amber-400"></i>
+                        Your Leagues
+                    </h2>
+                </div>
+                <div id="league-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- League cards populated by JS -->
+                    <div class="skeleton-item animate-pulse bg-white/5 rounded-xl p-4 border border-white/10">
+                        <div class="h-5 bg-white/10 rounded w-3/4 mb-3"></div>
+                        <div class="h-4 bg-white/10 rounded w-1/2"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- League Details (shown when a league is selected) -->
+        <section id="league-details" class="max-w-6xl mx-auto mt-8 hidden">
+            <!-- League Header -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl mb-6">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <h2 id="league-name" class="text-2xl font-bold text-white">League Name</h2>
+                        <p id="league-info" class="text-gray-400 text-sm mt-1">0 Teams | 0 Tournaments</p>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button onclick="showEditLeagueModal()" class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-3 py-2 rounded-xl text-sm font-medium transition-all border border-white/10">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                            Edit
+                        </button>
+                        <button onclick="confirmDeleteLeague()" class="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Tabs -->
+            <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+                <button onclick="switchLeagueTab('overview')" data-tab="overview" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-amber-500/20 text-amber-400 border border-amber-500/30 flex-shrink-0">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4 inline mr-1"></i>
+                    Overview
+                </button>
+                <button onclick="switchLeagueTab('regular-season')" data-tab="regular-season" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
+                    Regular Season
+                </button>
+                <button onclick="switchLeagueTab('tournaments')" data-tab="tournaments" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="trophy" class="w-4 h-4 inline mr-1"></i>
+                    Tournaments
+                </button>
+                <button onclick="switchLeagueTab('teams')" data-tab="teams" class="league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0">
+                    <i data-lucide="users" class="w-4 h-4 inline mr-1"></i>
+                    Teams
+                </button>
+            </div>
+
+            <!-- Overview Tab -->
+            <div id="overview-view" class="tab-content">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-amber-400"></i>
+                        Combined Standings
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="text-gray-400 text-xs border-b border-white/10">
+                                    <th class="text-left py-3 px-2">#</th>
+                                    <th class="text-left py-3 px-2">Team</th>
+                                    <th class="text-center py-3 px-2">Total W</th>
+                                    <th class="text-center py-3 px-2">Total L</th>
+                                    <th class="text-center py-3 px-2">Reg W</th>
+                                    <th class="text-center py-3 px-2">Reg L</th>
+                                    <th class="text-center py-3 px-2">Tourn W</th>
+                                    <th class="text-center py-3 px-2">Tourn L</th>
+                                    <th class="text-center py-3 px-2">Diff</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overview-standings-body">
+                                <tr><td colspan="9" class="text-gray-400 text-center py-8">No standings data yet. Add teams, play games, or link tournaments.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Regular Season Tab -->
+            <div id="regular-season-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="calendar" class="w-5 h-5 text-amber-400"></i>
+                            Regular Season Games
+                        </h3>
+                        <div class="flex gap-2">
+                            <button onclick="filterRegularSeason('all')" data-filter="all" class="reg-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/10 text-white">All</button>
+                            <button onclick="filterRegularSeason('upcoming')" data-filter="upcoming" class="reg-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">Upcoming</button>
+                            <button onclick="filterRegularSeason('completed')" data-filter="completed" class="reg-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10">Completed</button>
+                            <button onclick="showAddGameModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30">
+                                <i data-lucide="plus" class="w-3 h-3 inline mr-1"></i>
+                                Add Game
+                            </button>
+                        </div>
+                    </div>
+                    <div id="regular-season-list" class="space-y-3 max-h-[60vh] overflow-y-auto">
+                        <p class="text-gray-400 text-center py-8">No regular season games yet. Click "Add Game" to schedule one.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tournaments Tab -->
+            <div id="tournaments-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="trophy" class="w-5 h-5 text-cyan-400"></i>
+                            Linked Tournaments
+                        </h3>
+                        <button onclick="showLinkTournamentModal()" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-cyan-500/30">
+                            <i data-lucide="link" class="w-4 h-4"></i>
+                            Link Tournament
+                        </button>
+                    </div>
+                    <div id="linked-tournaments-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-gray-400 text-center py-8 col-span-full">No tournaments linked yet. Link a tournament to include its results in standings.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Teams Tab -->
+            <div id="teams-view" class="tab-content hidden">
+                <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="users" class="w-5 h-5 text-emerald-400"></i>
+                            Teams in League
+                        </h3>
+                        <button onclick="showAddTeamModal()" class="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-emerald-500/30">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            Add Team
+                        </button>
+                    </div>
+                    <div id="teams-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                        <!-- Teams populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Empty State (shown when no leagues) -->
+        <section id="empty-state" class="max-w-md mx-auto mt-16 text-center hidden">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl">
+                <div class="w-20 h-20 bg-gradient-to-br from-amber-400/20 to-orange-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <i data-lucide="calendar" class="w-10 h-10 text-amber-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">No Leagues Yet</h2>
+                <p class="text-gray-400 mb-6">Create a league to organize your season with regular games and linked tournaments.</p>
+                <button onclick="showCreateLeagueModal()" class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-amber-500/25">
+                    <i data-lucide="plus" class="w-4 h-4 inline mr-2"></i>
+                    Create League
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+    <!-- Create/Edit League Modal -->
+    <div id="league-modal" role="dialog" aria-modal="true" aria-labelledby="league-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeLeagueModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="league-modal-title" class="text-xl font-bold text-white">Create League</h2>
+                <button onclick="closeLeagueModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <form id="league-form" onsubmit="handleLeagueSubmit(event)" class="flex-1 overflow-y-auto space-y-4">
+                <div>
+                    <label for="league-name-input" class="block text-sm font-medium text-gray-300 mb-2">League Name</label>
+                    <input type="text" id="league-name-input" required
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                        placeholder="College Men's League">
+                </div>
+                <div>
+                    <label for="league-season-input" class="block text-sm font-medium text-gray-300 mb-2">Season (optional)</label>
+                    <input type="text" id="league-season-input"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                        placeholder="Spring 2026">
+                </div>
+                <div>
+                    <label for="league-description-input" class="block text-sm font-medium text-gray-300 mb-2">Description (optional)</label>
+                    <textarea id="league-description-input" rows="2"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all resize-none"
+                        placeholder="Season-long competition with linked tournaments"></textarea>
+                </div>
+                <input type="hidden" id="league-edit-id" value="">
+                <button type="submit" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-amber-500/25">
+                    Save League
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Team Modal -->
+    <div id="add-team-modal" role="dialog" aria-modal="true" aria-labelledby="add-team-modal-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAddTeamModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="add-team-modal-title" class="text-xl font-bold text-white">Add Team to League</h2>
+                <button onclick="closeAddTeamModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Select Team</label>
+                    <div id="available-teams-list" class="space-y-2 max-h-60 overflow-y-auto">
+                        <!-- Teams populated by JS -->
+                    </div>
+                </div>
+                <div class="border-t border-white/10 pt-4">
+                    <p class="text-sm text-gray-400 mb-2">Or create a new team:</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="new-team-name" placeholder="Team name"
+                            class="flex-1 px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all">
+                        <button onclick="createAndAddTeam()" class="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 rounded-xl text-sm font-medium transition-all border border-amber-500/30">
+                            Create
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Game Modal -->
+    <div id="add-game-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeAddGameModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white">Schedule Game</h2>
+                <button onclick="closeAddGameModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Home Team</label>
+                    <select id="game-home-team" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <option value="">-- Select Home Team --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Away Team</label>
+                    <select id="game-away-team" class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50">
+                        <option value="">-- Select Away Team --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Round / Week (optional)</label>
+                    <input type="text" id="game-round" placeholder="e.g., Week 3"
+                        class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all">
+                </div>
+                <button onclick="addRegularSeasonGame()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold rounded-xl transition-all shadow-lg shadow-amber-500/25">
+                    Schedule Game
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Tournament Modal -->
+    <div id="link-tournament-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeLinkTournamentModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-md max-h-[80vh] bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6 overflow-hidden flex flex-col">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-white">Link Tournament</h2>
+                <button onclick="closeLinkTournamentModal()" aria-label="Close" class="text-gray-400 hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p class="text-gray-400 text-sm mb-4">Select a tournament to link. Its results will be included in this league's combined standings.</p>
+            <div id="available-tournaments-list" class="flex-1 overflow-y-auto space-y-2">
+                <!-- Available tournaments populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirm Modal -->
+    <div id="confirm-modal" role="dialog" aria-modal="true" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeConfirmModal()"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] sm:max-w-sm bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <h3 id="confirm-title" class="text-lg font-bold text-white mb-2">Confirm Action</h3>
+            <p id="confirm-message" class="text-gray-400 mb-6">Are you sure you want to proceed?</p>
+            <div class="flex gap-3">
+                <button onclick="closeConfirmModal()" class="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl font-medium transition-all">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" onclick="executeConfirmAction()" class="flex-1 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set flag to indicate this is the league page
+        window.isLeaguePage = true;
+        window.isDashboardPage = false;
+    </script>
+    <script src="script.js"></script>
+    <script>
+        // League page specific functionality
+        let currentRegSeasonFilter = 'all';
+        let confirmCallback = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            renderLeagueCards();
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+
+        // Render league cards
+        function renderLeagueCards() {
+            const container = document.getElementById('league-cards');
+            const emptyState = document.getElementById('empty-state');
+            const leagueDetails = document.getElementById('league-details');
+            const leagues = Object.values(leaguesData.leagues);
+
+            if (leagues.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                leagueDetails.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            container.innerHTML = leagues.map(league => {
+                const teamCount = (league.teamIds || []).length;
+                const tournamentCount = (league.tournamentIds || []).length;
+                const isSelected = league.id === leaguesData.currentLeagueId;
+
+                return `
+                    <button onclick="selectAndShowLeague('${league.id}')"
+                        class="text-left p-4 rounded-xl border transition-all ${isSelected
+                            ? 'bg-amber-500/20 border-amber-500/40'
+                            : 'bg-white/5 border-white/10 hover:bg-white/10'}">
+                        <h3 class="font-bold text-white mb-1">${escapeHtml(league.name)}</h3>
+                        <p class="text-sm text-gray-400">${teamCount} teams | ${tournamentCount} tournament${tournamentCount !== 1 ? 's' : ''}</p>
+                        ${league.season ? `<p class="text-xs text-amber-400 mt-1">${escapeHtml(league.season)}</p>` : ''}
+                    </button>
+                `;
+            }).join('');
+
+            // Show current league details if one is selected
+            if (leaguesData.currentLeagueId && leaguesData.leagues[leaguesData.currentLeagueId]) {
+                showLeagueDetails(leaguesData.currentLeagueId);
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Select and show league
+        function selectAndShowLeague(leagueId) {
+            selectLeague(leagueId);
+            renderLeagueCards();
+            showLeagueDetails(leagueId);
+        }
+
+        // Show league details
+        function showLeagueDetails(leagueId) {
+            const league = leaguesData.leagues[leagueId];
+            if (!league) return;
+
+            const detailsSection = document.getElementById('league-details');
+            detailsSection.classList.remove('hidden');
+
+            // Update header
+            document.getElementById('league-name').textContent = league.name;
+
+            const teamCount = (league.teamIds || []).length;
+            const tournamentCount = (league.tournamentIds || []).length;
+            const regGames = (league.regularSeasonMatchups || []).length;
+            const seasonStr = league.season ? ` | ${league.season}` : '';
+
+            document.getElementById('league-info').textContent =
+                `${teamCount} Teams | ${tournamentCount} Tournaments | ${regGames} Reg. Season Games${seasonStr}`;
+
+            // Render current tab content
+            const activeTab = document.querySelector('.league-tab.bg-amber-500\\/20');
+            const tabName = activeTab ? activeTab.dataset.tab : 'overview';
+            renderTabContent(tabName);
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // Switch tab
+        function switchLeagueTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.league-tab').forEach(btn => {
+                if (btn.dataset.tab === tabName) {
+                    btn.className = 'league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-amber-500/20 text-amber-400 border border-amber-500/30 flex-shrink-0';
+                } else {
+                    btn.className = 'league-tab px-4 py-2 rounded-xl text-sm font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10 flex-shrink-0';
+                }
+            });
+
+            // Show/hide content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+
+            const viewId = tabName === 'regular-season' ? 'regular-season-view' : `${tabName}-view`;
+            const viewEl = document.getElementById(viewId);
+            if (viewEl) viewEl.classList.remove('hidden');
+
+            renderTabContent(tabName);
+        }
+
+        // Render tab content
+        function renderTabContent(tabName) {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            switch(tabName) {
+                case 'overview':
+                    renderOverviewTab(league);
+                    break;
+                case 'regular-season':
+                    renderRegularSeasonTab(league);
+                    break;
+                case 'tournaments':
+                    renderTournamentsTab(league);
+                    break;
+                case 'teams':
+                    renderTeamsView(league);
+                    break;
+            }
+        }
+
+        // ==================== OVERVIEW TAB ====================
+        function renderOverviewTab(league) {
+            const tbody = document.getElementById('overview-standings-body');
+
+            // Calculate combined standings
+            const standings = calculateLeagueStandings(league.id);
+            const teamIds = league.teamIds || [];
+
+            if (teamIds.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-gray-400 text-center py-8">No teams in this league yet.</td></tr>';
+                return;
+            }
+
+            // Build standings rows sorted by total wins desc, then point diff
+            const rows = teamIds.map(teamId => {
+                const team = teamsData.teams[teamId];
+                const s = standings[teamId] || { wins: 0, losses: 0, regularWins: 0, regularLosses: 0, tournamentWins: 0, tournamentLosses: 0, pointDiff: 0 };
+                return { teamId, team, ...s };
+            }).sort((a, b) => {
+                if (b.wins !== a.wins) return b.wins - a.wins;
+                if (a.losses !== b.losses) return a.losses - b.losses;
+                return b.pointDiff - a.pointDiff;
+            });
+
+            tbody.innerHTML = rows.map((r, idx) => `
+                <tr class="border-t border-white/5 hover:bg-white/5">
+                    <td class="py-3 px-2 text-gray-400">${idx + 1}</td>
+                    <td class="py-3 px-2 text-white font-medium">${r.team ? escapeHtml(r.team.name) : 'Unknown'}</td>
+                    <td class="py-3 px-2 text-center text-emerald-400 font-medium">${r.wins}</td>
+                    <td class="py-3 px-2 text-center text-red-400">${r.losses}</td>
+                    <td class="py-3 px-2 text-center text-gray-300">${r.regularWins}</td>
+                    <td class="py-3 px-2 text-center text-gray-300">${r.regularLosses}</td>
+                    <td class="py-3 px-2 text-center text-cyan-300">${r.tournamentWins}</td>
+                    <td class="py-3 px-2 text-center text-cyan-300">${r.tournamentLosses}</td>
+                    <td class="py-3 px-2 text-center ${r.pointDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}">${r.pointDiff >= 0 ? '+' : ''}${r.pointDiff}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ==================== REGULAR SEASON TAB ====================
+        function renderRegularSeasonTab(league) {
+            const container = document.getElementById('regular-season-list');
+            let matchups = league.regularSeasonMatchups || [];
+
+            // Apply filter
+            if (currentRegSeasonFilter === 'upcoming') {
+                matchups = matchups.filter(m => m.status === 'scheduled');
+            } else if (currentRegSeasonFilter === 'completed') {
+                matchups = matchups.filter(m => m.status === 'completed');
+            }
+
+            if (matchups.length === 0) {
+                const msg = currentRegSeasonFilter === 'all'
+                    ? 'No regular season games yet. Click "Add Game" to schedule one.'
+                    : `No ${currentRegSeasonFilter} games.`;
+                container.innerHTML = `<p class="text-gray-400 text-center py-8">${msg}</p>`;
+                return;
+            }
+
+            const statusColors = {
+                'scheduled': 'bg-cyan-500/20 text-cyan-400',
+                'in_progress': 'bg-amber-500/20 text-amber-400',
+                'completed': 'bg-emerald-500/20 text-emerald-400'
+            };
+
+            container.innerHTML = matchups.map(m => {
+                const home = m.homeTeamId ? teamsData.teams[m.homeTeamId] : null;
+                const away = m.awayTeamId ? teamsData.teams[m.awayTeamId] : null;
+
+                return `
+                    <div class="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-white font-medium">${home ? escapeHtml(home.name) : 'TBD'}</span>
+                                <span class="text-gray-500">vs</span>
+                                <span class="text-white font-medium">${away ? escapeHtml(away.name) : 'TBD'}</span>
+                            </div>
+                            ${m.round ? `<span class="text-xs text-gray-400">${escapeHtml(m.round)}</span>` : ''}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${m.status === 'completed'
+                                ? `<span class="text-lg font-bold text-white">${m.homeScore} - ${m.awayScore}</span>`
+                                : ''
+                            }
+                            <span class="px-2 py-1 rounded-lg text-xs font-medium ${statusColors[m.status] || 'bg-gray-500/20 text-gray-400'}">${m.status}</span>
+                            ${m.status === 'scheduled' && home && away
+                                ? `<button onclick="startMatchupGame('${league.id}', '${m.id}', 'regular')" class="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 text-xs rounded-lg font-medium transition-all">Play</button>`
+                                : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function filterRegularSeason(filter) {
+            currentRegSeasonFilter = filter;
+
+            document.querySelectorAll('.reg-filter').forEach(btn => {
+                if (btn.dataset.filter === filter) {
+                    btn.className = 'reg-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/10 text-white';
+                } else {
+                    btn.className = 'reg-filter px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-white/5 text-gray-400 hover:bg-white/10';
+                }
+            });
+
+            const league = getCurrentLeague();
+            if (league) {
+                renderRegularSeasonTab(league);
+            }
+        }
+
+        // ==================== TOURNAMENTS TAB ====================
+        function renderTournamentsTab(league) {
+            const container = document.getElementById('linked-tournaments-grid');
+            const tournamentIds = league.tournamentIds || [];
+
+            if (tournamentIds.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-full">No tournaments linked yet. Link a tournament to include its results in standings.</p>';
+                return;
+            }
+
+            const formatLabels = {
+                'pool-play': 'Pool Play',
+                'bracket': 'Bracket',
+                'pool-to-bracket': 'Pool → Bracket'
+            };
+
+            container.innerHTML = tournamentIds.map(tId => {
+                const tournament = tournamentsData.tournaments[tId];
+                if (!tournament) return '';
+
+                const teamCount = getEntityTeamCount(tId);
+                const completedMatchups = [...(tournament.poolMatchups || []), ...(tournament.bracketMatchups || [])].filter(m => m.status === 'completed').length;
+                const totalMatchups = (tournament.poolMatchups || []).length + (tournament.bracketMatchups || []).length;
+
+                return `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 relative group">
+                        <button onclick="unlinkTournamentUI('${league.id}', '${tId}')"
+                            class="absolute top-2 right-2 w-6 h-6 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                            aria-label="Unlink tournament" title="Unlink">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <a href="tournament.html?id=${tId}" class="block">
+                            <h4 class="font-medium text-white mb-1">${escapeHtml(tournament.name)}</h4>
+                            <p class="text-xs text-gray-400">${teamCount} teams | ${formatLabels[tournament.format] || tournament.format}</p>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-xs text-emerald-400">${completedMatchups}/${totalMatchups} games</span>
+                                ${tournament.startDate ? `<span class="text-xs text-gray-500">${tournament.startDate}</span>` : ''}
+                            </div>
+                        </a>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // ==================== TEAMS TAB ====================
+        function renderTeamsView(league) {
+            const container = document.getElementById('teams-grid');
+            const teamIds = league.teamIds || [];
+
+            if (teamIds.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8 col-span-full">No teams added yet</p>';
+                return;
+            }
+
+            container.innerHTML = teamIds.map(teamId => {
+                const team = teamsData.teams[teamId];
+                if (!team) return '';
+
+                return `
+                    <div class="bg-white/5 rounded-xl p-4 border border-white/10 relative group">
+                        <button onclick="removeTeamFromLeagueUI('${league.id}', '${teamId}')"
+                            class="absolute top-2 right-2 w-6 h-6 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-full opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center"
+                            aria-label="Remove team">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                        </button>
+                        <h4 class="font-medium text-white mb-1">${escapeHtml(team.name)}</h4>
+                        <p class="text-xs text-gray-500">${team.roster ? team.roster.length : 0} players</p>
+                    </div>
+                `;
+            }).filter(Boolean).join('');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        // ==================== MODAL FUNCTIONS ====================
+
+        function showCreateLeagueModal() {
+            document.getElementById('league-modal-title').textContent = 'Create League';
+            document.getElementById('league-form').reset();
+            document.getElementById('league-edit-id').value = '';
+            document.getElementById('league-modal').classList.remove('hidden');
+            document.getElementById('league-name-input').focus();
+        }
+
+        function showEditLeagueModal() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            document.getElementById('league-modal-title').textContent = 'Edit League';
+            document.getElementById('league-name-input').value = league.name;
+            document.getElementById('league-season-input').value = league.season || '';
+            document.getElementById('league-description-input').value = league.description || '';
+            document.getElementById('league-edit-id').value = league.id;
+            document.getElementById('league-modal').classList.remove('hidden');
+        }
+
+        function closeLeagueModal() {
+            document.getElementById('league-modal').classList.add('hidden');
+        }
+
+        function handleLeagueSubmit(e) {
+            e.preventDefault();
+
+            const name = document.getElementById('league-name-input').value.trim();
+            const season = document.getElementById('league-season-input').value.trim();
+            const description = document.getElementById('league-description-input').value.trim();
+            const editId = document.getElementById('league-edit-id').value;
+
+            if (!name) {
+                showToast('Please enter a league name', 'error');
+                return;
+            }
+
+            if (editId) {
+                updateLeague(editId, { name, description, season });
+                showToast('League updated', 'success');
+            } else {
+                const league = createLeague(name, description, season);
+                if (league) {
+                    showToast(`League created: ${name}`, 'success');
+                }
+            }
+
+            closeLeagueModal();
+            renderLeagueCards();
+        }
+
+        // ==================== ADD TEAM ====================
+
+        function showAddTeamModal() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            // Populate available teams (exclude teams already in league)
+            const leagueTeamIds = league.teamIds || [];
+            const availableTeams = Object.values(teamsData.teams).filter(t => !leagueTeamIds.includes(t.id));
+
+            const teamsList = document.getElementById('available-teams-list');
+            if (availableTeams.length === 0) {
+                teamsList.innerHTML = '<p class="text-gray-400 text-sm">No available teams. Create a new team below.</p>';
+            } else {
+                teamsList.innerHTML = availableTeams.map(team => `
+                    <button onclick="addExistingTeam('${team.id}')"
+                        class="w-full text-left p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
+                        <span class="text-white font-medium">${escapeHtml(team.name)}</span>
+                    </button>
+                `).join('');
+            }
+
+            document.getElementById('new-team-name').value = '';
+            document.getElementById('add-team-modal').classList.remove('hidden');
+        }
+
+        function closeAddTeamModal() {
+            document.getElementById('add-team-modal').classList.add('hidden');
+        }
+
+        function addExistingTeam(teamId) {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            if (!league.teamIds) league.teamIds = [];
+            if (!league.teamIds.includes(teamId)) {
+                league.teamIds.push(teamId);
+                saveLeaguesData();
+            }
+
+            closeAddTeamModal();
+            showToast('Team added to league', 'success');
+            showLeagueDetails(league.id);
+        }
+
+        function createAndAddTeam() {
+            const name = document.getElementById('new-team-name').value.trim();
+            if (!name) {
+                showToast('Please enter a team name', 'error');
+                return;
+            }
+
+            const newTeam = createEmptyTeam(name);
+            teamsData.teams[newTeam.id] = newTeam;
+            saveTeamsData();
+
+            addExistingTeam(newTeam.id);
+        }
+
+        function removeTeamFromLeagueUI(leagueId, teamId) {
+            const league = leaguesData.leagues[leagueId];
+            if (!league) return;
+
+            const idx = (league.teamIds || []).indexOf(teamId);
+            if (idx !== -1) {
+                league.teamIds.splice(idx, 1);
+            }
+
+            saveLeaguesData();
+            showToast('Team removed', 'success');
+            showLeagueDetails(leagueId);
+        }
+
+        // ==================== ADD GAME ====================
+
+        function showAddGameModal() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            const teamIds = league.teamIds || [];
+            if (teamIds.length < 2) {
+                showToast('Add at least 2 teams to schedule a game', 'error');
+                return;
+            }
+
+            const homeSelect = document.getElementById('game-home-team');
+            const awaySelect = document.getElementById('game-away-team');
+
+            const teamOptions = teamIds.map(id => {
+                const team = teamsData.teams[id];
+                return team ? `<option value="${id}">${escapeHtml(team.name)}</option>` : '';
+            }).filter(Boolean).join('');
+
+            homeSelect.innerHTML = '<option value="">-- Select Home Team --</option>' + teamOptions;
+            awaySelect.innerHTML = '<option value="">-- Select Away Team --</option>' + teamOptions;
+
+            document.getElementById('game-round').value = '';
+            document.getElementById('add-game-modal').classList.remove('hidden');
+        }
+
+        function closeAddGameModal() {
+            document.getElementById('add-game-modal').classList.add('hidden');
+        }
+
+        function addRegularSeasonGame() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            const homeTeamId = document.getElementById('game-home-team').value;
+            const awayTeamId = document.getElementById('game-away-team').value;
+            const round = document.getElementById('game-round').value.trim();
+
+            if (!homeTeamId || !awayTeamId) {
+                showToast('Select both teams', 'error');
+                return;
+            }
+
+            if (homeTeamId === awayTeamId) {
+                showToast('Home and away must be different teams', 'error');
+                return;
+            }
+
+            if (!league.regularSeasonMatchups) league.regularSeasonMatchups = [];
+
+            const matchup = {
+                id: 'rsm_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                homeTeamId,
+                awayTeamId,
+                homeScore: 0,
+                awayScore: 0,
+                status: 'scheduled',
+                round: round || `Game ${league.regularSeasonMatchups.length + 1}`,
+                gameId: null,
+                createdAt: new Date().toISOString()
+            };
+
+            league.regularSeasonMatchups.push(matchup);
+            saveLeaguesData();
+
+            closeAddGameModal();
+            showToast('Game scheduled', 'success');
+            showLeagueDetails(league.id);
+        }
+
+        // ==================== LINK TOURNAMENT ====================
+
+        function showLinkTournamentModal() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            const container = document.getElementById('available-tournaments-list');
+            const linkedIds = league.tournamentIds || [];
+            const tournaments = Object.values(tournamentsData.tournaments).filter(t => !linkedIds.includes(t.id));
+
+            if (tournaments.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 text-center py-8">No unlinked tournaments available. Create or import one from the Tournaments page first.</p>';
+            } else {
+                const formatLabels = {
+                    'pool-play': 'Pool Play',
+                    'bracket': 'Bracket',
+                    'pool-to-bracket': 'Pool → Bracket'
+                };
+
+                container.innerHTML = tournaments.map(t => {
+                    const teamCount = getEntityTeamCount(t.id);
+                    return `
+                        <button onclick="linkTournamentUI('${league.id}', '${t.id}')"
+                            class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
+                            <h4 class="font-medium text-white">${escapeHtml(t.name)}</h4>
+                            <p class="text-xs text-gray-400 mt-1">${teamCount} teams | ${formatLabels[t.format] || t.format}</p>
+                        </button>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('link-tournament-modal').classList.remove('hidden');
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeLinkTournamentModal() {
+            document.getElementById('link-tournament-modal').classList.add('hidden');
+        }
+
+        function linkTournamentUI(leagueId, tournamentId) {
+            linkTournamentToLeague(leagueId, tournamentId);
+            closeLinkTournamentModal();
+            showToast('Tournament linked', 'success');
+            showLeagueDetails(leagueId);
+        }
+
+        function unlinkTournamentUI(leagueId, tournamentId) {
+            unlinkTournamentFromLeague(leagueId, tournamentId);
+            showToast('Tournament unlinked', 'success');
+            showLeagueDetails(leagueId);
+        }
+
+        // ==================== CONFIRM MODAL ====================
+
+        function confirmDeleteLeague() {
+            const league = getCurrentLeague();
+            if (!league) return;
+
+            document.getElementById('confirm-title').textContent = 'Delete League?';
+            document.getElementById('confirm-message').textContent = `Are you sure you want to delete "${league.name}"? This cannot be undone.`;
+            confirmCallback = () => {
+                deleteLeague(league.id);
+                showToast('League deleted', 'success');
+                renderLeagueCards();
+                document.getElementById('league-details').classList.add('hidden');
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        function executeConfirmAction() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        }
+    </script>
+</body>
+</html>

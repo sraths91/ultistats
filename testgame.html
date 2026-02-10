@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>UltiStats - Test Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+
+        // Bypass auth: inject fake tokens and game setup so script.js doesn't redirect
+        (function() {
+            if (!localStorage.getItem('ultistats_auth_token')) {
+                localStorage.setItem('ultistats_auth_token', 'test-token');
+            }
+
+            // Create a demo team if none exists
+            const teamsKey = 'ultistats_teams_data';
+            let teamsData = null;
+            try { teamsData = JSON.parse(localStorage.getItem(teamsKey)); } catch(e) {}
+
+            const demoPlayers = [
+                'Alex Thompson', 'Jordan Rivera', 'Casey Morgan', 'Taylor Chen',
+                'Riley Johnson', 'Morgan Smith', 'Jamie Williams', 'Drew Anderson',
+                'Avery Martinez', 'Quinn Davis', 'Skyler Brown', 'Parker Wilson',
+                'Reese Garcia', 'Cameron Lee', 'Blake Miller', 'Hayden Taylor',
+                'Kendall White', 'Peyton Harris', 'Logan Clark', 'Charlie Lewis',
+                'Dakota Robinson'
+            ];
+
+            if (!teamsData || !teamsData.currentTeamId) {
+                const teamId = 'test-team-' + Date.now();
+                const careerPlayers = {};
+                demoPlayers.forEach(name => {
+                    careerPlayers[name] = {
+                        goals: 0, assists: 0, hockeyAssists: 0, blocks: 0,
+                        turnovers: 0, yardsThrown: 0, yardsCaught: 0,
+                        throws: 0, catches: 0, gamesPlayed: 0
+                    };
+                });
+                teamsData = {
+                    currentTeamId: teamId,
+                    teams: {}
+                };
+                teamsData.teams[teamId] = {
+                    id: teamId,
+                    name: 'Demo Squad',
+                    roster: demoPlayers,
+                    careerStats: { players: careerPlayers },
+                    seasonStats: {},
+                    tournamentStats: {}
+                };
+                localStorage.setItem(teamsKey, JSON.stringify(teamsData));
+            }
+
+            // Ensure roster is saved
+            const currentTeam = teamsData.teams[teamsData.currentTeamId];
+            if (currentTeam) {
+                localStorage.setItem('ultistats_roster', JSON.stringify(currentTeam.roster));
+            }
+
+            // Create game setup if none exists
+            if (!localStorage.getItem('ultistats_game_setup')) {
+                localStorage.setItem('ultistats_game_setup', JSON.stringify({
+                    ourTeam: currentTeam ? currentTeam.name : 'Demo Squad',
+                    opponentTeam: 'Rival FC',
+                    gameFormat: 'standard',
+                    timeoutsPer: 2,
+                    date: new Date().toISOString().split('T')[0],
+                    location: 'Test Field'
+                }));
+            }
+
+            // Set player positions (always ensure demo players have positions)
+            const posKey = 'ultistats_player_positions';
+            let existingPos = {};
+            try { existingPos = JSON.parse(localStorage.getItem(posKey)) || {}; } catch(e) {}
+            demoPlayers.forEach((name, i) => {
+                if (!existingPos[name]) {
+                    if (i < 4) existingPos[name] = 'Handler';
+                    else if (i < 8) existingPos[name] = 'Hybrid';
+                    else existingPos[name] = 'Cutter';
+                }
+            });
+            localStorage.setItem(posKey, JSON.stringify(existingPos));
+        })();
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Test Mode Banner -->
+    <div class="fixed top-0 left-0 right-0 z-[70] bg-violet-600/90 text-white text-center text-xs font-medium py-1">
+        TEST MODE — No login required. Demo team with 21 players loaded.
+    </div>
+
+    <!-- Offline Banner -->
+    <div id="offline-banner" class="hidden fixed top-6 left-0 right-0 z-[60] bg-amber-500/90 text-black text-center text-xs font-medium py-1" role="alert">
+        You are offline — changes saved locally
+        <span id="sync-queue-badge" class="hidden ml-1 inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-black/20 rounded-full">0</span>
+    </div>
+
+    <!-- Game Header -->
+    <header id="game-header" class="relative z-10 sticky top-6 bg-slate-900/95 backdrop-blur-md border-b border-white/10">
+        <div class="container mx-auto px-3 sm:px-4 py-2 sm:py-3">
+            <div class="flex items-center justify-between">
+                <!-- Left: Export + End Game -->
+                <div class="flex items-center gap-1.5 sm:gap-2">
+                    <button onclick="exportGameData()" aria-label="Export game data" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium transition-all border border-cyan-500/30" title="Export game data">
+                        <i data-lucide="download" class="w-4 h-4" aria-hidden="true"></i>
+                    </button>
+                    <button id="outdoor-mode-btn" onclick="toggleOutdoorMode()" aria-label="Toggle outdoor mode" class="flex items-center gap-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium transition-all border border-amber-500/30" title="Outdoor mode (high contrast)">
+                        <i data-lucide="sun" class="w-4 h-4" aria-hidden="true"></i>
+                    </button>
+                    <button id="stats-analysis-btn" onclick="toggleStatsAnalysis()" aria-label="Live stats analysis" class="flex items-center gap-2 bg-violet-500/20 hover:bg-violet-500/30 text-violet-400 px-2 sm:px-3 py-2 rounded-xl text-sm font-medium transition-all border border-violet-500/30" title="Live stats analysis">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4" aria-hidden="true"></i>
+                    </button>
+                    <button onclick="confirmEndGame()" class="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 px-2.5 sm:px-4 py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                        <i data-lucide="square" class="w-4 h-4"></i>
+                        <span class="hidden sm:inline">End Game</span>
+                        <span class="sm:hidden">End</span>
+                    </button>
+                    <!-- Team names: desktop only -->
+                    <div class="hidden md:block text-white ml-2">
+                        <span id="game-our-team" class="font-bold">Team</span>
+                        <span class="text-gray-400">vs</span>
+                        <span id="game-opponent" class="font-bold">Opponent</span>
+                    </div>
+                </div>
+                <!-- Right: Timer + Period + Score -->
+                <div class="flex items-center gap-1.5 sm:gap-4">
+                    <!-- Game Timer -->
+                    <button id="game-timer-btn" onclick="toggleGameTimer()" aria-label="Game timer - click to start" class="flex flex-col items-center px-2 sm:px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                        <span class="text-[10px] sm:text-xs text-gray-400">Time</span>
+                        <span id="game-timer" role="timer" class="text-base sm:text-lg font-bold text-amber-400 font-mono">00:00</span>
+                    </button>
+
+                    <!-- Period/Half Indicator -->
+                    <button onclick="togglePeriod()" class="flex flex-col items-center px-2 sm:px-3 py-1 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                        <span id="period-label" class="text-[10px] sm:text-xs text-gray-400">Half</span>
+                        <span id="period-value" class="text-base sm:text-lg font-bold text-cyan-400">1</span>
+                    </button>
+
+                    <div class="flex items-center gap-2 sm:gap-4">
+                        <div class="text-center cursor-pointer hover:opacity-80 transition-opacity" onclick="adjustOurScore()" title="Click to adjust">
+                            <div class="text-2xl sm:text-3xl font-bold text-emerald-400" id="our-score">0</div>
+                            <div class="text-[10px] sm:text-xs text-gray-400">Us</div>
+                        </div>
+                        <div class="text-gray-600 text-sm">-</div>
+                        <div class="text-center cursor-pointer hover:opacity-80 transition-opacity" onclick="adjustOpponentScore()" title="Click to adjust">
+                            <div class="text-2xl sm:text-3xl font-bold text-red-400" id="opponent-score">0</div>
+                            <div class="text-[10px] sm:text-xs text-gray-400">Them</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Mobile team names row -->
+            <div class="md:hidden text-center text-white text-sm mt-1 truncate">
+                <span id="game-our-team-mobile" class="font-semibold">Team</span>
+                <span class="text-gray-400 mx-1">vs</span>
+                <span id="game-opponent-mobile" class="font-semibold">Opponent</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Attendance Section -->
+    <section id="attendance-section" class="relative z-10 section-transition">
+        <div class="container mx-auto px-4 py-6">
+            <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="clipboard-check" class="w-6 h-6 text-emerald-400"></i>
+                        Mark Attendance
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="markAllPresent()" class="flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-emerald-500/30">
+                            <i data-lucide="check-check" class="w-4 h-4"></i>
+                            All Present
+                        </button>
+                        <button onclick="markAllAbsent()" class="flex items-center gap-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            Clear All
+                        </button>
+                        <button id="confirm-attendance-btn" onclick="confirmAttendance()" class="flex items-center gap-2 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-cyan-500/30">
+                            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                            Continue
+                        </button>
+                    </div>
+                </div>
+
+                <p class="text-gray-400 text-sm mb-4">Tap players to mark them as present. Only present players will be available for line selection.</p>
+
+                <div id="attendance-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
+                    <!-- Attendance buttons populated here -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Line Selection Section -->
+    <section id="line-selection" class="relative z-10 section-transition section-hidden">
+        <div class="container mx-auto px-4 py-6">
+            <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i data-lucide="users" class="w-6 h-6 text-cyan-400"></i>
+                        Select Line (<span id="line-count" class="text-cyan-400">0</span>/7)
+                    </h2>
+                    <div class="flex gap-2">
+                        <button onclick="clearLineSelection()" class="flex items-center gap-2 bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-gray-500/30">
+                            <i data-lucide="x" class="w-4 h-4"></i>
+                            Clear
+                        </button>
+                        <button id="start-point-btn" onclick="startPoint()" disabled class="flex items-center gap-2 bg-emerald-500/20 text-emerald-400/50 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-emerald-500/30 cursor-not-allowed">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Start Point
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sort Controls -->
+                <div id="sort-buttons" class="flex flex-wrap gap-1.5 mb-3">
+                    <span class="text-xs text-gray-500 self-center mr-1">Sort:</span>
+                    <button class="sort-pill active" data-sort="alphabetical" onclick="setPlayerSortMode('alphabetical')">A-Z</button>
+                    <button class="sort-pill" data-sort="position" onclick="setPlayerSortMode('position')">Position</button>
+                    <button class="sort-pill" data-sort="playing-time" onclick="setPlayerSortMode('playing-time')">Play Time</button>
+                    <button class="sort-pill" data-sort="plus-minus" onclick="setPlayerSortMode('plus-minus')">+/-</button>
+                    <button class="sort-pill" data-sort="predictive" onclick="setPlayerSortMode('predictive')">
+                        <i data-lucide="sparkles" class="w-3 h-3 inline-block align-middle"></i> Best Fit
+                    </button>
+                </div>
+
+                <div id="line-selection-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
+                    <!-- Player selection buttons populated here -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Field Section -->
+    <section id="field-section" class="relative z-10 section-transition section-hidden">
+        <!-- Field Container -->
+        <div class="container mx-auto px-4 py-6">
+            <div id="field-layout" class="max-w-4xl mx-auto">
+                <!-- Left: Field (landscape: 60%) -->
+                <div id="field-col">
+                    <!-- Field - CSS/HTML based for simpler click positioning -->
+                    <div id="field-container" tabindex="0" role="application" aria-label="Playing field - use arrow keys to move disc, Enter to select receiver" class="relative rounded-2xl overflow-hidden border-4 border-white/20 shadow-2xl aspect-[2/3] max-h-[60vh] sm:max-h-[70vh] cursor-crosshair select-none focus:ring-2 focus:ring-cyan-500/50 focus:outline-none"
+                         style="background: linear-gradient(to bottom, #166534 0%, #15803d 50%, #166534 100%);">
+
+                        <!-- Their End Zone (top 13.3% = 20/150) -->
+                        <div class="absolute top-0 left-0 right-0 h-[13.3%] bg-red-500/30 border-b-2 border-white/50 flex items-center justify-center pointer-events-none">
+                            <span class="text-white/70 text-xs font-medium">THEIR END ZONE</span>
+                        </div>
+
+                        <!-- Our End Zone (bottom 13.3%) -->
+                        <div class="absolute bottom-0 left-0 right-0 h-[13.3%] bg-green-500/30 border-t-2 border-white/50 flex items-center justify-center pointer-events-none">
+                            <span class="text-white/70 text-xs font-medium">OUR END ZONE</span>
+                        </div>
+
+                        <!-- Yard markers (every 10 yards = ~6.7% of playing field) -->
+                        <div class="absolute top-[20%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">10</span>
+                        </div>
+                        <div class="absolute top-[33.3%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">20</span>
+                        </div>
+                        <div class="absolute top-[46.6%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">30</span>
+                        </div>
+
+                        <!-- Center line (dashed) -->
+                        <div class="absolute top-1/2 left-0 right-0 border-t-2 border-dashed border-white/40 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/40">40</span>
+                        </div>
+
+                        <div class="absolute top-[53.3%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">30</span>
+                        </div>
+                        <div class="absolute top-[66.6%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">20</span>
+                        </div>
+                        <div class="absolute top-[80%] left-0 right-0 border-t border-white/15 pointer-events-none">
+                            <span class="absolute right-1 -top-3 text-[8px] text-white/30">10</span>
+                        </div>
+
+                        <!-- Brick marks -->
+                        <div class="absolute left-1/2 top-[26.6%] w-2 h-2 bg-white/50 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" title="Brick"></div>
+                        <div class="absolute left-1/2 top-[73.3%] w-2 h-2 bg-white/50 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" title="Brick"></div>
+
+                        <!-- Disc marker (positioned via JS) -->
+                        <div id="disc-marker" class="absolute hidden pointer-events-none z-10 -translate-x-1/2 -translate-y-1/2">
+                            <div class="w-6 h-6 bg-yellow-400 rounded-full border-2 border-white shadow-lg animate-pulse"></div>
+                            <div id="disc-player-label" class="absolute -top-5 left-1/2 -translate-x-1/2 text-white text-xs font-bold whitespace-nowrap bg-black/50 px-1 rounded"></div>
+                        </div>
+
+                        <!-- Turnover markers container -->
+                        <div id="turnover-markers" class="absolute inset-0 pointer-events-none"></div>
+
+                        <!-- Tap instruction overlay -->
+                        <div id="tap-instruction" class="absolute inset-0 flex items-center justify-center pointer-events-none hidden">
+                            <div class="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-xl text-white text-sm font-medium">
+                                Tap field to set disc position
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selection Status (below field, moves to sidebar in landscape) -->
+                    <div id="selection-status" class="mt-4 p-3 bg-white/5 rounded-xl border border-white/10 text-center landscape-hide">
+                        <span class="text-gray-400 text-sm">Select thrower and tap field to record throw</span>
+                    </div>
+                </div>
+
+                <!-- Right: Controls sidebar (landscape: 40%) -->
+                <div id="controls-col">
+                    <!-- On-Field Players Display -->
+                    <div id="on-field-display" class="mb-4 p-3 bg-white/5 rounded-xl border border-white/10">
+                        <span class="text-gray-500 text-sm">No players on field</span>
+                    </div>
+
+                    <!-- Quick Action Bar: Primary actions -->
+                    <div id="quick-actions" class="grid grid-cols-2 sm:flex gap-2 mb-2 sm:mb-4 sm:overflow-x-auto sm:pb-2">
+                        <button onclick="recordScore()" class="flex items-center justify-center sm:justify-start gap-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl text-sm font-medium transition-all border border-emerald-500/30 sm:flex-shrink-0">
+                            <i data-lucide="target" class="w-4 h-4"></i>
+                            Goal
+                        </button>
+                        <button onclick="recordTurnover()" class="flex items-center justify-center sm:justify-start gap-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl text-sm font-medium transition-all border border-red-500/30 sm:flex-shrink-0">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                            Turnover
+                        </button>
+                        <button onclick="recordBlock()" class="flex items-center justify-center sm:justify-start gap-2 bg-purple-500/20 hover:bg-purple-500/40 text-purple-400 px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl text-sm font-medium transition-all border border-purple-500/30 sm:flex-shrink-0">
+                            <i data-lucide="shield" class="w-4 h-4"></i>
+                            Block
+                        </button>
+                        <button onclick="recordOpponentScore()" class="flex items-center justify-center sm:justify-start gap-2 bg-orange-500/20 hover:bg-orange-500/40 text-orange-400 px-3 sm:px-4 py-2.5 sm:py-2 rounded-xl text-sm font-medium transition-all border border-orange-500/30 sm:flex-shrink-0">
+                            <i data-lucide="x-circle" class="w-4 h-4"></i>
+                            Opp Score
+                        </button>
+                    </div>
+                    <!-- Secondary actions row -->
+                    <div class="flex gap-2 mb-4">
+                        <button id="undo-btn" onclick="undoLastAction()" class="flex-1 flex items-center justify-center gap-2 bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-gray-500/30">
+                            <i data-lucide="undo-2" class="w-4 h-4"></i>
+                            <span id="undo-label">Undo</span>
+                        </button>
+                        <button onclick="showInjurySubModal()" class="flex-1 flex items-center justify-center gap-2 bg-amber-500/20 hover:bg-amber-500/40 text-amber-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-amber-500/30">
+                            <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+                            Injury Sub
+                        </button>
+                    </div>
+
+                    <!-- Selection Status (sidebar copy, visible in landscape only) -->
+                    <div id="selection-status-landscape" class="hidden p-3 mb-4 bg-white/5 rounded-xl border border-white/10 text-center">
+                        <span class="text-gray-400 text-sm">Select thrower and tap field to record throw</span>
+                    </div>
+
+                    <!-- Quick Player Select -->
+                    <div id="quick-player-select" class="flex flex-wrap gap-2 justify-center">
+                        <!-- Player buttons populated here -->
+                    </div>
+
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="flex items-center gap-2 text-gray-400 text-sm">
+                            <i data-lucide="info" class="w-4 h-4"></i>
+                            <span>Tap field to record throws. Two-finger swipe to undo.</span>
+                        </div>
+                        <button id="quick-throw-toggle" onclick="toggleQuickThrowMode()" class="text-[11px] px-2.5 py-1 rounded-lg border transition-all bg-cyan-500/30 text-cyan-400 border-cyan-500/30 flex items-center gap-1 flex-shrink-0" title="Quick-throw: tap field to select receiver directly">
+                            <i data-lucide="zap" class="w-3 h-3"></i>
+                            Quick
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Actions Panel -->
+    <section id="recent-actions" class="relative z-10">
+        <div class="container mx-auto px-4 py-4">
+            <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="activity" class="w-4 h-4 text-cyan-400"></i>
+                        Recent Actions
+                        <span id="point-counter" class="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">Point 1</span>
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <button onclick="clearActionsList()" aria-label="Clear actions" class="text-gray-400 hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10 transition-all" title="Clear actions">
+                            <i data-lucide="trash-2" class="w-3 h-3" aria-hidden="true"></i>
+                        </button>
+                        <button onclick="toggleActionsExpanded()" aria-label="Toggle actions panel" aria-expanded="false" aria-controls="actions-list" class="text-gray-400 hover:text-white text-xs">
+                            <i data-lucide="chevron-down" class="w-4 h-4" id="actions-chevron" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div id="actions-list" role="log" aria-live="polite" aria-label="Recent game actions" class="space-y-1 max-h-32 overflow-y-auto text-xs transition-all duration-300">
+                    <div class="text-gray-500">No actions yet</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Stats Analysis Panel -->
+    <section id="stats-analysis" class="relative z-10 section-transition section-hidden">
+        <div class="container mx-auto px-4 py-4">
+            <div class="max-w-4xl mx-auto bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="bar-chart-3" class="w-4 h-4 text-violet-400"></i>
+                        Live Analysis
+                    </h3>
+                    <button onclick="toggleStatsAnalysis()" class="text-gray-400 hover:text-white text-xs">
+                        <i data-lucide="x" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="flex gap-1 mb-3" id="analysis-tabs">
+                    <button onclick="switchAnalysisTab('pairings')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Pairings</button>
+                    <button onclick="switchAnalysisTab('lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Lines</button>
+                    <button onclick="switchAnalysisTab('impact')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Player Impact</button>
+                </div>
+                <div id="analysis-content" class="max-h-64 overflow-y-auto custom-scrollbar text-xs">
+                    <div class="text-gray-500 text-center py-4">Play some points to see analysis</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast Container -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-title" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm bg-slate-800 rounded-3xl border border-white/10 shadow-2xl p-6">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="alert-triangle" class="w-8 h-8 text-red-400"></i>
+                </div>
+                <h3 id="confirm-title" class="text-xl font-bold text-white mb-2">Confirm Action</h3>
+                <p id="confirm-message" class="text-gray-400">Are you sure you want to do this?</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="cancelConfirm()" class="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-medium transition-all">
+                    Cancel
+                </button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-500 hover:bg-red-400 text-white py-3 rounded-xl font-medium transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Set flag to indicate this is the game page
+        window.isGamePage = true;
+        window.isDashboardPage = false;
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>Season Browser - UltiStats</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <a href="dashboard.html" class="text-gray-400 hover:text-white transition-colors" aria-label="Back to Dashboard">
+                    <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                </a>
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                    <i data-lucide="calendar-search" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Season Browser</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <select id="season-select" class="bg-white/10 border border-white/20 text-white rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50">
+                    <option value="">Loading...</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative z-10 container mx-auto px-4 py-6 max-w-6xl">
+
+        <!-- Season Summary -->
+        <div id="season-summary" class="mb-6 hidden">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                    <div class="text-2xl font-bold text-white" id="summary-total-teams">0</div>
+                    <div class="text-xs text-gray-400">Ranked Teams</div>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                    <div class="text-2xl font-bold text-white" id="summary-total-tournaments">0</div>
+                    <div class="text-xs text-gray-400">Tournaments</div>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                    <div class="text-2xl font-bold text-white" id="summary-divisions">0</div>
+                    <div class="text-xs text-gray-400">Divisions</div>
+                </div>
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10">
+                    <div class="text-2xl font-bold text-indigo-400" id="summary-season-year">--</div>
+                    <div class="text-xs text-gray-400">Season</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-1 mb-6 bg-white/5 backdrop-blur-xl rounded-2xl p-1.5 border border-white/10">
+            <button onclick="switchTab('rankings')" id="tab-rankings" class="tab-btn flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 bg-indigo-500/30 text-white border border-indigo-500/30">
+                <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                Rankings
+            </button>
+            <button onclick="switchTab('tournaments')" id="tab-tournaments" class="tab-btn flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:bg-white/5">
+                <i data-lucide="trophy" class="w-4 h-4"></i>
+                Tournaments
+            </button>
+            <button onclick="switchTab('team-season')" id="tab-team-season" class="tab-btn flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:bg-white/5">
+                <i data-lucide="users" class="w-4 h-4"></i>
+                Team Season
+            </button>
+        </div>
+
+        <!-- Rankings Tab -->
+        <div id="panel-rankings" class="tab-panel">
+            <!-- Division Pills -->
+            <div class="flex flex-wrap gap-2 mb-4">
+                <button onclick="switchDivision('College-Men')" class="division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-indigo-500/30 text-indigo-300 border border-indigo-500/30" data-division="College-Men">College Men</button>
+                <button onclick="switchDivision('College-Women')" class="division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-gray-400 border border-white/10 hover:border-white/20" data-division="College-Women">College Women</button>
+                <button onclick="switchDivision('Club-Men')" class="division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-gray-400 border border-white/10 hover:border-white/20" data-division="Club-Men">Club Men</button>
+                <button onclick="switchDivision('Club-Women')" class="division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-gray-400 border border-white/10 hover:border-white/20" data-division="Club-Women">Club Women</button>
+                <button onclick="switchDivision('Club-Mixed')" class="division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-gray-400 border border-white/10 hover:border-white/20" data-division="Club-Mixed">Club Mixed</button>
+            </div>
+
+            <!-- Search -->
+            <div class="relative mb-4">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="rankings-search" placeholder="Search teams..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50">
+            </div>
+
+            <!-- Rankings Table -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-white/10 text-xs text-gray-400 uppercase tracking-wider">
+                                <th class="px-4 py-3 text-left w-12">#</th>
+                                <th class="px-4 py-3 text-left">Team</th>
+                                <th class="px-4 py-3 text-right">Rating</th>
+                                <th class="px-4 py-3 text-center">W-L</th>
+                                <th class="px-4 py-3 text-left hidden md:table-cell">Region</th>
+                                <th class="px-4 py-3 text-left hidden lg:table-cell">Conference</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rankings-body" class="divide-y divide-white/5">
+                        </tbody>
+                    </table>
+                </div>
+                <div id="rankings-empty" class="hidden p-12 text-center">
+                    <i data-lucide="database" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                    <p class="text-gray-400 text-sm">No rankings data for this season</p>
+                    <p class="text-gray-500 text-xs mt-1">Run <code class="bg-white/10 px-1.5 py-0.5 rounded">node api/sync-usau.js</code> to sync data</p>
+                </div>
+                <div id="rankings-loading" class="p-8 text-center">
+                    <div class="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto"></div>
+                    <p class="text-gray-400 text-xs mt-2">Loading rankings...</p>
+                </div>
+            </div>
+
+            <!-- Load More -->
+            <div id="rankings-load-more" class="hidden mt-4 text-center">
+                <button onclick="loadMoreRankings()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 px-6 py-2 rounded-xl text-sm font-medium transition-all">
+                    Load More
+                </button>
+                <p class="text-gray-500 text-xs mt-1" id="rankings-count-label"></p>
+            </div>
+        </div>
+
+        <!-- Tournaments Tab -->
+        <div id="panel-tournaments" class="tab-panel hidden">
+            <!-- Search -->
+            <div class="relative mb-4">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="tournaments-search" placeholder="Search tournaments..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50">
+            </div>
+
+            <!-- Tournament Grid -->
+            <div id="tournaments-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            </div>
+            <div id="tournaments-empty" class="hidden p-12 text-center bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+                <i data-lucide="trophy" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                <p class="text-gray-400 text-sm">No tournaments for this season</p>
+                <p class="text-gray-500 text-xs mt-1">Run <code class="bg-white/10 px-1.5 py-0.5 rounded">node api/sync-usau.js --tournaments-only</code> to sync</p>
+            </div>
+            <div id="tournaments-loading" class="p-8 text-center">
+                <div class="animate-spin w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto"></div>
+                <p class="text-gray-400 text-xs mt-2">Loading tournaments...</p>
+            </div>
+
+            <!-- Load More -->
+            <div id="tournaments-load-more" class="hidden mt-4 text-center">
+                <button onclick="loadMoreTournaments()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 px-6 py-2 rounded-xl text-sm font-medium transition-all">
+                    Load More
+                </button>
+                <p class="text-gray-500 text-xs mt-1" id="tournaments-count-label"></p>
+            </div>
+        </div>
+
+        <!-- Team Season Tab -->
+        <div id="panel-team-season" class="tab-panel hidden">
+            <!-- Team Search -->
+            <div class="relative mb-4">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                <input type="text" id="team-season-search" placeholder="Search for a team to view their season..."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50">
+            </div>
+
+            <!-- Team Search Results Dropdown -->
+            <div id="team-search-results" class="hidden mb-4 bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden max-h-64 overflow-y-auto">
+            </div>
+
+            <!-- Selected Team Card -->
+            <div id="team-season-detail" class="hidden">
+                <!-- Team Info Card -->
+                <div class="bg-white/5 backdrop-blur-xl rounded-2xl p-5 border border-white/10 mb-4">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h3 class="text-xl font-bold text-white" id="team-detail-name"></h3>
+                            <p class="text-gray-400 text-sm mt-1">
+                                <span id="team-detail-division" class="inline-block bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs mr-2"></span>
+                                <span id="team-detail-region" class="text-gray-500"></span>
+                                <span id="team-detail-conference" class="text-gray-500 ml-1"></span>
+                            </p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-3xl font-bold text-white" id="team-detail-ranking">#--</div>
+                            <div class="text-xs text-gray-400">Ranking</div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-3 gap-3 mt-4">
+                        <div class="bg-white/5 rounded-xl p-3 text-center">
+                            <div class="text-lg font-bold text-indigo-400" id="team-detail-rating">--</div>
+                            <div class="text-xs text-gray-400">Rating</div>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3 text-center">
+                            <div class="text-lg font-bold text-emerald-400" id="team-detail-wins">0</div>
+                            <div class="text-xs text-gray-400">Wins</div>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-3 text-center">
+                            <div class="text-lg font-bold text-red-400" id="team-detail-losses">0</div>
+                            <div class="text-xs text-gray-400">Losses</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tournament Appearances -->
+                <h4 class="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    Tournament Appearances
+                </h4>
+                <div id="team-tournaments-list" class="space-y-2">
+                </div>
+                <div id="team-no-tournaments" class="hidden p-8 text-center bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+                    <p class="text-gray-400 text-sm">No tournament appearances found for this team</p>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="team-season-empty" class="p-12 text-center bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10">
+                <i data-lucide="user-search" class="w-12 h-12 text-gray-600 mx-auto mb-3"></i>
+                <p class="text-gray-400 text-sm">Search for a team to view their season results</p>
+                <p class="text-gray-500 text-xs mt-1">Try searching by team name (e.g. "Carleton" or "Texas")</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+    // ==================== STATE ====================
+    const API_BASE = window.location.hostname === 'localhost'
+        ? `http://localhost:${window.location.port === '3000' ? '3001' : window.location.port}`
+        : '';
+
+    let state = {
+        season: null,
+        seasons: [],
+        tab: 'rankings',
+        division: 'College-Men',
+        rankingsOffset: 0,
+        rankingsTotal: 0,
+        rankingsData: [],
+        tournamentsOffset: 0,
+        tournamentsTotal: 0,
+        tournamentsData: [],
+        selectedTeam: null,
+        searchDebounce: null
+    };
+
+    const PAGE_SIZE = 50;
+
+    // ==================== API HELPERS ====================
+    function getHeaders() {
+        const headers = { 'Content-Type': 'application/json' };
+        const token = localStorage.getItem('ultistats_auth_token');
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+        return headers;
+    }
+
+    async function apiFetch(path) {
+        const res = await fetch(`${API_BASE}${path}`, { headers: getHeaders() });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        return res.json();
+    }
+
+    // ==================== INIT ====================
+    async function init() {
+        try {
+            const data = await apiFetch('/api/registry/seasons');
+            state.seasons = data.seasons || [];
+
+            const select = document.getElementById('season-select');
+            select.innerHTML = '';
+
+            if (state.seasons.length === 0) {
+                select.innerHTML = '<option value="">No seasons</option>';
+                showEmptyStates();
+                return;
+            }
+
+            state.seasons.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = `${s - 1}-${s} Season`;
+                select.appendChild(opt);
+            });
+
+            state.season = state.seasons[0];
+            select.value = state.season;
+
+            select.addEventListener('change', () => {
+                state.season = parseInt(select.value);
+                refreshAll();
+            });
+
+            // Search listeners with debounce
+            document.getElementById('rankings-search').addEventListener('input', debounce(() => {
+                state.rankingsOffset = 0;
+                state.rankingsData = [];
+                loadRankings();
+            }, 300));
+
+            document.getElementById('tournaments-search').addEventListener('input', debounce(() => {
+                state.tournamentsOffset = 0;
+                state.tournamentsData = [];
+                loadTournaments();
+            }, 300));
+
+            document.getElementById('team-season-search').addEventListener('input', debounce(() => {
+                searchTeamsForSeason();
+            }, 300));
+
+            refreshAll();
+        } catch (err) {
+            console.error('Init error:', err);
+            showEmptyStates();
+        }
+
+        lucide.createIcons();
+    }
+
+    function debounce(fn, ms) {
+        let timer;
+        return function(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), ms);
+        };
+    }
+
+    function showEmptyStates() {
+        document.getElementById('rankings-loading').classList.add('hidden');
+        document.getElementById('tournaments-loading').classList.add('hidden');
+        document.getElementById('rankings-empty').classList.remove('hidden');
+        document.getElementById('tournaments-empty').classList.remove('hidden');
+    }
+
+    async function refreshAll() {
+        loadSeasonSummary();
+        if (state.tab === 'rankings') {
+            state.rankingsOffset = 0;
+            state.rankingsData = [];
+            loadRankings();
+        } else if (state.tab === 'tournaments') {
+            state.tournamentsOffset = 0;
+            state.tournamentsData = [];
+            loadTournaments();
+        }
+    }
+
+    // ==================== SEASON SUMMARY ====================
+    async function loadSeasonSummary() {
+        if (!state.season) return;
+        try {
+            const data = await apiFetch(`/api/registry/seasons/${state.season}`);
+            document.getElementById('summary-total-teams').textContent = data.totalTeams || 0;
+            document.getElementById('summary-total-tournaments').textContent = data.totalTournaments || 0;
+            document.getElementById('summary-divisions').textContent = (data.divisions || []).length;
+            document.getElementById('summary-season-year').textContent = `${state.season - 1}-${String(state.season).slice(2)}`;
+            document.getElementById('season-summary').classList.remove('hidden');
+        } catch (err) {
+            console.error('Summary error:', err);
+        }
+    }
+
+    // ==================== TAB SWITCHING ====================
+    function switchTab(tab) {
+        state.tab = tab;
+
+        // Update tab buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.className = 'tab-btn flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 text-gray-400 hover:text-white hover:bg-white/5';
+        });
+        const activeBtn = document.getElementById(`tab-${tab}`);
+        activeBtn.className = 'tab-btn flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 bg-indigo-500/30 text-white border border-indigo-500/30';
+
+        // Show/hide panels
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`panel-${tab}`).classList.remove('hidden');
+
+        // Load data for active tab
+        if (tab === 'rankings' && state.rankingsData.length === 0) {
+            loadRankings();
+        } else if (tab === 'tournaments' && state.tournamentsData.length === 0) {
+            loadTournaments();
+        }
+
+        lucide.createIcons();
+    }
+
+    // ==================== DIVISION SWITCHING ====================
+    function switchDivision(division) {
+        state.division = division;
+        state.rankingsOffset = 0;
+        state.rankingsData = [];
+
+        // Update pills
+        document.querySelectorAll('.division-pill').forEach(pill => {
+            if (pill.dataset.division === division) {
+                pill.className = 'division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all bg-indigo-500/30 text-indigo-300 border border-indigo-500/30';
+            } else {
+                pill.className = 'division-pill px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-gray-400 border border-white/10 hover:border-white/20';
+            }
+        });
+
+        loadRankings();
+    }
+
+    // ==================== RANKINGS ====================
+    async function loadRankings() {
+        if (!state.season) return;
+        const search = document.getElementById('rankings-search').value.trim();
+        const loading = document.getElementById('rankings-loading');
+        const empty = document.getElementById('rankings-empty');
+        const loadMore = document.getElementById('rankings-load-more');
+
+        if (state.rankingsOffset === 0) {
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            document.getElementById('rankings-body').innerHTML = '';
+        }
+
+        try {
+            const params = new URLSearchParams({
+                division: state.division,
+                limit: PAGE_SIZE,
+                offset: state.rankingsOffset
+            });
+            if (search) params.set('search', search);
+
+            const data = await apiFetch(`/api/registry/seasons/${state.season}/teams?${params}`);
+            state.rankingsTotal = data.total || 0;
+
+            if (state.rankingsOffset === 0) {
+                state.rankingsData = data.teams || [];
+            } else {
+                state.rankingsData.push(...(data.teams || []));
+            }
+
+            renderRankings(data.teams || [], state.rankingsOffset === 0);
+
+            loading.classList.add('hidden');
+
+            if (state.rankingsData.length === 0) {
+                empty.classList.remove('hidden');
+                loadMore.classList.add('hidden');
+            } else if (state.rankingsData.length < state.rankingsTotal) {
+                loadMore.classList.remove('hidden');
+                document.getElementById('rankings-count-label').textContent =
+                    `Showing ${state.rankingsData.length} of ${state.rankingsTotal}`;
+            } else {
+                loadMore.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('Rankings error:', err);
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+        }
+
+        lucide.createIcons();
+    }
+
+    function renderRankings(teams, replace) {
+        const tbody = document.getElementById('rankings-body');
+        if (replace) tbody.innerHTML = '';
+
+        for (const team of teams) {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-white/5 transition-colors cursor-pointer';
+            tr.onclick = () => viewTeamSeason(team);
+            tr.innerHTML = `
+                <td class="px-4 py-3 text-sm font-mono text-gray-400">${team.ranking || '--'}</td>
+                <td class="px-4 py-3">
+                    <div class="text-sm font-medium text-white">${escapeHtml(team.name)}</div>
+                </td>
+                <td class="px-4 py-3 text-right">
+                    <span class="text-sm font-mono ${team.rating >= 1800 ? 'text-indigo-400' : team.rating >= 1500 ? 'text-emerald-400' : 'text-gray-300'}">${team.rating ? team.rating.toFixed(1) : '--'}</span>
+                </td>
+                <td class="px-4 py-3 text-center text-sm">
+                    <span class="text-emerald-400">${team.wins || 0}</span><span class="text-gray-500">-</span><span class="text-red-400">${team.losses || 0}</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-400 hidden md:table-cell">${escapeHtml(team.region || '--')}</td>
+                <td class="px-4 py-3 text-sm text-gray-400 hidden lg:table-cell">${escapeHtml(team.conference || '--')}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    function loadMoreRankings() {
+        state.rankingsOffset += PAGE_SIZE;
+        loadRankings();
+    }
+
+    // ==================== TOURNAMENTS ====================
+    async function loadTournaments() {
+        if (!state.season) return;
+        const search = document.getElementById('tournaments-search').value.trim();
+        const loading = document.getElementById('tournaments-loading');
+        const empty = document.getElementById('tournaments-empty');
+        const loadMore = document.getElementById('tournaments-load-more');
+        const grid = document.getElementById('tournaments-grid');
+
+        if (state.tournamentsOffset === 0) {
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            grid.innerHTML = '';
+        }
+
+        try {
+            const params = new URLSearchParams({
+                limit: PAGE_SIZE,
+                offset: state.tournamentsOffset
+            });
+            if (search) params.set('search', search);
+
+            const data = await apiFetch(`/api/registry/seasons/${state.season}/tournaments?${params}`);
+            state.tournamentsTotal = data.total || 0;
+
+            if (state.tournamentsOffset === 0) {
+                state.tournamentsData = data.tournaments || [];
+            } else {
+                state.tournamentsData.push(...(data.tournaments || []));
+            }
+
+            renderTournaments(data.tournaments || []);
+
+            loading.classList.add('hidden');
+
+            if (state.tournamentsData.length === 0) {
+                empty.classList.remove('hidden');
+                loadMore.classList.add('hidden');
+            } else if (state.tournamentsData.length < state.tournamentsTotal) {
+                loadMore.classList.remove('hidden');
+                document.getElementById('tournaments-count-label').textContent =
+                    `Showing ${state.tournamentsData.length} of ${state.tournamentsTotal}`;
+            } else {
+                loadMore.classList.add('hidden');
+            }
+        } catch (err) {
+            console.error('Tournaments error:', err);
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+        }
+
+        lucide.createIcons();
+    }
+
+    function renderTournaments(tournaments) {
+        const grid = document.getElementById('tournaments-grid');
+
+        for (const t of tournaments) {
+            const card = document.createElement('div');
+            card.className = 'bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 hover:border-indigo-500/30 transition-all cursor-pointer';
+            card.onclick = () => {
+                if (t.usau_url) window.open(t.usau_url, '_blank');
+            };
+            card.innerHTML = `
+                <div class="flex items-start justify-between mb-2">
+                    <h4 class="text-sm font-semibold text-white line-clamp-2 flex-1">${escapeHtml(t.name)}</h4>
+                    ${t.usau_url ? '<i data-lucide="external-link" class="w-3.5 h-3.5 text-gray-500 ml-2 flex-shrink-0"></i>' : ''}
+                </div>
+                <div class="flex items-center gap-3 text-xs text-gray-400">
+                    ${t.team_count ? `<span class="flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i>${t.team_count} teams</span>` : ''}
+                    ${t.start_date ? `<span class="flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i>${t.start_date}</span>` : ''}
+                    ${t.location ? `<span class="flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i>${escapeHtml(t.location)}</span>` : ''}
+                </div>
+                ${t.competition_level || t.gender_division ? `
+                <div class="flex gap-1.5 mt-2">
+                    ${t.competition_level ? `<span class="bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded text-xs">${escapeHtml(t.competition_level)}</span>` : ''}
+                    ${t.gender_division ? `<span class="bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded text-xs">${escapeHtml(t.gender_division)}</span>` : ''}
+                </div>
+                ` : ''}
+            `;
+            grid.appendChild(card);
+        }
+    }
+
+    function loadMoreTournaments() {
+        state.tournamentsOffset += PAGE_SIZE;
+        loadTournaments();
+    }
+
+    // ==================== TEAM SEASON ====================
+    async function searchTeamsForSeason() {
+        const query = document.getElementById('team-season-search').value.trim();
+        const resultsDiv = document.getElementById('team-search-results');
+
+        if (query.length < 2) {
+            resultsDiv.classList.add('hidden');
+            return;
+        }
+
+        try {
+            const params = new URLSearchParams({
+                division: state.division,
+                search: query,
+                limit: 10,
+                offset: 0
+            });
+
+            const data = await apiFetch(`/api/registry/seasons/${state.season}/teams?${params}`);
+            const teams = data.teams || [];
+
+            if (teams.length === 0) {
+                // Try all divisions
+                const allResults = [];
+                for (const div of ['College-Men', 'College-Women', 'Club-Men', 'Club-Women', 'Club-Mixed']) {
+                    const p = new URLSearchParams({ division: div, search: query, limit: 5 });
+                    const d = await apiFetch(`/api/registry/seasons/${state.season}/teams?${p}`);
+                    allResults.push(...(d.teams || []).map(t => ({ ...t, division: div })));
+                }
+                renderTeamSearchResults(allResults);
+            } else {
+                renderTeamSearchResults(teams);
+            }
+        } catch (err) {
+            console.error('Team search error:', err);
+        }
+    }
+
+    function renderTeamSearchResults(teams) {
+        const div = document.getElementById('team-search-results');
+        if (teams.length === 0) {
+            div.classList.add('hidden');
+            return;
+        }
+
+        div.classList.remove('hidden');
+        div.innerHTML = teams.map(t => `
+            <div class="px-4 py-3 hover:bg-white/5 cursor-pointer transition-colors border-b border-white/5 last:border-0 flex items-center justify-between"
+                onclick='selectTeam(${JSON.stringify(t).replace(/'/g, "&#39;")})'>
+                <div>
+                    <div class="text-sm font-medium text-white">${escapeHtml(t.name)}</div>
+                    <div class="text-xs text-gray-400">${formatDivisionLabel(t.division)} &middot; ${t.region || '--'}</div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm font-mono text-indigo-400">#${t.ranking || '--'}</div>
+                    <div class="text-xs text-gray-500">${t.rating ? t.rating.toFixed(1) : '--'}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectTeam(team) {
+        state.selectedTeam = team;
+        document.getElementById('team-search-results').classList.add('hidden');
+        document.getElementById('team-season-empty').classList.add('hidden');
+        document.getElementById('team-season-search').value = team.name;
+
+        // Fill detail card
+        document.getElementById('team-detail-name').textContent = team.name;
+        document.getElementById('team-detail-division').textContent = formatDivisionLabel(team.division);
+        document.getElementById('team-detail-region').textContent = team.region ? `${team.region}` : '';
+        document.getElementById('team-detail-conference').textContent = team.conference ? `/ ${team.conference}` : '';
+        document.getElementById('team-detail-ranking').textContent = team.ranking ? `#${team.ranking}` : '#--';
+        document.getElementById('team-detail-rating').textContent = team.rating ? team.rating.toFixed(1) : '--';
+        document.getElementById('team-detail-wins').textContent = team.wins || 0;
+        document.getElementById('team-detail-losses').textContent = team.losses || 0;
+
+        document.getElementById('team-season-detail').classList.remove('hidden');
+
+        // Load tournament history
+        loadTeamTournaments(team.slug);
+    }
+
+    function viewTeamSeason(team) {
+        switchTab('team-season');
+        selectTeam(team);
+        document.getElementById('team-season-search').value = team.name;
+    }
+
+    async function loadTeamTournaments(slug) {
+        const list = document.getElementById('team-tournaments-list');
+        const noTournaments = document.getElementById('team-no-tournaments');
+        list.innerHTML = '<div class="p-4 text-center"><div class="animate-spin w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full mx-auto"></div></div>';
+        noTournaments.classList.add('hidden');
+
+        try {
+            const data = await apiFetch(`/api/registry/teams/${slug}`);
+            const tournaments = data.team?.tournaments || [];
+
+            if (tournaments.length === 0) {
+                list.innerHTML = '';
+                noTournaments.classList.remove('hidden');
+                return;
+            }
+
+            list.innerHTML = tournaments.map(t => `
+                <div class="bg-white/5 backdrop-blur-xl rounded-xl p-4 border border-white/10 hover:border-indigo-500/20 transition-all">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h5 class="text-sm font-medium text-white">${escapeHtml(t.tournament_name || t.tournamentSlug || 'Unknown')}</h5>
+                            <div class="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                                ${t.start_date ? `<span>${t.start_date}</span>` : ''}
+                                ${t.pool ? `<span class="bg-white/10 px-1.5 py-0.5 rounded">${escapeHtml(t.pool)}</span>` : ''}
+                                ${t.seed ? `<span>Seed #${t.seed}</span>` : ''}
+                            </div>
+                        </div>
+                        ${t.usau_url ? `<a href="${escapeHtml(t.usau_url)}" target="_blank" class="text-gray-500 hover:text-indigo-400 transition-colors ml-2"><i data-lucide="external-link" class="w-3.5 h-3.5"></i></a>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        } catch (err) {
+            console.error('Team tournaments error:', err);
+            list.innerHTML = '';
+            noTournaments.classList.remove('hidden');
+        }
+    }
+
+    // ==================== UTILITIES ====================
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    function formatDivisionLabel(div) {
+        if (!div) return '--';
+        return div.replace('-', ' ');
+    }
+
+    // Init on load
+    document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

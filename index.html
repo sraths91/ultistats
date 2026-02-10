@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>UltiStats - Ultimate Frisbee Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <script src="https://apis.google.com/js/api.js"></script>
+    <script src="https://accounts.google.com/gsi/client"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+
+        // Redirect to dashboard if already authenticated
+        (function() {
+            const authToken = localStorage.getItem('ultistats_auth_token');
+            const authUser = localStorage.getItem('ultistats_auth_user');
+            if (authToken && authUser) {
+                window.location.href = '/dashboard.html';
+            }
+        })();
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="disc-3" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">UltiStats</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Auth Screen (shown when not logged in) -->
+    <section id="auth-screen" class="relative z-10 min-h-[calc(100vh-80px)] flex items-center justify-center py-12">
+        <div class="w-full max-w-md mx-4">
+            <!-- Auth Card -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-8 shadow-2xl">
+                <!-- Logo -->
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/25 mx-auto mb-4">
+                        <i data-lucide="disc-3" class="w-10 h-10 text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-white">Welcome to UltiStats</h1>
+                    <p class="text-gray-400 text-sm mt-2">Track your ultimate frisbee stats</p>
+                </div>
+
+                <!-- Auth Tabs -->
+                <div class="flex mb-6 bg-white/5 rounded-xl p-1" role="tablist" aria-label="Authentication">
+                    <button id="login-tab" onclick="showAuthTab('login')" role="tab" aria-selected="true" aria-controls="login-form" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all bg-white/10 text-white">
+                        Sign In
+                    </button>
+                    <button id="register-tab" onclick="showAuthTab('register')" role="tab" aria-selected="false" aria-controls="register-form" class="flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all text-gray-400 hover:text-white">
+                        Create Account
+                    </button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" onsubmit="handleLogin(event)" role="tabpanel" aria-labelledby="login-tab" class="space-y-4">
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                        <input type="email" id="login-email" required autofocus
+                            autocomplete="email"
+                            pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                            title="Please enter a valid email address (e.g., demo@demo.com)"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                            placeholder="coach@team.com">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                        <div class="relative">
+                            <input type="password" id="login-password" required
+                                autocomplete="current-password"
+                                class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                placeholder="••••••••">
+                            <button type="button" onclick="togglePasswordVisibility('login-password', this)" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center gap-2 text-sm text-gray-400 cursor-pointer select-none">
+                            <input type="checkbox" id="remember-me" checked class="w-4 h-4 rounded border-white/20 bg-white/5 text-emerald-500 focus:ring-emerald-500/50 focus:ring-offset-0">
+                            <span>Remember me</span>
+                        </label>
+                        <button type="button" onclick="handleForgotPassword()" class="text-sm text-gray-400 hover:text-emerald-400 transition-colors">Forgot password?</button>
+                    </div>
+                    <div id="login-error" role="alert" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+                    <button type="submit" id="login-submit-btn"
+                        class="w-full py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2">
+                        <span>Sign In</span>
+                        <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" onsubmit="handleRegister(event)" role="tabpanel" aria-labelledby="register-tab" class="space-y-4 hidden">
+                    <div>
+                        <label for="register-name" class="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+                        <input type="text" id="register-name" required
+                            autocomplete="name"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                            placeholder="John Smith">
+                    </div>
+                    <div>
+                        <label for="register-email" class="block text-sm font-medium text-gray-300 mb-2">Email</label>
+                        <input type="email" id="register-email" required
+                            autocomplete="email"
+                            pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
+                            title="Please enter a valid email address (e.g., demo@demo.com)"
+                            class="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                            placeholder="coach@team.com">
+                    </div>
+                    <div>
+                        <label for="register-password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                        <div class="relative">
+                            <input type="password" id="register-password" required minlength="12"
+                                autocomplete="new-password"
+                                oninput="updatePasswordStrength(this.value)"
+                                class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                placeholder="Min. 12 characters (uppercase, lowercase, number)">
+                            <button type="button" onclick="togglePasswordVisibility('register-password', this)" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                        <div id="password-strength" class="hidden mt-2 space-y-1 text-xs" aria-live="polite">
+                            <div id="pw-length" class="flex items-center gap-1.5 text-gray-500"><span class="w-3">&#x2717;</span> 12+ characters</div>
+                            <div id="pw-upper" class="flex items-center gap-1.5 text-gray-500"><span class="w-3">&#x2717;</span> Uppercase letter</div>
+                            <div id="pw-lower" class="flex items-center gap-1.5 text-gray-500"><span class="w-3">&#x2717;</span> Lowercase letter</div>
+                            <div id="pw-number" class="flex items-center gap-1.5 text-gray-500"><span class="w-3">&#x2717;</span> Number</div>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="register-confirm" class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                        <div class="relative">
+                            <input type="password" id="register-confirm" required
+                                autocomplete="new-password"
+                                class="w-full px-4 py-3 pr-12 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                placeholder="••••••••">
+                            <button type="button" onclick="togglePasswordVisibility('register-confirm', this)" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="eye" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="register-error" role="alert" class="hidden text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg p-3"></div>
+                    <button type="submit" id="register-submit-btn"
+                        class="w-full py-3 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all duration-300 shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2">
+                        <span>Create Account</span>
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Features -->
+            <div class="mt-8 grid grid-cols-3 gap-4 text-center">
+                <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <i data-lucide="users" class="w-6 h-6 text-emerald-400 mx-auto mb-2"></i>
+                    <p class="text-xs text-gray-400">Team Management</p>
+                </div>
+                <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6 text-cyan-400 mx-auto mb-2"></i>
+                    <p class="text-xs text-gray-400">Live Stats</p>
+                </div>
+                <div class="p-4 bg-white/5 rounded-xl border border-white/10">
+                    <i data-lucide="share-2" class="w-6 h-6 text-purple-400 mx-auto mb-2"></i>
+                    <p class="text-xs text-gray-400">Invite Coaches</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Toast Container -->
+    <div id="toast-container" role="status" aria-live="polite" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 space-y-2"></div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-white/10 py-6 mt-auto">
+        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <p>Built for ultimate frisbee teams • iPad optimized • Google Sheets sync</p>
+        </div>
+    </footer>
+
+    <script>
+        // Set flag to indicate this is the login page
+        window.isDashboardPage = false;
+    </script>
+    <script src="script.js"></script>
+    <script type="module" src="/src/js/pages/login.js"></script>
+</body>
+</html>

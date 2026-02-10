@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#10b981">
+    <title>Player Profile - UltiStats</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.563.0"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        };
+    </script>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen font-sans">
+    <!-- Animated Background -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute top-1/2 left-1/2 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="relative z-10 border-b border-white/10 backdrop-blur-md bg-white/5">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                    <i data-lucide="disc-3" class="w-6 h-6 text-white"></i>
+                </div>
+                <span class="text-xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">UltiStats</span>
+            </a>
+            <div class="text-gray-400 text-sm">Player Profile</div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="relative z-10 container mx-auto px-6 py-8">
+        <!-- Loading State -->
+        <div id="loading-state" class="max-w-2xl mx-auto">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl text-center">
+                <div class="w-16 h-16 mx-auto mb-4 relative">
+                    <div class="absolute inset-0 border-4 border-emerald-500/20 rounded-full"></div>
+                    <div class="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
+                </div>
+                <p class="text-gray-400">Loading player profile...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="max-w-2xl mx-auto hidden">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl text-center">
+                <div class="w-16 h-16 mx-auto mb-4 bg-red-500/20 rounded-full flex items-center justify-center">
+                    <i data-lucide="alert-circle" class="w-8 h-8 text-red-400"></i>
+                </div>
+                <h2 class="text-xl font-bold text-white mb-2">Profile Not Found</h2>
+                <p class="text-gray-400 mb-6">This profile link may be invalid or expired.</p>
+                <a href="/" class="inline-flex items-center gap-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 px-6 py-3 rounded-xl font-medium transition-all border border-emerald-500/30">
+                    <i data-lucide="home" class="w-4 h-4"></i>
+                    Go to Home
+                </a>
+            </div>
+        </div>
+
+        <!-- Profile Content -->
+        <div id="profile-content" class="max-w-4xl mx-auto hidden">
+            <!-- Player Header -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/10 shadow-2xl mb-6">
+                <div class="flex flex-col md:flex-row items-center gap-6">
+                    <!-- Avatar -->
+                    <div id="player-avatar" class="w-24 h-24 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-2xl flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-emerald-500/25">
+                        --
+                    </div>
+
+                    <!-- Player Info -->
+                    <div class="flex-1 text-center md:text-left">
+                        <h1 id="player-name" class="text-3xl font-bold text-white mb-2">Player Name</h1>
+                        <div class="flex flex-wrap justify-center md:justify-start gap-3">
+                            <span id="player-position" class="px-4 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium border border-blue-500/30">
+                                Handler
+                            </span>
+                            <span id="player-team" class="px-4 py-1.5 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium border border-purple-500/30">
+                                Team Name
+                            </span>
+                            <span id="player-number" class="px-4 py-1.5 bg-white/10 text-gray-300 rounded-full text-sm font-medium border border-white/10 hidden">
+                                #00
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Career Stats -->
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl mb-6">
+                <h2 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                    <i data-lucide="trophy" class="w-5 h-5 text-yellow-400"></i>
+                    Career Statistics
+                </h2>
+
+                <!-- Main Stats Grid -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+                        <p class="text-3xl font-bold text-emerald-400" id="stat-games">0</p>
+                        <p class="text-gray-400 text-sm mt-1">Games Played</p>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+                        <p class="text-3xl font-bold text-cyan-400" id="stat-points">0</p>
+                        <p class="text-gray-400 text-sm mt-1">Total Points</p>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+                        <p class="text-3xl font-bold text-green-400" id="stat-goals">0</p>
+                        <p class="text-gray-400 text-sm mt-1">Goals</p>
+                    </div>
+                    <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+                        <p class="text-3xl font-bold text-blue-400" id="stat-assists">0</p>
+                        <p class="text-gray-400 text-sm mt-1">Assists</p>
+                    </div>
+                </div>
+
+                <!-- Detailed Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+                    <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                        <p class="text-xl font-bold text-purple-400" id="stat-hockey-assists">0</p>
+                        <p class="text-gray-500 text-xs mt-1">Hockey Assists</p>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                        <p class="text-xl font-bold text-orange-400" id="stat-blocks">0</p>
+                        <p class="text-gray-500 text-xs mt-1">Blocks</p>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                        <p class="text-xl font-bold text-red-400" id="stat-turnovers">0</p>
+                        <p class="text-gray-500 text-xs mt-1">Turnovers</p>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                        <p class="text-xl font-bold text-indigo-400" id="stat-throws">0</p>
+                        <p class="text-gray-500 text-xs mt-1">Throws</p>
+                    </div>
+                    <div class="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                        <p class="text-xl font-bold text-pink-400" id="stat-catches">0</p>
+                        <p class="text-gray-500 text-xs mt-1">Catches</p>
+                    </div>
+                </div>
+
+                <!-- Yards Stats -->
+                <div class="mt-4 grid grid-cols-2 gap-3">
+                    <div class="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 rounded-xl p-4 border border-emerald-500/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Yards Thrown</p>
+                                <p class="text-2xl font-bold text-white" id="stat-yards-thrown">0</p>
+                            </div>
+                            <i data-lucide="send" class="w-8 h-8 text-emerald-400 opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="bg-gradient-to-r from-blue-500/10 to-purple-500/10 rounded-xl p-4 border border-blue-500/20">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-400 text-sm">Yards Caught</p>
+                                <p class="text-2xl font-bold text-white" id="stat-yards-caught">0</p>
+                            </div>
+                            <i data-lucide="hand" class="w-8 h-8 text-blue-400 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Games (if available) -->
+            <div id="recent-games-section" class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl hidden">
+                <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                    <i data-lucide="history" class="w-5 h-5 text-cyan-400"></i>
+                    Recent Games
+                </h2>
+                <div id="recent-games-list" class="space-y-3">
+                    <!-- Games populated by JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-white/10 py-6 mt-auto">
+        <div class="container mx-auto px-6 text-center text-gray-500 text-sm">
+            <p>Powered by UltiStats - Ultimate Frisbee Statistics Tracker</p>
+        </div>
+    </footer>
+
+    <script>
+        // Initialize Lucide icons
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            loadPlayerProfile();
+        });
+
+        function getProfileToken() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('token');
+        }
+
+        function loadPlayerProfile() {
+            const token = getProfileToken();
+
+            if (!token) {
+                showError();
+                return;
+            }
+
+            // Load profile data from localStorage
+            const profiles = JSON.parse(localStorage.getItem('ultistats_player_profiles') || '{}');
+            const profile = profiles[token];
+
+            if (!profile) {
+                showError();
+                return;
+            }
+
+            // Load player registry
+            const playerRegistry = JSON.parse(localStorage.getItem('ultistats_player_registry') || '{}');
+            const player = playerRegistry[profile.playerId];
+
+            if (!player) {
+                showError();
+                return;
+            }
+
+            // Load team data
+            const teamsData = JSON.parse(localStorage.getItem('ultistats_teams') || '{}');
+            const team = teamsData.teams ? teamsData.teams[profile.teamId] : null;
+
+            // Display profile
+            displayProfile(player, team, profile);
+        }
+
+        function displayProfile(player, team, profile) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('profile-content').classList.remove('hidden');
+
+            // Set player name and avatar
+            const name = player.name || profile.playerName;
+            document.getElementById('player-name').textContent = name;
+            document.getElementById('player-avatar').textContent = getInitials(name);
+
+            // Set position with color
+            const positionEl = document.getElementById('player-position');
+            positionEl.textContent = player.position || 'Hybrid';
+
+            const pos = (player.position || '').toLowerCase();
+            if (pos === 'handler') {
+                positionEl.className = 'px-4 py-1.5 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium border border-blue-500/30';
+            } else if (pos === 'cutter') {
+                positionEl.className = 'px-4 py-1.5 bg-green-500/20 text-green-400 rounded-full text-sm font-medium border border-green-500/30';
+            } else {
+                positionEl.className = 'px-4 py-1.5 bg-purple-500/20 text-purple-400 rounded-full text-sm font-medium border border-purple-500/30';
+            }
+
+            // Set team name
+            if (team) {
+                document.getElementById('player-team').textContent = team.name;
+            } else {
+                document.getElementById('player-team').classList.add('hidden');
+            }
+
+            // Set jersey number
+            if (player.number) {
+                const numberEl = document.getElementById('player-number');
+                numberEl.textContent = `#${player.number}`;
+                numberEl.classList.remove('hidden');
+            }
+
+            // Load career stats
+            let stats = null;
+            if (team && team.careerStats && team.careerStats.players) {
+                stats = team.careerStats.players[name];
+            }
+
+            if (stats) {
+                document.getElementById('stat-games').textContent = stats.gamesPlayed || 0;
+                document.getElementById('stat-goals').textContent = stats.goals || 0;
+                document.getElementById('stat-assists').textContent = stats.assists || 0;
+                document.getElementById('stat-points').textContent = (stats.goals || 0) + (stats.assists || 0);
+                document.getElementById('stat-hockey-assists').textContent = stats.hockeyAssists || 0;
+                document.getElementById('stat-blocks').textContent = stats.blocks || 0;
+                document.getElementById('stat-turnovers').textContent = stats.turnovers || 0;
+                document.getElementById('stat-throws').textContent = stats.throws || 0;
+                document.getElementById('stat-catches').textContent = stats.catches || 0;
+                document.getElementById('stat-yards-thrown').textContent = formatYards(stats.yardsThrown || 0);
+                document.getElementById('stat-yards-caught').textContent = formatYards(stats.yardsCaught || 0);
+            }
+
+            // Load recent games
+            loadRecentGames(profile.teamId, name);
+
+            // Update icons
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // Update page title
+            document.title = `${name} - UltiStats Player Profile`;
+        }
+
+        function loadRecentGames(teamId, playerName) {
+            const gameHistory = JSON.parse(localStorage.getItem('ultistats_game_history') || '[]');
+
+            // Filter games for this team where this player participated
+            const playerGames = gameHistory.filter(game => {
+                if (game.teamId !== teamId) return false;
+                // Check if player has stats in this game
+                const playerStats = game.playerStats ? game.playerStats[playerName] : null;
+                return playerStats !== null && playerStats !== undefined;
+            }).slice(0, 5); // Last 5 games
+
+            if (playerGames.length === 0) return;
+
+            const section = document.getElementById('recent-games-section');
+            const list = document.getElementById('recent-games-list');
+
+            section.classList.remove('hidden');
+
+            list.innerHTML = playerGames.map(game => {
+                const stats = game.playerStats[playerName];
+                const isWin = game.ourScore > game.opponentScore;
+                const date = new Date(game.date).toLocaleDateString();
+
+                return `
+                    <div class="flex items-center gap-4 p-4 bg-white/5 rounded-xl border border-white/10">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center ${isWin ? 'bg-emerald-500/20' : 'bg-red-500/20'}">
+                            <span class="${isWin ? 'text-emerald-400' : 'text-red-400'} font-bold">${isWin ? 'W' : 'L'}</span>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-white font-medium">vs ${escapeHtml(game.opponent || 'Unknown')}</p>
+                            <p class="text-gray-500 text-sm">${date} • ${game.ourScore}-${game.opponentScore}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-white font-medium">${stats.goals || 0}G / ${stats.assists || 0}A</p>
+                            <p class="text-gray-500 text-sm">${stats.blocks || 0} blocks</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showError() {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('error-state').classList.remove('hidden');
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        function getInitials(name) {
+            if (!name) return '--';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) {
+                return parts[0].substring(0, 2).toUpperCase();
+            }
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        function formatYards(yards) {
+            if (yards >= 1000) {
+                return (yards / 1000).toFixed(1) + 'k';
+            }
+            return yards.toString();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

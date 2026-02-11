@@ -49,9 +49,19 @@ const TEAMS_KEY = 'ultistats_teams';
 const LEAGUES_KEY = 'ultistats_leagues';
 const TOURNAMENTS_LOCAL_KEY = 'ultistats_local_tournaments';
 const RANKINGS_CACHE_KEY = 'ultistats_rankings_cache';
+const CHEMISTRY_KEY = 'ultistats_chemistry';
 
 // Game history
 let gameHistory = [];
+
+// Cross-game chemistry analytics (aggregated across all completed games)
+let chemistryData = {
+    pairings: {},     // 'thrower|receiver' → { completions, goals, games, throwValue }
+    lineHistory: {},  // 'sorted|player|names' → { played, scored, scoredAgainst, games }
+    playerPairs: {},  // 'playerA|playerB' (sorted) → { pointsTogether, scoredTogether, allowedTogether, connectionCount, games, offPointsTogether, offScored, offAllowed, defPointsTogether, defScored, defAllowed }
+    gamesAnalyzed: 0,
+    gameTimestamps: [] // Track when each game was analyzed for recency weighting
+};
 
 // Persistent roster (survives game resets)
 let savedRoster = [];
@@ -1375,10 +1385,20 @@ function saveThrowConnections() {
     } catch (e) { /* ignore */ }
 }
 
-function trackConnection(thrower, receiver) {
+// Track throw value (yards gained toward endzone) per connection
+let _throwValues = {}; // 'thrower|receiver' → { totalYards, count }
+
+function trackConnection(thrower, receiver, yardage) {
     if (!thrower || !receiver) return;
     if (!_throwConnections[thrower]) _throwConnections[thrower] = {};
     _throwConnections[thrower][receiver] = (_throwConnections[thrower][receiver] || 0) + 1;
+    // Track yardage for throw value scoring
+    if (typeof yardage === 'number') {
+        const tvKey = thrower + '|' + receiver;
+        if (!_throwValues[tvKey]) _throwValues[tvKey] = { totalYards: 0, count: 0 };
+        _throwValues[tvKey].totalYards += yardage;
+        _throwValues[tvKey].count++;
+    }
     saveThrowConnections();
     // Update recency tracking
     _recentFieldPlayers = _recentFieldPlayers.filter(p => p !== receiver);
@@ -1718,6 +1738,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadRoster();
     loadPlayerRegistry();
     loadCareerStats();
+    loadChemistryData();
     loadSeasonStats();
     loadTournamentStats();
     loadPastTournaments();
@@ -1733,6 +1754,7 @@ document.addEventListener('DOMContentLoaded', function() {
     updateDashboardTournaments();
     updateDashboardLeagues();
     updateSharedTournaments(); // Load shared tournaments from server
+    renderDashboardChemistry();
     // Real-time game setup form validation
     initGameSetupValidation();
     // Initialize Lucide icons
@@ -1932,6 +1954,39 @@ function loadCareerStats() {
         }
     } catch (e) {
         console.warn('Could not load career stats:', e);
+    }
+}
+
+function saveChemistryData() {
+    try {
+        localStorage.setItem(CHEMISTRY_KEY, JSON.stringify(chemistryData));
+    } catch (e) {
+        console.warn('Could not save chemistry data:', e);
+    }
+}
+
+function loadChemistryData() {
+    try {
+        const saved = localStorage.getItem(CHEMISTRY_KEY);
+        if (saved) {
+            chemistryData = { pairings: {}, lineHistory: {}, playerPairs: {}, gamesAnalyzed: 0, gameTimestamps: [], ...JSON.parse(saved) };
+            // Backward-compat: ensure new fields exist on existing pairs
+            if (!chemistryData.gameTimestamps) chemistryData.gameTimestamps = [];
+            for (const key in chemistryData.playerPairs) {
+                const p = chemistryData.playerPairs[key];
+                if (p.offPointsTogether === undefined) {
+                    p.offPointsTogether = 0; p.offScored = 0; p.offAllowed = 0;
+                    p.defPointsTogether = 0; p.defScored = 0; p.defAllowed = 0;
+                }
+            }
+            for (const key in chemistryData.pairings) {
+                if (chemistryData.pairings[key].throwValue === undefined) {
+                    chemistryData.pairings[key].throwValue = 0;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('Could not load chemistry data:', e);
     }
 }
 
@@ -5700,22 +5755,53 @@ function updateLineSelectionGrid() {
     const playersToShow = sortPlayers(getPresentPlayers());
     const impactData = getPlayerImpactData();
 
+    const selected = gameState.onFieldPlayers;
+    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
+
+    // Compute chemistry scores for bench players relative to selected players
+    let chemScores = {};
+    if (hasChemData && selected.length > 0 && selected.length < 7) {
+        playersToShow.forEach(player => {
+            if (selected.includes(player)) return;
+            let totalChem = 0;
+            for (const sel of selected) {
+                totalChem += getChemistryScore(player, sel);
+            }
+            chemScores[player] = Math.round(totalChem / selected.length);
+        });
+    }
+
     playersToShow.forEach(player => {
         const btn = document.createElement('button');
-        const isOnField = gameState.onFieldPlayers.includes(player);
+        const isOnField = selected.includes(player);
         const position = getPlayerPosition(player);
         const posLabel = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
 
-        btn.className = `line-select-btn px-3 py-3 rounded-xl text-sm font-medium transition-all active:scale-95 ${
+        // Chemistry-based styling for unselected players
+        const chemScore = chemScores[player] || 0;
+        let chemClass = '';
+        if (!isOnField && hasChemData && selected.length > 0 && selected.length < 7 && chemScore > 0) {
+            if (chemScore >= 60) chemClass = ' chem-high';
+            else if (chemScore >= 35) chemClass = ' chem-mid';
+        }
+
+        btn.className = `line-select-btn px-3 py-3 rounded-xl text-sm font-medium transition-all active:scale-95${chemClass} ${
             isOnField
                 ? 'bg-cyan-500 text-white ring-2 ring-cyan-300'
                 : 'bg-white/10 text-white hover:bg-white/20'
         }`;
         btn.setAttribute('role', 'switch');
         btn.setAttribute('aria-checked', String(isOnField));
-        btn.setAttribute('aria-label', `${player} - ${isOnField ? 'on field' : 'on bench'}`);
+        btn.setAttribute('aria-label', `${player} - ${isOnField ? 'on field' : 'on bench'}${chemScore > 0 ? `, chemistry ${chemScore}` : ''}`);
         const checkmark = isOnField ? '<span class="opacity-80">✓</span> ' : '';
         const posHtml = posLabel ? `<span class="text-xs opacity-60">${escapeHtml(posLabel)}</span> ` : '';
+
+        // Chemistry badge for bench players
+        let chemBadge = '';
+        if (!isOnField && chemScore > 0 && selected.length > 0 && selected.length < 7) {
+            const badgeClass = chemScore >= 60 ? 'chem-badge-high' : chemScore >= 35 ? 'chem-badge-mid' : 'chem-badge-low';
+            chemBadge = `<span class="chem-badge ${badgeClass}">${chemScore}</span>`;
+        }
 
         // Stat annotation based on sort mode
         let statHtml = '';
@@ -5739,31 +5825,34 @@ function updateLineSelectionGrid() {
             statHtml = `<span class="sort-stat ${cls}">${score.toFixed(1)}</span>`;
         }
 
-        btn.innerHTML = `${checkmark}${posHtml}${escapeHtml(player)}${statHtml}`;
+        btn.innerHTML = `${chemBadge}${checkmark}${posHtml}${escapeHtml(player)}${statHtml}`;
         btn.addEventListener('click', () => togglePlayerOnField(player));
         container.appendChild(btn);
     });
-    
+
     // Update count
     const countEl = document.getElementById('line-count');
     if (countEl) {
-        countEl.textContent = gameState.onFieldPlayers.length;
-        countEl.className = `text-2xl font-bold ${gameState.onFieldPlayers.length === 7 ? 'text-emerald-400' : 'text-cyan-400'}`;
+        countEl.textContent = selected.length;
+        countEl.className = `text-2xl font-bold ${selected.length === 7 ? 'text-emerald-400' : 'text-cyan-400'}`;
     }
-    
+
     // Update start button
     const startBtn = document.getElementById('start-point-btn');
     if (startBtn) {
-        if (gameState.onFieldPlayers.length === 7) {
+        if (selected.length === 7) {
             startBtn.disabled = false;
             startBtn.textContent = '▶️ Start Point';
             startBtn.className = 'flex-1 bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all';
         } else {
             startBtn.disabled = true;
-            startBtn.textContent = `Select ${7 - gameState.onFieldPlayers.length} more`;
+            startBtn.textContent = `Select ${7 - selected.length} more`;
             startBtn.className = 'flex-1 bg-emerald-500/30 text-emerald-300 py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed';
         }
     }
+
+    // Update chemistry recommendation strip
+    updateChemistryRecommendations();
 }
 
 function togglePlayerOnField(player) {
@@ -6662,7 +6751,10 @@ function endGame() {
         careerStats.players[playerName].gamesPlayed = (careerStats.players[playerName].gamesPlayed || 0) + 1;
     });
     saveCareerStats();
-    
+
+    // Aggregate cross-game chemistry data
+    aggregateChemistryData();
+
     // Update active team stats
     if (teamsData.currentTeamId && teamsData.teams[teamsData.currentTeamId]) {
         const team = teamsData.teams[teamsData.currentTeamId];
@@ -8261,6 +8353,256 @@ function updateRosterPreview() {
     }).join('') + (remaining > 0 ? `<span class="text-xs text-gray-500 px-2 py-1">+${remaining} more</span>` : '');
 }
 
+// ==================== TOURNAMENT-AWARE GAME SETUP ====================
+
+/**
+ * Find the local teamsData ID that matches the user's current API team.
+ * Matches by name (case-insensitive) or by teamsData.currentTeamId.
+ */
+function findMyTeamIdInEntity(entity) {
+    // First try teamsData.currentTeamId if it's in this entity
+    if (teamsData.currentTeamId) {
+        const allTeamIds = getEntityTeams(entity.id);
+        if (allTeamIds.includes(teamsData.currentTeamId)) {
+            return teamsData.currentTeamId;
+        }
+    }
+    // Fall back to matching by name
+    const myName = (currentTeam?.name || '').toLowerCase();
+    if (!myName) return null;
+    const allTeamIds = getEntityTeams(entity.id);
+    for (const tid of allTeamIds) {
+        const team = teamsData.teams[tid];
+        if (team && team.name.toLowerCase() === myName) return tid;
+    }
+    return null;
+}
+
+/**
+ * Get the next scheduled matchup for a given team within a tournament/league.
+ * Returns { matchup, matchupType, opponentId, opponentName } or null.
+ */
+function getNextMatchupForTeam(entityId, myTeamId) {
+    const entity = getEntityById(entityId);
+    if (!entity) return null;
+
+    // Check pool matchups first (they come before bracket)
+    for (const matchup of (entity.poolMatchups || [])) {
+        if (matchup.status !== 'scheduled') continue;
+        if (matchup.homeTeamId === myTeamId || matchup.awayTeamId === myTeamId) {
+            const opponentId = matchup.homeTeamId === myTeamId ? matchup.awayTeamId : matchup.homeTeamId;
+            const opponentTeam = teamsData.teams[opponentId];
+            const pool = entity.pools?.find(p => p.id === matchup.poolId);
+            return {
+                matchup,
+                matchupType: 'pool',
+                opponentId,
+                opponentName: opponentTeam?.name || 'TBD',
+                poolName: pool?.name || null,
+                round: matchup.round
+            };
+        }
+    }
+
+    // Then check bracket matchups
+    for (const matchup of (entity.bracketMatchups || [])) {
+        if (matchup.status !== 'scheduled') continue;
+        if (matchup.homeTeamId === myTeamId || matchup.awayTeamId === myTeamId) {
+            const opponentId = matchup.homeTeamId === myTeamId ? matchup.awayTeamId : matchup.homeTeamId;
+            const opponentTeam = opponentId ? teamsData.teams[opponentId] : null;
+            return {
+                matchup,
+                matchupType: 'bracket',
+                opponentId,
+                opponentName: opponentTeam?.name || 'TBD',
+                poolName: null,
+                round: matchup.round
+            };
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Get all active tournaments/leagues the user's team is currently participating in.
+ * "Active" = has at least one scheduled matchup remaining for the user's team.
+ */
+function getActiveEntitiesForMyTeam() {
+    const results = [];
+
+    // Check tournaments
+    for (const [id, tournament] of Object.entries(tournamentsData.tournaments)) {
+        const myId = findMyTeamIdInEntity(tournament);
+        if (!myId) continue;
+        const next = getNextMatchupForTeam(id, myId);
+        results.push({
+            entityId: id,
+            entityName: tournament.name,
+            entityType: 'tournament',
+            myTeamId: myId,
+            nextMatchup: next,
+            format: tournament.format
+        });
+    }
+
+    // Check leagues
+    for (const [id, league] of Object.entries(leaguesData.leagues)) {
+        const myId = findMyTeamIdInEntity(league);
+        if (!myId) continue;
+        const next = getNextMatchupForTeam(id, myId);
+        results.push({
+            entityId: id,
+            entityName: league.name,
+            entityType: 'league',
+            myTeamId: myId,
+            nextMatchup: next,
+            format: league.format
+        });
+    }
+
+    return results;
+}
+
+/**
+ * Called when the game type dropdown changes.
+ * If "tournament" is selected, show the tournament context picker.
+ */
+function onGameTypeChange() {
+    const gameType = document.getElementById('game-type')?.value;
+    const tournamentContext = document.getElementById('tournament-context');
+    if (!tournamentContext) return;
+
+    if (gameType === 'tournament') {
+        tournamentContext.classList.remove('hidden');
+        populateTournamentSelector();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    } else {
+        tournamentContext.classList.add('hidden');
+        clearProjectedOpponent();
+    }
+}
+
+/**
+ * Populate the tournament/league selector dropdown with active entities.
+ */
+function populateTournamentSelector() {
+    const select = document.getElementById('tournament-selector');
+    if (!select) return;
+
+    const entities = getActiveEntitiesForMyTeam();
+
+    if (entities.length === 0) {
+        select.innerHTML = '<option value="">No active tournaments found</option>';
+        clearProjectedOpponent();
+        return;
+    }
+
+    select.innerHTML = '<option value="">Select tournament...</option>' +
+        entities.map(e => {
+            const badge = e.entityType === 'tournament' ? 'T' : 'L';
+            const nextLabel = e.nextMatchup ? ` — next: ${escapeHtml(e.nextMatchup.opponentName)}` : ' — no games left';
+            return `<option value="${escapeHtml(e.entityId)}">[${badge}] ${escapeHtml(e.entityName)}${nextLabel}</option>`;
+        }).join('');
+}
+
+/**
+ * Called when the user picks a tournament from the selector.
+ */
+function onTournamentSelected() {
+    const select = document.getElementById('tournament-selector');
+    const entityId = select?.value;
+    if (!entityId) {
+        clearProjectedOpponent();
+        return;
+    }
+
+    const entity = getEntityById(entityId);
+    if (!entity) {
+        clearProjectedOpponent();
+        return;
+    }
+
+    const myTeamId = findMyTeamIdInEntity(entity);
+    if (!myTeamId) {
+        clearProjectedOpponent();
+        return;
+    }
+
+    const next = getNextMatchupForTeam(entityId, myTeamId);
+    if (next) {
+        showProjectedOpponent(next, entityId);
+    } else {
+        showNoUpcomingGames();
+    }
+}
+
+/**
+ * Display the projected opponent in the game setup UI.
+ */
+function showProjectedOpponent(nextInfo, entityId) {
+    const opponentInput = document.getElementById('opponent-team');
+    const projection = document.getElementById('projected-opponent');
+    const projectionDetails = document.getElementById('projection-details');
+
+    if (opponentInput && nextInfo.opponentName !== 'TBD') {
+        opponentInput.value = nextInfo.opponentName;
+        // Trigger validation
+        opponentInput.dispatchEvent(new Event('input'));
+    }
+
+    if (projection) {
+        projection.classList.remove('hidden');
+        const matchTypeLabel = nextInfo.matchupType === 'pool'
+            ? `${nextInfo.poolName || 'Pool'} — Round ${nextInfo.round}`
+            : `Bracket — Round ${nextInfo.round}`;
+
+        projectionDetails.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-gradient-to-br from-red-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                        ${escapeHtml((nextInfo.opponentName || 'T').substring(0, 2).toUpperCase())}
+                    </div>
+                    <div>
+                        <div class="text-white font-semibold text-sm">${escapeHtml(nextInfo.opponentName)}</div>
+                        <div class="text-gray-500 text-xs">${escapeHtml(matchTypeLabel)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Store matchup context for startGame() to include
+    window._projectedMatchup = {
+        entityId,
+        matchupId: nextInfo.matchup.id,
+        matchupType: nextInfo.matchupType,
+        opponentName: nextInfo.opponentName
+    };
+}
+
+function showNoUpcomingGames() {
+    const projection = document.getElementById('projected-opponent');
+    const projectionDetails = document.getElementById('projection-details');
+    if (projection) {
+        projection.classList.remove('hidden');
+        projectionDetails.innerHTML = `
+            <div class="text-gray-500 text-sm flex items-center gap-2">
+                <i data-lucide="check-circle" class="w-4 h-4 text-emerald-500"></i>
+                All matchups completed in this event
+            </div>
+        `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+    window._projectedMatchup = null;
+}
+
+function clearProjectedOpponent() {
+    const projection = document.getElementById('projected-opponent');
+    if (projection) projection.classList.add('hidden');
+    window._projectedMatchup = null;
+}
+
 function initGameSetupValidation() {
     const opponent = document.getElementById('opponent-team');
     const date = document.getElementById('game-date');
@@ -8279,8 +8621,45 @@ function initGameSetupValidation() {
 
     opponent.addEventListener('input', validateGameSetup);
     date.addEventListener('change', validateGameSetup);
+
+    // Wire up game type change
+    const gameTypeSelect = document.getElementById('game-type');
+    if (gameTypeSelect) {
+        gameTypeSelect.addEventListener('change', onGameTypeChange);
+    }
+
     // Run once on init to set initial state
     validateGameSetup();
+
+    // Auto-detect if user is in an active tournament
+    autoDetectTournamentContext();
+}
+
+/**
+ * Auto-detect if the user is in an active tournament and pre-select it.
+ * Called once during init after data is loaded.
+ */
+function autoDetectTournamentContext() {
+    const entities = getActiveEntitiesForMyTeam();
+    // If exactly one entity with an upcoming matchup, auto-select tournament mode
+    const withGames = entities.filter(e => e.nextMatchup);
+    if (withGames.length >= 1) {
+        const gameTypeSelect = document.getElementById('game-type');
+        const tournamentContext = document.getElementById('tournament-context');
+        if (gameTypeSelect && tournamentContext) {
+            gameTypeSelect.value = 'tournament';
+            tournamentContext.classList.remove('hidden');
+            populateTournamentSelector();
+            // If only one, auto-select it
+            if (withGames.length === 1) {
+                const select = document.getElementById('tournament-selector');
+                if (select) {
+                    select.value = withGames[0].entityId;
+                    onTournamentSelected();
+                }
+            }
+        }
+    }
 }
 
 function startGame() {
@@ -8308,12 +8687,23 @@ function startGame() {
         isActive: true,
         startedAt: new Date().toISOString()
     };
-    
+
+    // Include tournament/matchup context if projected
+    if (window._projectedMatchup && gameType === 'tournament') {
+        const pm = window._projectedMatchup;
+        const entity = getEntityById(pm.entityId);
+        const isTournament = !!tournamentsData.tournaments[pm.entityId];
+        gameSetup.tournamentId = isTournament ? pm.entityId : null;
+        gameSetup.leagueId = isTournament ? (entity?.leagueId || null) : pm.entityId;
+        gameSetup.matchupId = pm.matchupId;
+        gameSetup.matchupType = pm.matchupType;
+    }
+
     localStorage.setItem('ultistats_game_setup', JSON.stringify(gameSetup));
-    
+
     hapticFeedback('success');
     playSound('tap');
-    
+
     // Redirect to game page
     window.location.href = '/game.html';
 }
@@ -9470,7 +9860,8 @@ function selectFieldReceiver(receiver, fieldX, fieldY) {
 function recordEndzoneScore(thrower, receiver, distance, startPos, endPos) {
     // Save state for undo
     saveActionState('goal', { thrower, receiver, distance });
-    trackConnection(thrower, receiver);
+    const directionalYards = startPos && endPos ? Math.round((startPos.y - endPos.y) * 1.2) : distance;
+    trackConnection(thrower, receiver, directionalYards);
 
     // Record the throw stats
     if (thrower) {
@@ -9716,7 +10107,9 @@ function calculateDistance(point1, point2) {
 function recordThrow(thrower, receiver, distance, startPoint, endPoint) {
     // Save state for undo
     saveActionState('throw', { thrower, receiver, distance });
-    trackConnection(thrower, receiver);
+    // Pass directional yardage (positive = toward their endzone) for throw value scoring
+    const directionalYards = startPoint && endPoint ? Math.round((startPoint.y - endPoint.y) * 1.2) : distance;
+    trackConnection(thrower, receiver, directionalYards);
 
     // Update player stats - throws and catches
     gameState.playerStats[thrower].throws = (gameState.playerStats[thrower].throws || 0) + 1;
@@ -10632,11 +11025,20 @@ function computeLineStats() {
     for (const point of _pointHistory) {
         const key = [...point.line].sort().join('|');
         if (!lineMap[key]) {
-            lineMap[key] = { players: [...point.line], played: 0, scored: 0, scoredAgainst: 0 };
+            lineMap[key] = { players: [...point.line], played: 0, scored: 0, scoredAgainst: 0, oPlayed: 0, oScored: 0, dPlayed: 0, dScored: 0 };
         }
-        lineMap[key].played++;
-        if (point.result === 'scored') lineMap[key].scored++;
-        if (point.result === 'scored-against') lineMap[key].scoredAgainst++;
+        const l = lineMap[key];
+        l.played++;
+        if (point.result === 'scored') l.scored++;
+        if (point.result === 'scored-against') l.scoredAgainst++;
+        // O/D split
+        if (point.startType === 'offense') {
+            l.oPlayed++;
+            if (point.result === 'scored') l.oScored++;
+        } else {
+            l.dPlayed++;
+            if (point.result === 'scored') l.dScored++;
+        }
     }
     return Object.values(lineMap).sort((a, b) =>
         (b.scored - b.scoredAgainst) - (a.scored - a.scoredAgainst)
@@ -10645,25 +11047,45 @@ function computeLineStats() {
 
 function computePlayerImpact() {
     const impact = {};
+    const oPoints = {};
+    const dPoints = {};
     for (const point of _pointHistory) {
+        const isOff = point.startType === 'offense';
         for (const player of point.line) {
-            if (!impact[player]) {
-                impact[player] = { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
-            }
+            if (!impact[player]) impact[player] = { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
+            if (!oPoints[player]) oPoints[player] = { played: 0, scored: 0, allowed: 0 };
+            if (!dPoints[player]) dPoints[player] = { played: 0, scored: 0, allowed: 0 };
             impact[player].pointsPlayed++;
             if (point.result === 'scored') impact[player].pointsScored++;
             if (point.result === 'scored-against') impact[player].pointsAgainst++;
+            // O/D split for current game
+            const bucket = isOff ? oPoints[player] : dPoints[player];
+            bucket.played++;
+            if (point.result === 'scored') bucket.scored++;
+            if (point.result === 'scored-against') bucket.allowed++;
         }
     }
+    const pageRank = computePageRank();
     return Object.entries(impact).map(([name, data]) => {
         const stats = gameState.playerStats[name] || {};
+        const pp = Math.max(1, data.pointsPlayed);
+        const oData = oPoints[name] || { played: 0, scored: 0, allowed: 0 };
+        const dData = dPoints[name] || { played: 0, scored: 0, allowed: 0 };
+        const holdRate = oData.played > 0 ? oData.scored / oData.played : null;
+        const breakRate = dData.played > 0 ? dData.scored / dData.played : null;
         return {
             name,
             ...data,
             plusMinus: data.pointsScored - data.pointsAgainst,
-            offRating: ((stats.goals || 0) + (stats.assists || 0) + (stats.hockeyAssists || 0)) / Math.max(1, data.pointsPlayed),
-            defRating: (stats.blocks || 0) / Math.max(1, data.pointsPlayed),
-            completionPct: (stats.catches || 0) / Math.max(1, (stats.catches || 0) + (stats.turnovers || 0)) * 100
+            offRating: ((stats.goals || 0) + (stats.assists || 0) + (stats.hockeyAssists || 0)) / pp,
+            defRating: (stats.blocks || 0) / pp,
+            completionPct: (stats.catches || 0) / Math.max(1, (stats.catches || 0) + (stats.turnovers || 0)) * 100,
+            per: computePlayerPER(name),
+            hubScore: pageRank[name] || 0,
+            holdRate,
+            breakRate,
+            oPointsPlayed: oData.played,
+            dPointsPlayed: dData.played
         };
     }).sort((a, b) => b.plusMinus - a.plusMinus || b.offRating - a.offRating);
 }
@@ -10686,10 +11108,21 @@ function renderPairingsTab() {
         return;
     }
     const maxComp = pairs[0].completions;
+    // Compute throw values for current game pairings
+    const tvData = {};
+    for (const key in _throwValues) {
+        const tv = _throwValues[key];
+        if (tv.count > 0) tvData[key] = Math.round(tv.totalYards / tv.count);
+    }
     container.innerHTML = pairs.map(p => {
         const pct = Math.round((p.completions / maxComp) * 100);
         const scoreTag = p.scores > 0
-            ? `<span class="text-emerald-400 font-semibold ml-1">${p.scores} goal${p.scores > 1 ? 's' : ''}</span>`
+            ? `<span class="text-emerald-400 font-semibold ml-1">${p.scores}G</span>`
+            : '';
+        const tvKey = p.thrower + '|' + p.receiver;
+        const avgTV = tvData[tvKey];
+        const tvTag = avgTV !== undefined
+            ? `<span class="${avgTV > 0 ? 'text-cyan-400' : avgTV < 0 ? 'text-red-400' : 'text-gray-500'} text-[10px] ml-1" title="Avg yards gained per throw">${avgTV > 0 ? '+' : ''}${avgTV}y</span>`
             : '';
         return `<div class="analysis-pair-row flex items-center gap-2 py-1.5 border-b border-white/5">
             <div class="flex-shrink-0 w-28 sm:w-40 truncate">
@@ -10703,7 +11136,7 @@ function renderPairingsTab() {
                 <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
             </div>
             <div class="flex-shrink-0 text-gray-400 whitespace-nowrap">
-                ${p.completions} comp${scoreTag}
+                ${p.completions}${scoreTag}${tvTag}
             </div>
         </div>`;
     }).join('');
@@ -10727,6 +11160,11 @@ function renderLinesTab() {
             const ini = parts.length > 1 ? parts[0][0] + parts[1][0] : parts[0].substring(0, 2);
             return abbr ? abbr + '\u00A0' + ini : ini;
         }).join(', ');
+        // O/D split: hold rate and break rate
+        const holdRate = l.oPlayed > 0 ? Math.round(l.oScored / l.oPlayed * 100) : null;
+        const breakRate = l.dPlayed > 0 ? Math.round(l.dScored / l.dPlayed * 100) : null;
+        const holdTag = holdRate !== null ? `<span class="text-amber-400 text-[10px]" title="Hold rate">${holdRate}% hold</span>` : '';
+        const breakTag = breakRate !== null ? `<span class="${breakRate >= 40 ? 'text-emerald-400 font-semibold' : 'text-red-400'} text-[10px]" title="Break rate">${breakRate}% break</span>` : '';
         return `<div class="py-2 border-b border-white/5">
             <div class="flex items-center justify-between mb-1">
                 <div class="flex items-center gap-2">
@@ -10739,7 +11177,10 @@ function renderLinesTab() {
                     <span class="text-red-400">${l.scoredAgainst} allowed</span>
                 </div>
             </div>
-            <div class="text-gray-500 text-[10px] truncate" title="${l.players.map(n => escapeHtml(n)).join(', ')}">${initials}</div>
+            <div class="flex items-center justify-between">
+                <div class="text-gray-500 text-[10px] truncate flex-1" title="${l.players.map(n => escapeHtml(n)).join(', ')}">${initials}</div>
+                <div class="flex items-center gap-2 ml-2">${holdTag}${breakTag}</div>
+            </div>
         </div>`;
     }).join('');
 }
@@ -10753,13 +11194,15 @@ function renderImpactTab() {
         return;
     }
     container.innerHTML = `
-        <div class="flex items-center gap-2 text-[10px] text-gray-600 uppercase tracking-wider pb-1 border-b border-white/5 mb-1">
-            <span class="w-24 sm:w-32">Player</span>
-            <span class="w-10 text-center">+/-</span>
-            <span class="w-10 text-center">OFF</span>
-            <span class="w-10 text-center">DEF</span>
-            <span class="w-10 text-center">CMP%</span>
-            <span class="flex-1 text-center">Pts</span>
+        <div class="flex items-center gap-1 text-[10px] text-gray-600 uppercase tracking-wider pb-1 border-b border-white/5 mb-1">
+            <span class="w-20 sm:w-28">Player</span>
+            <span class="w-8 text-center">+/-</span>
+            <span class="w-8 text-center">OFF</span>
+            <span class="w-8 text-center">DEF</span>
+            <span class="w-8 text-center">CMP</span>
+            <span class="w-8 text-center hidden sm:block" title="Player Efficiency Rating">PER</span>
+            <span class="w-8 text-center hidden sm:block" title="Hub Score (PageRank)">HUB</span>
+            <span class="flex-1 text-center">O/D</span>
         </div>
     ` + players.map(p => {
         const diffClass = p.plusMinus > 0 ? 'plus-minus-pos' : p.plusMinus < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
@@ -10767,13 +11210,18 @@ function renderImpactTab() {
         const firstName = p.name.split(' ')[0];
         const pos = posAbbrev(p.name);
         const posTag = pos ? `<span class="text-gray-500 text-[10px] mr-0.5">${pos}</span>` : '';
-        return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5">
-            <span class="w-24 sm:w-32 text-white font-medium truncate">${posTag}${escapeHtml(firstName)}</span>
-            <span class="w-10 text-center font-bold ${diffClass}">${diffStr}</span>
-            <span class="w-10 text-center text-amber-400">${p.offRating.toFixed(1)}</span>
-            <span class="w-10 text-center text-purple-400">${p.defRating.toFixed(1)}</span>
-            <span class="w-10 text-center text-cyan-400">${Math.round(p.completionPct)}%</span>
-            <span class="flex-1 text-center text-gray-400">${p.pointsPlayed}</span>
+        const holdStr = p.holdRate !== null ? `${Math.round(p.holdRate * 100)}%` : '-';
+        const breakStr = p.breakRate !== null ? `${Math.round(p.breakRate * 100)}%` : '-';
+        const breakHighlight = p.breakRate !== null && p.breakRate >= 0.4 ? 'text-emerald-400 font-semibold' : 'text-red-400';
+        return `<div class="flex items-center gap-1 py-1.5 border-b border-white/5">
+            <span class="w-20 sm:w-28 text-white font-medium truncate">${posTag}${escapeHtml(firstName)}</span>
+            <span class="w-8 text-center font-bold ${diffClass}">${diffStr}</span>
+            <span class="w-8 text-center text-amber-400">${p.offRating.toFixed(1)}</span>
+            <span class="w-8 text-center text-purple-400">${p.defRating.toFixed(1)}</span>
+            <span class="w-8 text-center text-cyan-400">${Math.round(p.completionPct)}%</span>
+            <span class="w-8 text-center text-orange-400 hidden sm:block">${p.per > 0 ? p.per : '-'}</span>
+            <span class="w-8 text-center text-pink-400 hidden sm:block">${p.hubScore > 0 ? p.hubScore : '-'}</span>
+            <span class="flex-1 text-center text-[10px]"><span class="text-amber-400">${holdStr}</span><span class="text-gray-600">/</span><span class="${breakHighlight}">${breakStr}</span></span>
         </div>`;
     }).join('');
 }
@@ -10794,8 +11242,7 @@ function switchAnalysisTab(tab) {
     _activeAnalysisTab = tab;
     const tabs = document.querySelectorAll('#analysis-tabs .analysis-tab');
     tabs.forEach(t => {
-        const isActive = t.textContent.trim().toLowerCase().startsWith(tab.substring(0, 4));
-        t.classList.toggle('active', isActive);
+        t.classList.toggle('active', (t.dataset.tab || '') === tab);
     });
     refreshAnalysis();
 }
@@ -10807,7 +11254,761 @@ function refreshAnalysis() {
         case 'pairings': renderPairingsTab(); break;
         case 'lines': renderLinesTab(); break;
         case 'impact': renderImpactTab(); break;
+        case 'chemistry': renderChemistryTab(); break;
     }
+}
+
+// ==================== CROSS-GAME CHEMISTRY ANALYTICS ====================
+
+function aggregateChemistryData() {
+    const gameTimestamp = Date.now();
+
+    // Aggregate throw connections from the current game (with throw value)
+    for (const thrower in _throwConnections) {
+        for (const receiver in _throwConnections[thrower]) {
+            const key = thrower + '|' + receiver;
+            if (!chemistryData.pairings[key]) {
+                chemistryData.pairings[key] = { completions: 0, goals: 0, games: 0, throwValue: 0 };
+            }
+            const p = chemistryData.pairings[key];
+            p.completions += _throwConnections[thrower][receiver];
+            p.goals += countScoringConnections(thrower, receiver);
+            p.games++;
+            // Aggregate throw value (directional yardage)
+            const tvKey = thrower + '|' + receiver;
+            if (_throwValues[tvKey]) {
+                p.throwValue = (p.throwValue || 0) + _throwValues[tvKey].totalYards;
+            }
+        }
+    }
+
+    // Aggregate line history from point tracking
+    for (const point of _pointHistory) {
+        if (!point.result) continue;
+        const key = [...point.line].sort().join('|');
+        if (!chemistryData.lineHistory[key]) {
+            chemistryData.lineHistory[key] = { players: [...point.line].sort(), played: 0, scored: 0, scoredAgainst: 0, games: new Set() };
+        }
+        const entry = chemistryData.lineHistory[key];
+        entry.played++;
+        if (point.result === 'scored') entry.scored++;
+        if (point.result === 'scored-against') entry.scoredAgainst++;
+        if (entry.games instanceof Set) entry.games.add(chemistryData.gamesAnalyzed);
+        else { entry.games = new Set([chemistryData.gamesAnalyzed]); }
+
+        // Aggregate player pairs with O/D split
+        const isOffense = point.startType === 'offense';
+        for (let i = 0; i < point.line.length; i++) {
+            for (let j = i + 1; j < point.line.length; j++) {
+                const pairKey = [point.line[i], point.line[j]].sort().join('|');
+                if (!chemistryData.playerPairs[pairKey]) {
+                    chemistryData.playerPairs[pairKey] = {
+                        pointsTogether: 0, scoredTogether: 0, allowedTogether: 0, connectionCount: 0, games: 0,
+                        offPointsTogether: 0, offScored: 0, offAllowed: 0,
+                        defPointsTogether: 0, defScored: 0, defAllowed: 0
+                    };
+                }
+                const pair = chemistryData.playerPairs[pairKey];
+                pair.pointsTogether++;
+                if (point.result === 'scored') pair.scoredTogether++;
+                if (point.result === 'scored-against') pair.allowedTogether++;
+                // O/D split tracking
+                if (isOffense) {
+                    pair.offPointsTogether = (pair.offPointsTogether || 0) + 1;
+                    if (point.result === 'scored') pair.offScored = (pair.offScored || 0) + 1;
+                    if (point.result === 'scored-against') pair.offAllowed = (pair.offAllowed || 0) + 1;
+                } else {
+                    pair.defPointsTogether = (pair.defPointsTogether || 0) + 1;
+                    if (point.result === 'scored') pair.defScored = (pair.defScored || 0) + 1;
+                    if (point.result === 'scored-against') pair.defAllowed = (pair.defAllowed || 0) + 1;
+                }
+            }
+        }
+    }
+
+    // Count throw connections between player pairs
+    for (const thrower in _throwConnections) {
+        for (const receiver in _throwConnections[thrower]) {
+            const pairKey = [thrower, receiver].sort().join('|');
+            if (chemistryData.playerPairs[pairKey]) {
+                chemistryData.playerPairs[pairKey].connectionCount += _throwConnections[thrower][receiver];
+            }
+        }
+    }
+
+    // Convert Sets to counts for serialization
+    for (const key in chemistryData.lineHistory) {
+        const entry = chemistryData.lineHistory[key];
+        if (entry.games instanceof Set) entry.games = entry.games.size;
+    }
+
+    chemistryData.gamesAnalyzed++;
+    if (!chemistryData.gameTimestamps) chemistryData.gameTimestamps = [];
+    chemistryData.gameTimestamps.push(gameTimestamp);
+    // Reset throw values for next game
+    _throwValues = {};
+    saveChemistryData();
+}
+
+function computeCrossGamePairings(limit = 10) {
+    const pairs = [];
+    for (const key in chemistryData.pairings) {
+        const [thrower, receiver] = key.split('|');
+        const data = chemistryData.pairings[key];
+        const avgThrowValue = data.throwValue ? Math.round(data.throwValue / Math.max(1, data.completions)) : 0;
+        pairs.push({ thrower, receiver, ...data, avgThrowValue });
+    }
+    return pairs.sort((a, b) => b.completions - a.completions).slice(0, limit);
+}
+
+function computeCrossGameLines(limit = 8) {
+    const lines = [];
+    for (const key in chemistryData.lineHistory) {
+        const data = chemistryData.lineHistory[key];
+        const diff = data.scored - data.scoredAgainst;
+        lines.push({ players: data.players || key.split('|'), ...data, plusMinus: diff });
+    }
+    return lines.sort((a, b) => b.plusMinus - a.plusMinus || b.scored - a.scored).slice(0, limit);
+}
+
+function computePlayerChemistry(limit = 15) {
+    const pairs = [];
+    for (const key in chemistryData.playerPairs) {
+        const [p1, p2] = key.split('|');
+        const data = chemistryData.playerPairs[key];
+        if (data.pointsTogether < 2) continue;
+        const chemScore = computeChemScore(data);
+        const offChem = computeChemScoreForSide(data, 'off');
+        const defChem = computeChemScoreForSide(data, 'def');
+        const winRate = data.scoredTogether / Math.max(1, data.pointsTogether);
+        pairs.push({ player1: p1, player2: p2, ...data, winRate, chemistryScore: Math.round(chemScore), offChemistry: Math.round(offChem), defChemistry: Math.round(defChem) });
+    }
+    return pairs.sort((a, b) => b.chemistryScore - a.chemistryScore).slice(0, limit);
+}
+
+// Compute overall chemistry score (0-100) with throw value weighting
+function computeChemScore(data) {
+    const winRate = data.scoredTogether / Math.max(1, data.pointsTogether);
+    const pointDiffRate = (data.scoredTogether - data.allowedTogether) / Math.max(1, data.pointsTogether);
+    const connectionFreq = Math.min(data.connectionCount || 0, 20) / 20;
+    // Break rate bonus: D-line scores worth 2x (breaks are harder and more impactful)
+    const defWinRate = (data.defScored || 0) / Math.max(1, data.defPointsTogether || 0);
+    const breakBonus = defWinRate * Math.min(data.defPointsTogether || 0, 10) / 10;
+    return (winRate * 40) + (pointDiffRate * 25) + (connectionFreq * 15) + (breakBonus * 20);
+}
+
+// Compute chemistry for offense or defense side specifically
+function computeChemScoreForSide(data, side) {
+    const pts = side === 'off' ? (data.offPointsTogether || 0) : (data.defPointsTogether || 0);
+    if (pts < 1) return 0;
+    const scored = side === 'off' ? (data.offScored || 0) : (data.defScored || 0);
+    const allowed = side === 'off' ? (data.offAllowed || 0) : (data.defAllowed || 0);
+    const winRate = scored / Math.max(1, pts);
+    const pointDiffRate = (scored - allowed) / Math.max(1, pts);
+    return (winRate * 55) + (pointDiffRate * 35) + (Math.min(data.connectionCount || 0, 15) / 15 * 10);
+}
+
+// Recency weight: exponential decay, half-life of ~7 games
+function getRecencyWeight(gameIndex) {
+    const totalGames = chemistryData.gamesAnalyzed || 1;
+    const gamesAgo = totalGames - 1 - gameIndex;
+    const LAMBDA = 0.1; // decay rate: half-life ≈ ln(2)/0.1 ≈ 7 games
+    return Math.exp(-LAMBDA * gamesAgo);
+}
+
+function getChemistryScore(player1, player2, side) {
+    const key = [player1, player2].sort().join('|');
+    const data = chemistryData.playerPairs[key];
+    if (!data || data.pointsTogether < 1) return 0;
+    if (side === 'off') return computeChemScoreForSide(data, 'off');
+    if (side === 'def') return computeChemScoreForSide(data, 'def');
+    return computeChemScore(data);
+}
+
+// Compute PER (Player Efficiency Rating) adapted for ultimate frisbee
+function computePlayerPER(playerName) {
+    const career = careerStats.players?.[playerName];
+    if (!career || !career.gamesPlayed) return 0;
+    const gp = career.gamesPlayed;
+    // Weighted box score: goals(3) + assists(3) + hockeyAssists(1.5) + blocks(3) - turnovers(2) + completion_factor
+    const completionPct = (career.catches || 0) / Math.max(1, (career.catches || 0) + (career.turnovers || 0));
+    const rawPER = (
+        (career.goals || 0) * 3 +
+        (career.assists || 0) * 3 +
+        (career.hockeyAssists || 0) * 1.5 +
+        (career.blocks || 0) * 3 -
+        (career.turnovers || 0) * 2 +
+        completionPct * gp * 0.5
+    );
+    // Return aggregate PER (correlates better with +/- than per-game)
+    return Math.round(rawPER * 10) / 10;
+}
+
+// Simple PageRank on throw connection graph
+function computePageRank(iterations = 20, damping = 0.85) {
+    const nodes = new Set();
+    const edges = {}; // node → [{target, weight}]
+    const inDegree = {};
+
+    // Build graph from throw connections
+    for (const thrower in _throwConnections) {
+        nodes.add(thrower);
+        if (!edges[thrower]) edges[thrower] = [];
+        for (const receiver in _throwConnections[thrower]) {
+            nodes.add(receiver);
+            edges[thrower].push({ target: receiver, weight: _throwConnections[thrower][receiver] });
+            inDegree[receiver] = (inDegree[receiver] || 0) + _throwConnections[thrower][receiver];
+        }
+    }
+
+    // Also include cross-game pairings for richer graph
+    for (const key in chemistryData.pairings) {
+        const [thrower, receiver] = key.split('|');
+        nodes.add(thrower);
+        nodes.add(receiver);
+        if (!edges[thrower]) edges[thrower] = [];
+        // Only add if not already tracked in current game
+        if (!_throwConnections[thrower]?.[receiver]) {
+            edges[thrower].push({ target: receiver, weight: chemistryData.pairings[key].completions });
+            inDegree[receiver] = (inDegree[receiver] || 0) + chemistryData.pairings[key].completions;
+        }
+    }
+
+    const nodeList = [...nodes];
+    const n = nodeList.length;
+    if (n === 0) return {};
+
+    // Initialize ranks
+    let rank = {};
+    nodeList.forEach(node => rank[node] = 1 / n);
+
+    // Power iteration
+    for (let iter = 0; iter < iterations; iter++) {
+        const newRank = {};
+        nodeList.forEach(node => newRank[node] = (1 - damping) / n);
+
+        for (const source of nodeList) {
+            const outEdges = edges[source] || [];
+            const totalWeight = outEdges.reduce((s, e) => s + e.weight, 0);
+            if (totalWeight === 0) {
+                // Dangling node: distribute equally
+                nodeList.forEach(node => newRank[node] += damping * rank[source] / n);
+            } else {
+                for (const edge of outEdges) {
+                    newRank[edge.target] += damping * rank[source] * (edge.weight / totalWeight);
+                }
+            }
+        }
+        rank = newRank;
+    }
+
+    // Normalize to 0-100 scale
+    const maxRank = Math.max(...Object.values(rank), 0.0001);
+    const result = {};
+    for (const node of nodeList) {
+        result[node] = Math.round((rank[node] / maxRank) * 100);
+    }
+    return result;
+}
+
+function updateChemistryRecommendations() {
+    const strip = document.getElementById('chemistry-recommendations');
+    if (!strip) return;
+
+    const selected = gameState.onFieldPlayers;
+    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
+
+    // Only show when 1-6 players selected and chemistry data exists
+    if (!hasChemData || selected.length === 0 || selected.length >= 7) {
+        strip.classList.add('hidden');
+        return;
+    }
+
+    // Find top 3 recommended bench players by chemistry with selected
+    const bench = getPresentPlayers().filter(p => !selected.includes(p));
+    const scored = bench.map(player => {
+        let totalChem = 0;
+        for (const sel of selected) {
+            totalChem += getChemistryScore(player, sel);
+        }
+        return { name: player, avgChem: Math.round(totalChem / selected.length) };
+    }).filter(p => p.avgChem > 0).sort((a, b) => b.avgChem - a.avgChem).slice(0, 3);
+
+    if (scored.length === 0) {
+        strip.classList.add('hidden');
+        return;
+    }
+
+    strip.classList.remove('hidden');
+    strip.innerHTML = `<span class="text-violet-400 text-[10px] font-semibold mr-1.5">Best chemistry:</span>` +
+        scored.map(p => {
+            const pos = getPlayerPosition(p.name);
+            const posTag = pos ? `<span class="text-gray-500 text-[9px]">${pos.substring(0, 1)}</span> ` : '';
+            return `<button onclick="togglePlayerOnField('${escapeHtml(p.name.replace(/'/g, "\\'"))}')" class="chem-rec-chip">
+                ${posTag}<span class="text-white">${escapeHtml(p.name.split(' ')[0])}</span>
+                <span class="chem-rec-score">${p.avgChem}</span>
+            </button>`;
+        }).join('');
+}
+
+function suggestLine() {
+    const allPlayers = getPresentPlayers();
+    if (allPlayers.length < 7) {
+        showToast('Need at least 7 players to suggest a line', 'error');
+        return;
+    }
+
+    const impact = getPlayerImpactData();
+    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
+    const hasGameData = _pointHistory.length > 0;
+    const pageRank = computePageRank();
+
+    // Determine context: are we on O or D?
+    // If score is available, suggest based on who receives next
+    const lastPoint = _pointHistory.length > 0 ? _pointHistory[_pointHistory.length - 1] : null;
+    const suggestSide = lastPoint?.result === 'scored' ? 'defense' : lastPoint?.result === 'scored-against' ? 'offense' : null;
+
+    // Score each player individually
+    const playerScores = {};
+    const playerReasons = {};
+    allPlayers.forEach(player => {
+        const stats = gameState.playerStats[player] || {};
+        const imp = impact[player] || { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
+        const pp = Math.max(1, imp.pointsPlayed);
+
+        // Rest factor: favor players who have played less this game
+        const avgPts = _pointHistory.length > 0 ? _pointHistory.length / Math.max(1, allPlayers.length) * 7 : 0;
+        const restFactor = avgPts > 0 ? Math.max(0, 1 - (imp.pointsPlayed / avgPts) * 0.5) : 0.5;
+
+        // Performance factor from current game
+        const plusMinus = hasGameData ? (imp.pointsScored - imp.pointsAgainst) / pp : 0;
+        const offContrib = ((stats.goals || 0) + (stats.assists || 0) + (stats.hockeyAssists || 0)) / pp;
+        const defContrib = (stats.blocks || 0) / pp;
+        const turnPenalty = (stats.turnovers || 0) / pp;
+
+        // PER bonus from career stats
+        const per = computePlayerPER(player);
+        const perBonus = per > 0 ? Math.min(per / 20, 1) * 0.5 : 0;
+
+        // Hub score bonus (PageRank): favor central playmakers
+        const hubBonus = (pageRank[player] || 0) / 100 * 0.3;
+
+        // Context-aware scoring: weight offense or defense based on situation
+        let contextBonus = 0;
+        if (suggestSide === 'offense') {
+            contextBonus = offContrib * 0.5 - defContrib * 0.2;
+        } else if (suggestSide === 'defense') {
+            contextBonus = defContrib * 0.5 - offContrib * 0.1;
+        }
+
+        playerScores[player] = (plusMinus * 2) + (offContrib * 1.5) + (defContrib * 1) - (turnPenalty * 1) + (restFactor * 1.5) + perBonus + hubBonus + contextBonus;
+
+        // Track reason for selection
+        const reasons = [];
+        if (restFactor > 0.7) reasons.push('rested');
+        if (plusMinus > 0.3) reasons.push('+/-');
+        if (offContrib > 0.5) reasons.push('offense');
+        if (defContrib > 0.3) reasons.push('defense');
+        if (perBonus > 0.3) reasons.push('PER');
+        if (hubBonus > 0.2) reasons.push('hub');
+        playerReasons[player] = reasons;
+    });
+
+    // Greedy selection: pick best player, then add players maximizing chemistry + individual score
+    const sorted = [...allPlayers].sort((a, b) => (playerScores[b] || 0) - (playerScores[a] || 0));
+    const selected = [sorted[0]];
+
+    while (selected.length < 7) {
+        let bestCandidate = null;
+        let bestScore = -Infinity;
+
+        for (const candidate of allPlayers) {
+            if (selected.includes(candidate)) continue;
+            let score = playerScores[candidate] || 0;
+
+            // Add O/D context-aware chemistry bonus with already-selected players
+            if (hasChemData) {
+                let chemSum = 0;
+                for (const sel of selected) {
+                    chemSum += getChemistryScore(candidate, sel, suggestSide === 'offense' ? 'off' : suggestSide === 'defense' ? 'def' : undefined);
+                }
+                const chemBonus = (chemSum / selected.length) * 0.05;
+                score += chemBonus;
+                if (chemBonus > 0.5 && !playerReasons[candidate].includes('chemistry')) {
+                    playerReasons[candidate].push('chemistry');
+                }
+            }
+
+            // Position balance bonus
+            const pos = getPlayerPosition(candidate);
+            const selectedPositions = selected.map(p => getPlayerPosition(p));
+            const handlers = selectedPositions.filter(p => p === 'Handler').length;
+            const cutters = selectedPositions.filter(p => p === 'Cutter').length;
+            if (pos === 'Handler' && handlers < 3) score += 0.3;
+            else if (pos === 'Cutter' && cutters < 4) score += 0.2;
+            else if (pos === 'Hybrid') score += 0.1;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestCandidate = candidate;
+            }
+        }
+
+        if (bestCandidate) selected.push(bestCandidate);
+        else break;
+    }
+
+    // Apply the suggestion
+    gameState.onFieldPlayers = selected.slice(0, 7);
+    updateLineSelectionGrid();
+    saveToStorage();
+
+    // Build reasoning summary
+    const posBreakdown = selected.reduce((acc, p) => {
+        const pos = getPlayerPosition(p) || 'Unknown';
+        acc[pos] = (acc[pos] || 0) + 1;
+        return acc;
+    }, {});
+    const posStr = Object.entries(posBreakdown).map(([k, v]) => `${v}${k[0]}`).join(' ');
+    const chemCount = selected.filter(p => (playerReasons[p] || []).includes('chemistry')).length;
+    const restCount = selected.filter(p => (playerReasons[p] || []).includes('rested')).length;
+
+    let reason = posStr;
+    if (suggestSide) reason = (suggestSide === 'offense' ? 'O-line' : 'D-line') + ': ' + reason;
+    if (chemCount > 0) reason += ` | ${chemCount} chem`;
+    if (restCount > 0) reason += ` | ${restCount} rested`;
+    showToast(`Suggested: ${reason}`, 'success');
+
+    // Show suggestion details panel
+    showSuggestionDetails(selected, playerReasons);
+    vibrate(30);
+}
+
+function showSuggestionDetails(selected, reasons) {
+    const strip = document.getElementById('chemistry-recommendations');
+    if (!strip) return;
+
+    strip.classList.remove('hidden');
+    const pills = selected.map(p => {
+        const pos = getPlayerPosition(p);
+        const posTag = pos ? `<span class="text-gray-500 text-[9px]">${pos.substring(0, 1)}</span> ` : '';
+        const reasonTags = (reasons[p] || []).slice(0, 2).map(r => {
+            const cls = r === 'chemistry' ? 'text-violet-400' : r === 'rested' ? 'text-cyan-400' : r === '+/-' ? 'text-emerald-400' : 'text-amber-400';
+            return `<span class="${cls} text-[8px]">${r}</span>`;
+        }).join(' ');
+        return `<span class="chem-rec-chip chem-rec-selected">${posTag}<span class="text-white">${escapeHtml(p.split(' ')[0])}</span> ${reasonTags}</span>`;
+    }).join('');
+
+    strip.innerHTML = `<span class="text-violet-400 text-[10px] font-semibold mr-1.5">Suggested line:</span>${pills}`;
+}
+
+function renderChemistryTab() {
+    const container = document.getElementById('analysis-content');
+    if (!container) return;
+
+    const pairs = computePlayerChemistry(8);
+    if (pairs.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">Complete a game to see cross-game chemistry</div>';
+        return;
+    }
+
+    const maxScore = pairs[0].chemistryScore || 1;
+    const onField = new Set(gameState.onFieldPlayers);
+
+    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2">${chemistryData.gamesAnalyzed} game${chemistryData.gamesAnalyzed !== 1 ? 's' : ''} analyzed &middot; Break bonus weighted 2&times;</div>` +
+        pairs.map(p => {
+            const pct = Math.round((p.chemistryScore / maxScore) * 100);
+            const pm = p.scoredTogether - p.allowedTogether;
+            const pmClass = pm > 0 ? 'plus-minus-pos' : pm < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
+            const pmStr = pm > 0 ? '+' + pm : '' + pm;
+            const onFieldBoth = onField.has(p.player1) && onField.has(p.player2);
+            const highlight = onFieldBoth ? ' border-l-2 border-emerald-400 pl-2' : '';
+            // O/D split badges
+            const offBadge = p.offChemistry > 0 ? `<span class="text-amber-400 text-[9px]" title="O-line chemistry">O${p.offChemistry}</span>` : '';
+            const defBadge = p.defChemistry > 0 ? `<span class="text-red-400 text-[9px]" title="D-line chemistry">D${p.defChemistry}</span>` : '';
+            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5${highlight}">
+                <div class="flex-shrink-0 w-28 sm:w-36 truncate">
+                    <span class="text-white font-medium">${escapeHtml(p.player1.split(' ')[0])}</span>
+                    <span class="text-violet-400 mx-0.5">&amp;</span>
+                    <span class="text-white font-medium">${escapeHtml(p.player2.split(' ')[0])}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="stat-bar"><div class="stat-bar-fill chemistry-bar" style="width:${pct}%"></div></div>
+                </div>
+                <div class="flex-shrink-0 flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
+                    <span class="${pmClass} font-semibold">${pmStr}</span>
+                    ${offBadge}${defBadge}
+                    <span class="text-violet-400 font-medium">${p.chemistryScore}</span>
+                    <span class="text-gray-600 text-[10px]">${p.pointsTogether}pt</span>
+                </div>
+            </div>`;
+        }).join('');
+}
+
+// ==================== DASHBOARD CHEMISTRY WIDGET ====================
+
+function renderDashboardChemistry() {
+    const container = document.getElementById('chemistry-content');
+    if (!container) return;
+
+    loadChemistryData();
+
+    if (chemistryData.gamesAnalyzed === 0) {
+        container.innerHTML = `<div class="text-center py-8">
+            <div class="w-16 h-16 mx-auto bg-violet-500/10 rounded-2xl flex items-center justify-center mb-3">
+                <i data-lucide="heart-handshake" class="w-8 h-8 text-violet-400"></i>
+            </div>
+            <p class="text-gray-400 text-sm">Play and complete games to build chemistry data</p>
+            <p class="text-gray-500 text-xs mt-1">Player pairing analytics will appear here after your first game</p>
+        </div>`;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        return;
+    }
+
+    const activeTab = document.querySelector('#chemistry-tabs .analysis-tab.active')?.dataset.tab || 'top-pairs';
+
+    switch (activeTab) {
+        case 'top-pairs': renderDashboardTopPairs(container); break;
+        case 'best-lines': renderDashboardBestLines(container); break;
+        case 'player-chem': renderDashboardPlayerChemistry(container); break;
+        case 'recommended': renderDashboardRecommended(container); break;
+    }
+}
+
+function switchChemistryTab(tab) {
+    const tabs = document.querySelectorAll('#chemistry-tabs .analysis-tab');
+    tabs.forEach(t => t.classList.toggle('active', (t.dataset.tab || '') === tab));
+    renderDashboardChemistry();
+}
+
+function renderDashboardTopPairs(container) {
+    const pairs = computeCrossGamePairings(10);
+    if (pairs.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No pairing data yet</div>';
+        return;
+    }
+    const maxComp = pairs[0].completions || 1;
+    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2 flex justify-between"><span>Across ${chemistryData.gamesAnalyzed} games</span><span>Thrower &rarr; Receiver</span></div>` +
+        pairs.map(p => {
+            const pct = Math.round((p.completions / maxComp) * 100);
+            const goalTag = p.goals > 0 ? `<span class="text-emerald-400 font-semibold ml-1">${p.goals}G</span>` : '';
+            const tvTag = p.avgThrowValue ? `<span class="${p.avgThrowValue > 0 ? 'text-cyan-400' : 'text-red-400'} text-[10px] ml-1" title="Avg yards gained">${p.avgThrowValue > 0 ? '+' : ''}${p.avgThrowValue}y</span>` : '';
+            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5">
+                <div class="flex-shrink-0 w-32 sm:w-44 truncate">
+                    <span class="text-white font-medium">${escapeHtml(p.thrower.split(' ')[0])}</span>
+                    <span class="text-gray-500 mx-0.5">&rarr;</span>
+                    <span class="text-white font-medium">${escapeHtml(p.receiver.split(' ')[0])}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
+                </div>
+                <div class="flex-shrink-0 text-gray-400 whitespace-nowrap text-xs">
+                    ${p.completions}${goalTag}${tvTag}
+                    <span class="text-gray-600 ml-1">${p.games}g</span>
+                </div>
+            </div>`;
+        }).join('');
+}
+
+function renderDashboardBestLines(container) {
+    const lines = computeCrossGameLines(8);
+    if (lines.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No line data yet</div>';
+        return;
+    }
+    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2">Best 7-player combinations across ${chemistryData.gamesAnalyzed} games</div>` +
+        lines.map(l => {
+            const diff = l.plusMinus;
+            const diffClass = diff > 0 ? 'plus-minus-pos' : diff < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
+            const diffStr = diff > 0 ? '+' + diff : '' + diff;
+            const names = (l.players || []).map(n => escapeHtml(n.split(' ')[0])).join(', ');
+            return `<div class="py-2 border-b border-white/5">
+                <div class="flex items-center justify-between mb-1">
+                    <div class="flex items-center gap-2">
+                        <span class="${diffClass} font-bold text-sm">${diffStr}</span>
+                        <span class="text-gray-400 text-xs">${l.played} pts</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="text-emerald-400">${l.scored} scored</span>
+                        <span class="text-gray-600">/</span>
+                        <span class="text-red-400">${l.scoredAgainst} allowed</span>
+                    </div>
+                </div>
+                <div class="text-gray-500 text-[10px] truncate" title="${(l.players || []).map(n => escapeHtml(n)).join(', ')}">${names}</div>
+            </div>`;
+        }).join('');
+}
+
+function renderDashboardPlayerChemistry(container) {
+    const pairs = computePlayerChemistry(12);
+    if (pairs.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No chemistry data yet</div>';
+        return;
+    }
+    const maxScore = pairs[0].chemistryScore || 1;
+    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2 flex justify-between"><span>Players who win together &middot; Break bonus 2&times;</span><span>Overall / O / D</span></div>` +
+        pairs.map(p => {
+            const pct = Math.round((p.chemistryScore / maxScore) * 100);
+            const pm = p.scoredTogether - p.allowedTogether;
+            const pmClass = pm > 0 ? 'plus-minus-pos' : pm < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
+            const pmStr = pm > 0 ? '+' + pm : '' + pm;
+            const wr = Math.round(p.winRate * 100);
+            const offBadge = p.offChemistry > 0 ? `<span class="text-amber-400 text-[9px]">O${p.offChemistry}</span>` : '';
+            const defBadge = p.defChemistry > 0 ? `<span class="text-red-400 text-[9px]">D${p.defChemistry}</span>` : '';
+            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5">
+                <div class="flex-shrink-0 w-32 sm:w-44 truncate">
+                    <span class="text-white font-medium">${escapeHtml(p.player1.split(' ')[0])}</span>
+                    <span class="text-violet-400 mx-0.5">&amp;</span>
+                    <span class="text-white font-medium">${escapeHtml(p.player2.split(' ')[0])}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="stat-bar"><div class="stat-bar-fill chemistry-bar" style="width:${pct}%"></div></div>
+                </div>
+                <div class="flex-shrink-0 flex items-center gap-1.5 text-xs whitespace-nowrap">
+                    <span class="${pmClass} font-semibold">${pmStr}</span>
+                    <span class="text-cyan-400">${wr}%</span>
+                    ${offBadge}${defBadge}
+                    <span class="text-violet-400 font-bold">${p.chemistryScore}</span>
+                </div>
+            </div>`;
+        }).join('');
+}
+
+function renderDashboardRecommended(container) {
+    // Build recommended starting 7 from roster + chemistry data
+    const roster = getCurrentRoster();
+    if (roster.length < 7) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">Need at least 7 players on roster</div>';
+        return;
+    }
+
+    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
+    if (!hasChemData) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">Play more games to generate recommendations</div>';
+        return;
+    }
+
+    // Score each player using career stats + PER + chemistry
+    const playerScores = {};
+    const playerTags = {};
+    roster.forEach(player => {
+        const career = careerStats.players[player] || {};
+        const gp = Math.max(1, career.gamesPlayed || 1);
+        const offRate = ((career.goals || 0) + (career.assists || 0) + (career.hockeyAssists || 0)) / gp;
+        const defRate = (career.blocks || 0) / gp;
+        const turnRate = (career.turnovers || 0) / gp;
+        const per = computePlayerPER(player);
+        const perBonus = per > 0 ? Math.min(per / 20, 1) * 0.5 : 0;
+        playerScores[player] = (offRate * 2) + (defRate * 1.5) - (turnRate * 1) + perBonus;
+        playerTags[player] = [];
+        if (offRate > 0.5) playerTags[player].push('offense');
+        if (defRate > 0.3) playerTags[player].push('defense');
+        if (per > 5) playerTags[player].push('PER');
+        if ((career.gamesPlayed || 0) >= 3) playerTags[player].push('veteran');
+    });
+
+    // Greedy selection with chemistry
+    const sorted = [...roster].sort((a, b) => (playerScores[b] || 0) - (playerScores[a] || 0));
+    const selected = [sorted[0]];
+
+    while (selected.length < 7 && selected.length < roster.length) {
+        let bestCandidate = null;
+        let bestScore = -Infinity;
+
+        for (const candidate of roster) {
+            if (selected.includes(candidate)) continue;
+            let score = playerScores[candidate] || 0;
+
+            // Chemistry with already-selected
+            let chemSum = 0;
+            for (const sel of selected) {
+                chemSum += getChemistryScore(candidate, sel);
+            }
+            const chemBonus = (chemSum / selected.length) * 0.05;
+            score += chemBonus;
+            if (chemBonus > 0.3 && !playerTags[candidate].includes('chemistry')) {
+                playerTags[candidate].push('chemistry');
+            }
+
+            // Position balance
+            const pos = getPlayerPosition(candidate);
+            const selectedPositions = selected.map(p => getPlayerPosition(p));
+            const handlers = selectedPositions.filter(p => p === 'Handler').length;
+            const cutters = selectedPositions.filter(p => p === 'Cutter').length;
+            if (pos === 'Handler' && handlers < 3) score += 0.3;
+            else if (pos === 'Cutter' && cutters < 4) score += 0.2;
+            else if (pos === 'Hybrid') score += 0.1;
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestCandidate = candidate;
+            }
+        }
+
+        if (bestCandidate) selected.push(bestCandidate);
+        else break;
+    }
+
+    // Find top 3 chemistry pairs within the selected line
+    const linePairs = [];
+    for (let i = 0; i < selected.length; i++) {
+        for (let j = i + 1; j < selected.length; j++) {
+            const score = getChemistryScore(selected[i], selected[j]);
+            if (score > 0) linePairs.push({ p1: selected[i], p2: selected[j], score: Math.round(score) });
+        }
+    }
+    linePairs.sort((a, b) => b.score - a.score);
+    const topPairs = linePairs.slice(0, 3);
+
+    // Render
+    const posBreakdown = selected.reduce((acc, p) => {
+        const pos = getPlayerPosition(p) || '?';
+        acc[pos] = (acc[pos] || 0) + 1;
+        return acc;
+    }, {});
+    const posStr = Object.entries(posBreakdown).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(', ');
+
+    container.innerHTML = `
+        <div class="mb-3">
+            <div class="text-[10px] text-gray-500 mb-2">Recommended starting 7 based on career stats &amp; chemistry</div>
+            <div class="text-[10px] text-gray-600 mb-3">${posStr}</div>
+            <div class="grid grid-cols-1 gap-1.5">
+                ${selected.map((p, i) => {
+                    const pos = getPlayerPosition(p);
+                    const posTag = pos ? `<span class="text-gray-500 text-[10px] w-6">${pos === 'Hybrid' ? 'HY' : pos.substring(0, 1)}</span>` : '<span class="w-6"></span>';
+                    const tags = (playerTags[p] || []).map(t => {
+                        const cls = t === 'chemistry' ? 'bg-violet-500/20 text-violet-400' : t === 'offense' ? 'bg-amber-500/20 text-amber-400' : t === 'defense' ? 'bg-purple-500/20 text-purple-400' : 'bg-cyan-500/20 text-cyan-400';
+                        return `<span class="text-[9px] px-1.5 py-0.5 rounded-full ${cls}">${t}</span>`;
+                    }).join('');
+                    return `<div class="flex items-center gap-2 py-1.5 px-2 rounded-lg ${i < 7 ? 'bg-white/5' : ''}">
+                        <span class="text-gray-600 text-[10px] w-4">${i + 1}.</span>
+                        ${posTag}
+                        <span class="text-white font-medium text-xs flex-1">${escapeHtml(p)}</span>
+                        <div class="flex gap-1">${tags}</div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>
+        ${topPairs.length > 0 ? `
+        <div class="mt-3 pt-3 border-t border-white/5">
+            <div class="text-[10px] text-gray-500 mb-2">Top chemistry pairs in this line</div>
+            ${topPairs.map(pair => {
+                return `<div class="flex items-center gap-2 py-1 text-xs">
+                    <span class="text-white">${escapeHtml(pair.p1.split(' ')[0])}</span>
+                    <span class="text-violet-400">&amp;</span>
+                    <span class="text-white">${escapeHtml(pair.p2.split(' ')[0])}</span>
+                    <span class="text-violet-400 font-semibold ml-auto">${pair.score}</span>
+                </div>`;
+            }).join('')}
+        </div>` : ''}`;
+}
+
+function getCurrentRoster() {
+    // Get roster from active team or saved roster
+    if (teamsData.currentTeamId && teamsData.teams[teamsData.currentTeamId]) {
+        return teamsData.teams[teamsData.currentTeamId].roster || [];
+    }
+    return savedRoster.length > 0 ? savedRoster : gameState.players;
 }
 
 // ==================== QUICK DEMO TEAM GENERATOR ====================

@@ -1,224 +1,150 @@
 # UltiStats Architecture
 
-This document describes the modular architecture of the UltiStats application.
+## Overview
+
+UltiStats has two JavaScript layers: a monolithic `script.js` game engine loaded by `game.html` and `testgame.html`, and an ES module layer under `src/js/` used by other pages (dashboard, login, tournament, etc.). Both layers share the same Express API server backed by SQLite.
 
 ## Project Structure
 
 ```
-windsurf-project-5/
+ultistats/
+├── index.html                  # Login / registration page
+├── dashboard.html              # Team dashboard
+├── game.html                   # Game tracking (loads script.js)
+├── testgame.html               # Demo game with pre-loaded roster
+├── tournament.html             # USAU tournament view
+├── league.html                 # League standings
+├── season.html                 # Season stats
+├── player-profile.html         # Individual player profile
+├── game-test.html              # Game testing page
+├── script.js                   # Game engine (~10,900 lines)
+├── styles.css                  # Custom CSS + outdoor mode + analysis panel
+├── config.js                   # Client-side config loader (fetches /config.json)
+├── sw.js                       # Service worker (network-first + stale-while-revalidate)
+├── manifest.json               # PWA manifest
+├── vite.config.js              # Build config (5 HTML entry points + static file copy)
+├── icons/
+│   └── icon-192.svg            # PWA icon
 ├── src/
-│   ├── js/                    # Modular JavaScript source
-│   │   ├── index.js           # Main entry point, exports all modules
-│   │   ├── constants.js       # Game constants and configuration
-│   │   ├── storage.js         # LocalStorage management
-│   │   ├── api.js             # API communication layer
-│   │   ├── ui.js              # UI utilities and components
-│   │   ├── stats.js           # Statistics calculations
-│   │   ├── auth.js            # Authentication module
-│   │   ├── game.js            # Game state and field interactions
-│   │   └── utils.js           # General utilities
-│   └── tests/                 # Unit tests
-│       ├── stats.test.js
-│       └── utils.test.js
+│   ├── js/
+│   │   ├── index.js            # Re-exports all modules
+│   │   ├── constants.js        # GAME_CONSTANTS, STORAGE_KEYS, API_CONFIG, ROUTES, etc.
+│   │   ├── api.js              # apiRequest() with CSRF + HttpOnly cookie credentials
+│   │   ├── storage.js          # LocalStorage wrapper with typed getters/setters
+│   │   ├── auth.js             # Login/register/logout flows
+│   │   ├── game.js             # Game state helpers
+│   │   ├── stats.js            # Stat calculations (distance, endzone, leaderboards)
+│   │   ├── ui.js               # Toast, modals, haptics, loading states
+│   │   ├── utils.js            # UUID, debounce, deepClone, date formatting
+│   │   └── pages/
+│   │       ├── dashboard.js    # Dashboard page logic
+│   │       ├── game.js         # Game page module bridge
+│   │       └── login.js        # Login page logic
+│   └── tests/
+│       ├── stats.test.cjs      # Stats module unit tests
+│       └── utils.test.cjs      # Utils module unit tests
 ├── api/
+│   ├── server-sqlite.js        # Express API server (SQLite backend)
+│   ├── server-legacy.js        # Legacy JSON file server (deprecated)
 │   ├── db/
-│   │   ├── database.js        # SQLite database module
-│   │   ├── schema.sql         # Database schema
-│   │   └── ultistats.db       # SQLite database file (generated)
-│   ├── server-sqlite.js       # New SQLite-based server
-│   ├── server.js              # Legacy JSON-based server
+│   │   ├── database.js         # SQLite ORM (getTeamById, createGame, etc.)
+│   │   └── schema.sql          # 17 tables + indexes
+│   ├── lib/
+│   │   └── usau-scraper.js     # Cheerio-based USAU page parser
+│   ├── data/                   # Sample/seed data (JSON files)
+│   │   ├── actions/            # Per-game action logs (19 games)
+│   │   └── *.json              # games, players, teams, etc.
+│   ├── seed-demo-team.js       # Demo team seeder
+│   ├── sync-usau.js            # USAU registry sync script
+│   ├── tests/
+│   │   ├── helpers.cjs         # Test utilities (createTestApp, etc.)
+│   │   ├── auth.test.cjs       # Auth endpoint tests
+│   │   ├── teams.test.cjs      # Teams endpoint tests
+│   │   ├── games.test.cjs      # Games endpoint tests
+│   │   └── health.test.cjs     # Health check test
 │   └── package.json
-├── config.js                  # Client-side configuration loader
-├── script.js                  # Legacy monolithic script (kept for compatibility)
-├── .env.example               # Environment variables template
-├── .gitignore
-└── [HTML files]
+├── .env.example                # Environment variable template
+├── .github/workflows/ci.yml   # CI: test + build on Node 20/22
+└── package.json                # Root: vite dev/build + test scripts
 ```
 
-## Modules
+## Frontend Architecture
 
-### constants.js
-Central location for all application constants:
-- `GAME_CONSTANTS` - Field dimensions, max players, etc.
-- `STORAGE_KEYS` - LocalStorage key names
-- `POSITIONS` - Player positions
-- `HAPTIC_PATTERNS` - Vibration patterns
-- `API_CONFIG` - API endpoint configuration
-- `ROUTES` - Application routes
+### script.js (Game Engine)
 
-### storage.js
-Wrapper for LocalStorage with JSON serialization:
-- Safe get/set with error handling
-- Typed functions for each data type (auth, game, roster, stats, etc.)
-- Data migration utilities
+The main game tracking logic lives in a single `script.js` file. Key subsystems:
 
-### api.js
-API communication layer:
-- Centralized request handling
-- Automatic auth header injection
-- Error handling and response normalization
-- Functions for all API endpoints (auth, teams, games, stats, tournaments)
+| Section | Responsibility |
+|---------|---------------|
+| Game state (`gameState`) | Score, point number, on-field players, player stats, actions log |
+| Field interaction | SVG tap handling, disc marker, throw lines, yardage calculation |
+| Progressive stat entry | `_throwConnections` (thrower→receiver frequency), `_recentFieldPlayers` (MRU ordering) |
+| Point tracking | `_pointHistory[]` — line composition and outcome per point |
+| Line selection | Sort modes (alphabetical, position, playing-time, +/-, predictive) |
+| Live analysis | `computePairingStats()`, `computeLineStats()`, `computePlayerImpact()` with tabbed UI |
+| Undo system | Action state stack with full rollback |
+| Outdoor mode | Toggles `body.outdoor-mode` class for high-contrast CSS |
+| Storage | LocalStorage persistence for game state, roster, stats, settings |
 
-### ui.js
-UI utilities and components:
-- Toast notifications
-- Loading states
-- Haptic feedback
-- Sound effects
-- Modal dialogs (confirm, input)
-- DOM utilities
+### ES Module Layer (src/js/)
 
-### stats.js
-Statistics calculations:
-- Player/team stats creation
-- Distance calculations
-- Endzone detection
-- Leaderboards
-- Win/loss records
-- Aggregations
+Used by non-game pages. Each module is independently importable:
 
-### auth.js
-Authentication module:
-- Login/logout/register
-- Token management
-- Team selection
-- Invitation handling
+- **api.js** — `apiRequest()` wraps `fetch()` with `credentials: 'include'`, automatic CSRF token header for non-GET methods, and standardized `{ ok, data, error }` response format.
+- **storage.js** — JSON-safe `getItem()`/`setItem()` with typed functions for each data domain (auth, game, roster, stats, teams, settings).
+- **constants.js** — All magic values in one place. `API_CONFIG` reads from `window.ULTISTATS_CONFIG` (set by `config.js`).
 
-### game.js
-Game state management:
-- Point tracking
-- Player management (on-field, attendance)
-- Action recording (throws, goals, turnovers, blocks)
-- Undo functionality
-- State persistence
+### Authentication Flow
 
-### utils.js
-General utilities:
-- UUID generation
-- Debounce/throttle
-- Deep clone
-- Date formatting
-- JSON parsing
-- Event emitter
+1. User registers or logs in via `/api/auth/register` or `/api/auth/login`
+2. Server sets `ultistats_token` HttpOnly cookie + `ultistats_csrf` readable cookie
+3. All subsequent requests include cookies automatically (`credentials: 'include'`)
+4. State-changing requests (POST/PUT/DELETE) read the CSRF cookie and send it as `X-CSRF-Token` header
+5. Server validates CSRF cookie matches header (double-submit pattern)
+6. Logout clears the cookie via `/api/auth/logout`
 
-## Database
+Client-side auth state stores only the user object in LocalStorage (no token).
 
-### SQLite Schema
-The application now uses SQLite for data persistence:
+## API Architecture
 
-- **users** - User accounts
-- **teams** - Team information
-- **team_members** - Team membership (many-to-many)
-- **roster** - Player roster per team
-- **invitations** - Team invitations
-- **games** - Game records
-- **player_game_stats** - Per-game player statistics
-- **game_actions** - Detailed action log
-- **tournaments** - Tournament records
-- **career_stats** - Aggregated career statistics
+### Middleware Stack (in order)
 
-### Migration from JSON
-To migrate from JSON files to SQLite:
-1. Install dependencies: `cd api && npm install`
-2. Start the new server: `npm start`
-3. The schema will be automatically created
-4. Import existing data using the provided migration scripts
+1. `compression()` — gzip responses
+2. Security headers — CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+3. `cors()` — origin allowlist from `CLIENT_URL` env var
+4. `cookieParser()` — parse cookies for JWT extraction
+5. `express.json()` / `express.urlencoded()` — body parsing (2MB limit)
+6. Rate limiters — auth (20/15min), general API (100/min), USAU (10/min)
+7. CSRF protection — double-submit cookie validation (exempts login/register/forgot-password/logout)
+8. `authenticateToken` / `optionalAuth` — JWT verification per-route
 
-## Environment Variables
+### Authorization Helpers
 
-Copy `.env.example` to `.env` and configure:
+Three reusable functions enforce access control:
+- `requireTeamMember(req, res, teamId)` — returns team or sends 403
+- `requireTeamOwner(req, res, teamId)` — returns team or sends 403
+- `requireGameAccess(req, res, gameId)` — looks up game → team → membership
 
-```bash
-# Server
-PORT=3001
-JWT_SECRET=your-secret-key
+### Database
 
-# Database
-DATABASE_URL=./api/db/ultistats.db
+SQLite with 17 tables organized into:
+- **Core**: users, teams, team_members, roster, invitations
+- **Games**: games, player_game_stats, game_actions, career_stats
+- **Tournaments**: tournaments, shared_tournaments, tournament_team_links
+- **USAU Registry**: usau_teams, usau_tournaments, usau_tournament_teams, usau_matchups, user_team_claims, sync_log
 
-# Email (for invitations)
-SMTP_HOST=smtp.gmail.com
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
-
-# Google API (for Sheets integration)
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_API_KEY=your-api-key
-```
+The `database.js` module provides a promise-based API over `sqlite3`, auto-initializes schema on first run, and runs migrations for new columns.
 
 ## Testing
 
-Run tests with Node.js built-in test runner:
+- **Frontend**: `src/tests/*.test.cjs` — pure unit tests for stats calculations and utility functions
+- **API**: `api/tests/*.test.cjs` — integration tests using `supertest` against in-memory SQLite; each test file gets a fresh database
 
-```bash
-# Run all tests
-node --test src/tests/
+All tests use Node.js built-in `node --test` runner. CI runs on Node 20 and 22 via GitHub Actions.
 
-# Run specific test file
-node --test src/tests/stats.test.js
-```
+## Build
 
-## Usage
-
-### With ES Modules (Modern Browsers)
-```html
-<script type="module">
-import { showToast, getGameState, recordGoal } from './src/js/index.js';
-
-// Use imported functions
-showToast('Game started!');
-</script>
-```
-
-### With Legacy Script
-The original `script.js` remains available for backwards compatibility:
-```html
-<script src="script.js?v=19"></script>
-```
-
-### With Build Tool (Recommended)
-For production, use a bundler like Vite:
-```bash
-npm install vite
-npx vite build
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
-- `GET /api/auth/me` - Get current user
-- `POST /api/auth/forgot-password` - Request password reset
-
-### Teams
-- `GET /api/teams` - Get user's teams
-- `POST /api/teams` - Create team
-- `GET /api/teams/:id` - Get team details
-- `PUT /api/teams/:id` - Update team
-- `DELETE /api/teams/:id` - Delete team
-- `PUT /api/teams/:id/roster` - Update roster
-- `POST /api/teams/:id/invite` - Invite user
-
-### Games
-- `GET /api/teams/:id/games` - Get team's games
-- `POST /api/teams/:id/games` - Create game
-- `PUT /api/games/:id` - Update game
-- `POST /api/games/:id/end` - End game with final stats
-
-### Stats
-- `GET /api/teams/:id/stats` - Get team statistics
-- `POST /api/teams/:id/stats/sync` - Sync stats
-
-### Invitations
-- `GET /api/invitations/pending` - Get pending invitations
-- `POST /api/invitations/:id/accept` - Accept invitation
-- `POST /api/invitations/:id/decline` - Decline invitation
-
-## Best Practices
-
-1. **Use constants** - Import from `constants.js` instead of hardcoding values
-2. **Handle errors** - Use try/catch and the API error responses
-3. **Save state** - Call storage functions after state changes
-4. **Type hints** - Use JSDoc comments for better IDE support
-5. **Test** - Write tests for new functionality
+Vite handles the build:
+- Entry points: index.html, dashboard.html, game.html, league.html, tournament.html
+- A custom plugin copies `script.js`, `sw.js`, `manifest.json`, `config.js` to `dist/`
+- Dev server on port 3000 proxies `/api` to `localhost:3001`

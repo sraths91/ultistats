@@ -298,6 +298,34 @@
             </div>
         </section>
 
+        <!-- Team Chemistry Analytics -->
+        <section id="team-chemistry" class="max-w-4xl mx-auto mt-8">
+            <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-xl flex items-center justify-center">
+                            <i data-lucide="heart-handshake" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-white">Team Chemistry</h2>
+                            <p class="text-gray-400 text-sm">Player pairing analytics across games</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-1 mb-3" id="chemistry-tabs">
+                    <button onclick="switchChemistryTab('top-pairs')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="top-pairs">Top Connections</button>
+                    <button onclick="switchChemistryTab('best-lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="best-lines">Best Lines</button>
+                    <button onclick="switchChemistryTab('player-chem')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="player-chem">Player Chemistry</button>
+                    <button onclick="switchChemistryTab('recommended')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="recommended">
+                        <i data-lucide="sparkles" class="w-3 h-3 inline-block align-middle"></i> Recommended 7
+                    </button>
+                </div>
+                <div id="chemistry-content" class="max-h-80 overflow-y-auto custom-scrollbar text-xs">
+                    <div class="text-gray-500 text-center py-4">Loading chemistry data...</div>
+                </div>
+            </div>
+        </section>
+
         <!-- Leaderboards -->
         <section id="leaderboards" class="max-w-6xl mx-auto mt-8">
             <div class="bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-white/10 shadow-2xl">
@@ -421,36 +449,9 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Match Setup -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- Your Team (Auto-filled from auth) -->
-                    <div class="space-y-2">
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
-                            Your Team
-                        </label>
-                        <div class="relative">
-                            <input type="text" id="our-team" class="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all" placeholder="Your team name" readonly>
-                            <div class="absolute right-3 top-1/2 -translate-y-1/2">
-                                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
-                            </div>
-                        </div>
-                        <p class="text-xs text-gray-500">Auto-filled from your team</p>
-                    </div>
-                    
-                    <!-- Opponent -->
-                    <div class="space-y-2">
-                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
-                            <i data-lucide="shield" class="w-4 h-4 text-red-400"></i>
-                            Opponent
-                        </label>
-                        <input type="text" id="opponent-team" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all" placeholder="Opponent team name">
-                    </div>
-                </div>
-                
+
                 <!-- Date and Game Type -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div class="space-y-2">
                         <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
                             <i data-lucide="calendar" class="w-4 h-4 text-cyan-400"></i>
@@ -471,7 +472,64 @@
                         </select>
                     </div>
                 </div>
-                
+
+                <!-- Tournament Context (shown when game type = tournament) -->
+                <div id="tournament-context" class="hidden mb-6 space-y-4">
+                    <!-- Tournament Selector -->
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="git-branch" class="w-4 h-4 text-yellow-400"></i>
+                            Tournament / League
+                        </label>
+                        <select id="tournament-selector" onchange="onTournamentSelected()" class="w-full bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500/50 transition-all">
+                            <option value="">Select tournament...</option>
+                        </select>
+                    </div>
+
+                    <!-- Projected Opponent Banner -->
+                    <div id="projected-opponent" class="hidden">
+                        <div class="bg-gradient-to-r from-violet-500/10 to-red-500/10 border border-violet-500/20 rounded-xl p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <i data-lucide="crosshair" class="w-4 h-4 text-violet-400"></i>
+                                    <span class="text-xs font-semibold text-violet-400 uppercase tracking-wider">Projected Opponent</span>
+                                </div>
+                                <button onclick="clearProjectedOpponent(); document.getElementById('opponent-team').value=''; document.getElementById('opponent-team').dispatchEvent(new Event('input'));" class="text-gray-500 hover:text-gray-300 text-xs transition-colors" title="Clear projection">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                            <div id="projection-details"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Match Setup: Your Team vs Opponent -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Your Team (Auto-filled from auth) -->
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="users" class="w-4 h-4 text-emerald-400"></i>
+                            Your Team
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="our-team" class="w-full bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-emerald-300 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all" placeholder="Your team name" readonly>
+                            <div class="absolute right-3 top-1/2 -translate-y-1/2">
+                                <i data-lucide="check-circle" class="w-5 h-5 text-emerald-500"></i>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500">Auto-filled from your team</p>
+                    </div>
+
+                    <!-- Opponent -->
+                    <div class="space-y-2">
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-300">
+                            <i data-lucide="shield" class="w-4 h-4 text-red-400"></i>
+                            Opponent
+                        </label>
+                        <input type="text" id="opponent-team" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all" placeholder="Opponent team name">
+                    </div>
+                </div>
+
                 <!-- Roster Preview -->
                 <div class="mb-8">
                     <div class="flex items-center justify-between mb-4">
@@ -485,7 +543,7 @@
                         <span class="text-gray-500 text-sm">No players in roster</span>
                     </div>
                 </div>
-                
+
                 <!-- Start Game Button -->
                 <button type="button" id="start-game-btn" onclick="startGame()" class="w-full group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white py-4 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40">
                     <span class="relative z-10 flex items-center justify-center gap-2">

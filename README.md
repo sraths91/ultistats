@@ -1,189 +1,227 @@
-# Ultimate Frisbee Stats Tracker
+# UltiStats
 
-A comprehensive web application for tracking ultimate frisbee game statistics with iPad-optimized interface and Google Sheets synchronization.
+Real-time ultimate frisbee stat tracking with interactive field visualization, live analysis, and USAU tournament integration. Built as a mobile-first PWA for sideline use on phones and tablets.
+
+## Quick Start
+
+```bash
+# 1. Clone and install
+git clone https://github.com/sraths91/ultistats.git
+cd ultistats
+npm install
+cd api && npm install && cd ..
+
+# 2. Configure environment
+cp .env.example .env
+# Edit .env — at minimum, set a strong JWT_SECRET:
+#   node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# 3. Run (two terminals)
+cd api && npm run dev     # API server on :3001
+npm run dev               # Vite dev server on :3000
+```
+
+Open `http://localhost:3000` in your browser. The Vite dev server proxies `/api` requests to the API server automatically.
 
 ## Features
 
-### 🎯 Core Functionality
-- **Interactive Field Tracking**: Tap on the field to record throws, turnovers, and scores
-- **Automatic Distance Calculation**: Calculates yardage for throws based on field coordinates
-- **Player Statistics**: Track goals, assists, blocks, turnovers, yards thrown, and yards caught
-- **Team Statistics**: Monitor team score, turnovers, and total yardage
-- **Live Dashboard**: Real-time updates of all statistics during the game
+### Game Tracking
+- **Interactive field** — tap to record throws, catches, turnovers, blocks, and scores with automatic yardage calculation
+- **7-player line selection** with sort modes: alphabetical, position, playing time, +/-, and predictive "Best Fit"
+- **Undo system** — revert any action with full state rollback
+- **Outdoor mode** — high-contrast UI for bright sunlight
+- **Haptic feedback** — vibration patterns for different events on mobile
 
-### 📱 iPad Optimized
-- Touch-friendly interface with large tap targets
-- Responsive design optimized for tablet screens
-- Landscape and portrait orientation support
-- Smooth animations and visual feedback
+### Live Analysis
+In-game analysis panel (violet bar-chart button) with three views:
+- **Pairings** — top thrower-to-receiver connections with completion counts and goals scored
+- **Lines** — performance of each unique 7-player combination (points played, scored, allowed, +/-)
+- **Player Impact** — per-player +/-, offensive rating, defensive rating, and completion percentage
 
-### 📊 Google Sheets Integration
-- Automatic synchronization to Google Sheets
-- Separate sheets for game info, player stats, and team stats
-- Real-time data backup every 30 seconds
-- Manual sync option available
+### USAU Integration
+- Search USAU team/tournament registry
+- Import rosters from USAU team pages
+- Pull pool play results and bracket data
+- Auto-sync tournament standings
 
-### 🎨 Visual Features
-- Interactive ultimate frisbee field with accurate dimensions
-- Color-coded turnover markers (red for our turnovers, green for opponent turnovers)
-- Throw trajectory visualization
-- End zones and field markings
+### Multi-User & Teams
+- User registration and authentication (JWT via HttpOnly cookies)
+- Create teams, manage rosters, invite coaches
+- Per-team game history and career stats
 
-## Setup Instructions
+### Progressive Web App
+- Installable on iOS and Android home screens
+- Offline-capable via service worker (network-first for API/code, stale-while-revalidate for assets)
+- Works in landscape and portrait
 
-### 1. Google Sheets API Setup
+## Tech Stack
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select existing one
-3. Enable the Google Sheets API
-4. Create credentials:
-   - Application type: Web application
-   - Authorized JavaScript origins: `http://localhost:8000` (or your deployment URL)
-5. Copy your Client ID and API Key
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Vanilla JS, Tailwind CSS (CDN), Lucide icons, SVG field |
+| Build | Vite |
+| API | Express.js (Node.js) |
+| Database | SQLite via `sqlite3` |
+| Auth | JWT (HttpOnly cookies), bcrypt, CSRF double-submit |
+| Testing | Node.js built-in test runner (`node --test`) |
+| CI | GitHub Actions (Node 20 + 22) |
 
-### 2. Configure the Application
+## Project Structure
 
-1. Open `script.js`
-2. Replace `YOUR_CLIENT_ID` with your actual Google Client ID
-3. Replace `YOUR_API_KEY` with your actual Google API Key
+```
+ultistats/
+├── index.html              # Login / registration
+├── dashboard.html          # Team dashboard
+├── game.html               # Game tracking (main app)
+├── testgame.html           # Demo game with pre-loaded roster
+├── tournament.html         # USAU tournament view
+├── league.html             # League standings
+├── season.html             # Season stats
+├── player-profile.html     # Individual player stats
+├── script.js               # Game engine (~10,900 lines)
+├── styles.css              # Custom styles + outdoor mode
+├── config.js               # Client-side config loader
+├── sw.js                   # Service worker
+├── manifest.json           # PWA manifest
+├── vite.config.js          # Vite build config
+├── src/js/                 # ES module layer
+│   ├── constants.js        # App constants and config
+│   ├── api.js              # API client (fetch + CSRF)
+│   ├── storage.js          # LocalStorage wrapper
+│   ├── auth.js             # Auth flows
+│   ├── game.js             # Game state helpers
+│   ├── stats.js            # Stat calculations
+│   ├── ui.js               # Toast, modals, haptics
+│   ├── utils.js            # General utilities
+│   └── pages/              # Page-specific modules
+├── api/
+│   ├── server-sqlite.js    # Express API server
+│   ├── db/
+│   │   ├── database.js     # SQLite ORM layer
+│   │   └── schema.sql      # 17 tables + indexes
+│   ├── lib/
+│   │   └── usau-scraper.js # USAU page parser
+│   ├── tests/              # API integration tests
+│   └── package.json
+├── .env.example            # Environment template
+├── .github/workflows/ci.yml
+└── package.json
+```
 
-### 3. Create a Google Sheet
+## Environment Variables
 
-1. Create a new Google Sheet
-2. Copy the Sheet ID from the URL (the part between `/d/` and `/edit`)
-3. This Sheet ID will be used in the application
+Copy `.env.example` to `.env`. Required variables:
 
-### 4. Run the Application
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `JWT_SECRET` | Yes | Random 64+ byte hex string for signing tokens |
+| `PORT` | No | API server port (default: 3001) |
+| `NODE_ENV` | No | `development` or `production` |
+| `DATABASE_URL` | No | SQLite path (default: `./api/db/ultistats.db`) |
+| `CLIENT_URL` | No | Comma-separated CORS origins (default: `http://localhost:3000,http://localhost:3001`) |
+| `JWT_EXPIRES_IN` | No | Token lifetime (default: `7d`) |
+| `GOOGLE_CLIENT_ID` | No | For Google Sheets export |
+| `GOOGLE_API_KEY` | No | For Google Sheets export |
+| `SMTP_HOST` | No | For email invitations |
+| `SMTP_USER` | No | SMTP username |
+| `SMTP_PASS` | No | SMTP password |
 
-1. Start a local server:
-   ```bash
-   # Using Python
-   python -m http.server 8000
-   
-   # Using Node.js
-   npx http-server
-   ```
+## API Endpoints
 
-2. Open `http://localhost:8000` in your browser
+All endpoints are prefixed with `/api`. Auth-required routes use HttpOnly JWT cookies.
 
-## Usage Guide
+### Auth
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/auth/register` | No | Create account |
+| POST | `/auth/login` | No | Login (sets cookie) |
+| GET | `/auth/me` | Yes | Get profile |
+| POST | `/auth/logout` | No | Clear cookie |
+| POST | `/auth/forgot-password` | No | Request reset |
 
-### Starting a Game
-1. Enter team names and game date
-2. Add players to your roster
-3. Enter your Google Sheet ID
-4. Click "Start Game"
+### Teams
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/teams` | Yes | List user's teams |
+| POST | `/teams` | Yes | Create team |
+| GET | `/teams/:id` | Yes | Get team details |
+| PUT | `/teams/:id` | Owner | Update team |
+| DELETE | `/teams/:id` | Owner | Delete team |
+| PUT | `/teams/:id/roster` | Owner | Update roster |
+| POST | `/teams/:id/invite` | Owner | Invite coach |
 
-### Tracking Actions
+### Games
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/teams/:id/games` | Member | List games |
+| POST | `/teams/:id/games` | Member | Create game |
+| PUT | `/games/:id` | Member | Update game |
+| POST | `/games/:id/end` | Member | End game + save stats |
 
-#### Throws
-1. Select "Throw" from action type
-2. Select thrower and receiver from dropdowns
-3. Click on the field where the throw starts
-4. Click on the field where the throw is caught
-5. Distance is automatically calculated and added to player stats
+### Stats
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/teams/:id/stats` | Member | Get team stats |
+| POST | `/teams/:id/stats/sync` | Member | Sync game stats |
 
-#### Turnovers
-1. Select "Turnover (Our Team)" or "Turnover (Their Team)"
-2. Click on the field where the turnover occurred
-3. A colored marker will appear on the field
+### Invitations
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/invitations/pending` | Yes | List pending |
+| POST | `/invitations/:id/accept` | Yes | Accept |
+| POST | `/invitations/:id/decline` | Yes | Decline |
 
-#### Scores
-1. Select "Score" from action type
-2. Select thrower and receiver
-3. Click on the field where the score occurred
-4. Goal is automatically recorded
+### USAU
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/usau/search-teams` | Optional | Search USAU teams |
+| GET | `/usau/team?url=` | Optional | Scrape team roster |
+| GET | `/usau/tournament?url=` | Optional | Tournament details |
+| GET | `/usau/tournament/pools?url=` | Optional | Pool play results |
+| GET | `/usau/tournament/bracket?url=` | Optional | Bracket results |
 
-#### Blocks
-1. Click on any player card in the roster
-2. Enter the number of blocks
-3. Blocks are added to the player's statistics
+## Testing
 
-### Google Sheets Sync
-- Click "Connect Google Sheets" to authorize the application
-- Data syncs automatically every 30 seconds
-- Manual sync available through the refresh button
-- Three sheets are created: Game Info, Player Stats, Team Stats
+```bash
+# Frontend unit tests (51 tests)
+npm test
 
-## Field Dimensions
+# API integration tests (39 tests)
+npm run test:api
 
-The application uses official ultimate frisbee field dimensions:
-- Total length: 100 meters (328 feet)
-- Playing field: 64 meters (210 feet) 
-- Width: 37 meters (120 feet)
-- End zones: 18 meters (59 feet) deep
+# All tests
+npm run test:all
+```
 
-## Data Tracked
+Tests use Node.js built-in test runner — no additional test framework needed. API tests run against an in-memory SQLite database.
 
-### Player Statistics
-- **Goals**: Number of times player scored
-- **Assists**: Number of successful throws leading to goals
-- **Blocks**: Number of times player blocked opponent throws
-- **Turnovers**: Number of times player turned over the disc
-- **Yards Thrown**: Total distance of all successful throws
-- **Yards Caught**: Total distance of all receptions
+## Building for Production
 
-### Team Statistics
-- **Team Score**: Total number of goals scored
-- **Team Turnovers**: Total turnovers by the team
-- **Total Yards Thrown**: Combined yards thrown by all players
-- **Total Yards Caught**: Combined yards caught by all players
+```bash
+npm run build
+```
 
-### Action Log
-- Timestamped record of all game actions
-- Color-coded by action type
-- Shows last 20 actions during the game
+Outputs to `dist/`. The Vite build bundles HTML pages and ES modules. Static files (`script.js`, `sw.js`, `manifest.json`, `config.js`) are copied automatically.
 
-## Technical Details
+To serve in production, deploy the `dist/` folder behind a static file server and run the API server separately:
 
-### Technologies Used
-- **HTML5**: Semantic structure
-- **CSS3**: Responsive design with Tailwind CSS
-- **JavaScript**: Vanilla JS with Google Sheets API
-- **SVG**: Interactive field visualization
+```bash
+cd api && NODE_ENV=production npm start
+```
 
-### Browser Compatibility
-- Modern browsers (Chrome, Firefox, Safari, Edge)
-- iPad Safari optimized
-- Touch device support
+## Security
 
-### Data Storage
-- In-memory during game
-- Google Sheets for persistent storage
-- No local storage required
-
-## Troubleshooting
-
-### Google Sheets Connection Issues
-1. Verify Client ID and API Key are correct
-2. Check that Google Sheets API is enabled
-3. Ensure authorized JavaScript origins include your URL
-4. Make sure Sheet ID is correct
-
-### Field Interaction Problems
-1. Ensure game is started before clicking field
-2. Check that players are added for throw actions
-3. Verify action type is selected correctly
-
-### Sync Issues
-1. Check internet connection
-2. Verify Google Sheets authorization
-3. Confirm Sheet ID is valid
-4. Try manual sync button
-
-## Future Enhancements
-
-Potential features for future versions:
-- Player positioning tracking
-- Advanced statistics and analytics
-- Multiple game management
-- Historical data comparison
-- Export to other formats (CSV, PDF)
-- Team management features
-- Season-long statistics
-- Video integration
-- Offline mode support
+The application includes:
+- **HttpOnly JWT cookies** — tokens are not accessible to JavaScript
+- **CSRF protection** — double-submit cookie pattern on all state-changing requests
+- **Content Security Policy** — restricts script, style, font, and connection sources
+- **Rate limiting** — 20 req/15min on auth, 100 req/min general, 10 req/min USAU scraping
+- **Authorization checks** — team membership/ownership verified on all protected routes
+- **Input validation** — express-validator on all user inputs
+- **SRI hashes** — subresource integrity on pinned CDN scripts
+- **SSRF prevention** — USAU scraping URLs validated against allowlist
+- **XSS prevention** — `escapeHtml()` on all user-controlled content in innerHTML
 
 ## License
 
-This project is open source and available under the MIT License.
+MIT

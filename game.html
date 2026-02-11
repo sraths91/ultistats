@@ -163,6 +163,10 @@
                         Select Line (<span id="line-count" class="text-cyan-400">0</span>/7)
                     </h2>
                     <div class="flex gap-2">
+                        <button onclick="suggestLine()" class="flex items-center gap-1 bg-violet-500/20 hover:bg-violet-500/40 text-violet-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-violet-500/30" title="Smart line suggestion based on chemistry & performance">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Suggest</span>
+                        </button>
                         <button onclick="clearLineSelection()" class="flex items-center gap-2 bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-gray-500/30">
                             <i data-lucide="x" class="w-4 h-4"></i>
                             Clear
@@ -185,6 +189,9 @@
                         <i data-lucide="sparkles" class="w-3 h-3 inline-block align-middle"></i> Best Fit
                     </button>
                 </div>
+
+                <!-- Chemistry Recommendations Strip -->
+                <div id="chemistry-recommendations" class="hidden flex flex-wrap items-center gap-1.5 mb-3 px-1"></div>
 
                 <div id="line-selection-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
                     <!-- Player selection buttons populated here -->
@@ -370,9 +377,12 @@
                     </button>
                 </div>
                 <div class="flex gap-1 mb-3" id="analysis-tabs">
-                    <button onclick="switchAnalysisTab('pairings')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Pairings</button>
-                    <button onclick="switchAnalysisTab('lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Lines</button>
-                    <button onclick="switchAnalysisTab('impact')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Player Impact</button>
+                    <button onclick="switchAnalysisTab('pairings')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="pairings">Pairings</button>
+                    <button onclick="switchAnalysisTab('lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="lines">Lines</button>
+                    <button onclick="switchAnalysisTab('impact')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="impact">Player Impact</button>
+                    <button onclick="switchAnalysisTab('chemistry')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="chemistry">
+                        <i data-lucide="heart-handshake" class="w-3 h-3 inline-block align-middle"></i> Chemistry
+                    </button>
                 </div>
                 <div id="analysis-content" class="max-h-64 overflow-y-auto custom-scrollbar text-xs">
                     <div class="text-gray-500 text-center py-4">Play some points to see analysis</div>

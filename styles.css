@@ -1125,11 +1125,129 @@ body.outdoor-mode #stats-analysis-btn {
     border-color: rgba(91, 33, 182, 0.4) !important;
 }
 
+/* Chemistry bar variant */
+.stat-bar-fill.chemistry-bar {
+    background: linear-gradient(90deg, #8b5cf6, #d946ef);
+}
+
+body.outdoor-mode .stat-bar-fill.chemistry-bar {
+    background: linear-gradient(90deg, #7c3aed, #c026d3);
+}
+
+/* Outdoor mode: dashboard chemistry section */
+body.outdoor-mode #team-chemistry .bg-white\/5 {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-color: rgba(0, 0, 0, 0.15) !important;
+}
+body.outdoor-mode #team-chemistry h2,
+body.outdoor-mode #team-chemistry .text-white {
+    color: #111827 !important;
+}
+body.outdoor-mode #team-chemistry .text-gray-400,
+body.outdoor-mode #team-chemistry .text-gray-500 {
+    color: #6b7280 !important;
+}
+
 /* Mobile responsive: analysis panel */
 @media (max-width: 640px) {
     #analysis-content { max-height: 200px; }
+    #chemistry-content { max-height: 200px; }
     .analysis-pair-row { flex-direction: column; gap: 0.25rem; }
     .analysis-pair-row .flex-shrink-0:first-child { width: 100% !important; }
+}
+
+/* ==================== Chemistry Indicators ==================== */
+
+/* Chemistry badges on player buttons */
+.chem-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    pointer-events: none;
+}
+.chem-badge-high {
+    background: rgba(139, 92, 246, 0.9);
+    color: #fff;
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
+}
+.chem-badge-mid {
+    background: rgba(139, 92, 246, 0.5);
+    color: #e9d5ff;
+}
+.chem-badge-low {
+    background: rgba(139, 92, 246, 0.25);
+    color: #c4b5fd;
+}
+
+/* Player button relative positioning for badge */
+.line-select-btn {
+    position: relative;
+}
+
+/* Chemistry glow on player buttons */
+.chem-high {
+    border: 1px solid rgba(139, 92, 246, 0.5) !important;
+    box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+}
+.chem-mid {
+    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+}
+
+/* Chemistry recommendation chips */
+.chem-rec-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: rgba(139, 92, 246, 0.15);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+.chem-rec-chip:hover {
+    background: rgba(139, 92, 246, 0.3);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+.chem-rec-selected {
+    cursor: default;
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+.chem-rec-score {
+    font-weight: 700;
+    color: #a78bfa;
+    font-size: 0.6rem;
+}
+
+/* Outdoor mode: chemistry indicators */
+body.outdoor-mode .chem-badge-high {
+    background: rgba(91, 33, 182, 0.9);
+    box-shadow: none;
+}
+body.outdoor-mode .chem-badge-mid {
+    background: rgba(91, 33, 182, 0.5);
+    color: #5b21b6;
+}
+body.outdoor-mode .chem-high {
+    border-color: rgba(91, 33, 182, 0.5) !important;
+    box-shadow: none;
+}
+body.outdoor-mode .chem-rec-chip {
+    background: rgba(91, 33, 182, 0.1);
+    border-color: rgba(91, 33, 182, 0.3);
+}
+body.outdoor-mode .chem-rec-chip:hover {
+    background: rgba(91, 33, 182, 0.2);
 }
 
 /* ==================== Player Sort Pills ==================== */
@@ -1177,6 +1295,69 @@ body.outdoor-mode .sort-pill.active {
     color: #0e7490 !important;
     border-color: rgba(6, 182, 212, 0.5) !important;
 }
+
+/* ==================== Advanced Analytics Indicators ==================== */
+
+/* O/D split badges */
+.od-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+.od-badge-off {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+}
+.od-badge-def {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* Throw value indicator */
+.throw-value-pos { color: #22d3ee; }
+.throw-value-neg { color: #f87171; }
+
+/* PER tag */
+.per-tag {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(249, 115, 22, 0.15);
+    color: #f97316;
+    font-weight: 600;
+}
+
+/* Hub score (PageRank) */
+.hub-tag {
+    font-size: 9px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: rgba(236, 72, 153, 0.15);
+    color: #ec4899;
+    font-weight: 600;
+}
+
+/* Outdoor mode: advanced analytics */
+body.outdoor-mode .od-badge-off {
+    background: rgba(245, 158, 11, 0.2);
+    color: #b45309;
+}
+body.outdoor-mode .od-badge-def {
+    background: rgba(239, 68, 68, 0.2);
+    color: #b91c1c;
+}
+body.outdoor-mode .per-tag {
+    background: rgba(249, 115, 22, 0.2);
+    color: #c2410c;
+}
+body.outdoor-mode .hub-tag {
+    background: rgba(236, 72, 153, 0.2);
+    color: #be185d;
+}
+body.outdoor-mode .throw-value-pos { color: #0e7490 !important; }
+body.outdoor-mode .throw-value-neg { color: #b91c1c !important; }
 
 /* Mobile: sort pills scroll */
 @media (max-width: 640px) {

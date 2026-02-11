@@ -44,6 +44,14 @@
                 'Dakota Robinson'
             ];
 
+            // Opponent teams for tournament pool play
+            const opponentTeams = [
+                { name: 'Rival FC', id: 'opp-rival' },
+                { name: 'Skyline Ultimate', id: 'opp-skyline' },
+                { name: 'Storm Chasers', id: 'opp-storm' },
+                { name: 'Tempest', id: 'opp-tempest' }
+            ];
+
             if (!teamsData || !teamsData.currentTeamId) {
                 const teamId = 'test-team-' + Date.now();
                 const careerPlayers = {};
@@ -66,6 +74,17 @@
                     seasonStats: {},
                     tournamentStats: {}
                 };
+                // Create opponent teams in teamsData
+                opponentTeams.forEach(opp => {
+                    teamsData.teams[opp.id] = {
+                        id: opp.id,
+                        name: opp.name,
+                        roster: [],
+                        careerStats: { players: {} },
+                        seasonStats: {},
+                        tournamentStats: {}
+                    };
+                });
                 localStorage.setItem(teamsKey, JSON.stringify(teamsData));
             }
 
@@ -83,8 +102,66 @@
                     gameFormat: 'standard',
                     timeoutsPer: 2,
                     date: new Date().toISOString().split('T')[0],
-                    location: 'Test Field'
+                    location: 'Test Field',
+                    gameType: 'tournament'
                 }));
+            }
+
+            // Seed a demo tournament with pool matchups
+            const tournamentsKey = 'ultistats_tournaments_data';
+            let tournamentsData = null;
+            try { tournamentsData = JSON.parse(localStorage.getItem(tournamentsKey)); } catch(e) {}
+            if (!tournamentsData || Object.keys(tournamentsData.tournaments || {}).length === 0) {
+                const myTeamId = teamsData.currentTeamId;
+                const poolAId = 'pool-a-demo';
+                const tournamentId = 'tournament-demo';
+                tournamentsData = {
+                    currentTournamentId: tournamentId,
+                    tournaments: {}
+                };
+                tournamentsData.tournaments[tournamentId] = {
+                    id: tournamentId,
+                    name: 'Demo Regional Championship',
+                    description: 'Seeded demo tournament for testing',
+                    format: 'pool-to-bracket',
+                    startDate: new Date().toISOString().split('T')[0],
+                    endDate: null,
+                    createdAt: new Date().toISOString(),
+                    pools: [
+                        { id: poolAId, name: 'Pool A', teamIds: [myTeamId, ...opponentTeams.map(o => o.id)] }
+                    ],
+                    teamIds: [],
+                    poolMatchups: [
+                        { id: 'pm-1', poolId: poolAId, round: 1, homeTeamId: myTeamId, awayTeamId: 'opp-rival', status: 'completed', homeScore: 13, awayScore: 9, gameId: null, scheduledDate: null },
+                        { id: 'pm-2', poolId: poolAId, round: 2, homeTeamId: myTeamId, awayTeamId: 'opp-skyline', status: 'scheduled', homeScore: null, awayScore: null, gameId: null, scheduledDate: null },
+                        { id: 'pm-3', poolId: poolAId, round: 3, homeTeamId: 'opp-storm', awayTeamId: myTeamId, status: 'scheduled', homeScore: null, awayScore: null, gameId: null, scheduledDate: null },
+                        { id: 'pm-4', poolId: poolAId, round: 4, homeTeamId: myTeamId, awayTeamId: 'opp-tempest', status: 'scheduled', homeScore: null, awayScore: null, gameId: null, scheduledDate: null }
+                    ],
+                    bracketMatchups: [],
+                    poolStandings: {},
+                    advancementRules: { teamsPerPool: 2 },
+                    teamSeeds: {},
+                    leagueId: null,
+                    importedFrom: null,
+                    importedAt: null,
+                    sharedTournamentId: null,
+                    usauFormat: null,
+                    competitionLevel: 'College',
+                    genderDivision: 'Mixed'
+                };
+                // Initialize pool standings
+                const standings = {};
+                standings[myTeamId] = { wins: 1, losses: 0, ties: 0, pointsFor: 13, pointsAgainst: 9, pointDiff: 4 };
+                opponentTeams.forEach(opp => {
+                    standings[opp.id] = { wins: 0, losses: opp.id === 'opp-rival' ? 1 : 0, ties: 0, pointsFor: 0, pointsAgainst: 0, pointDiff: 0 };
+                });
+                if (standings['opp-rival']) {
+                    standings['opp-rival'].pointsFor = 9;
+                    standings['opp-rival'].pointsAgainst = 13;
+                    standings['opp-rival'].pointDiff = -4;
+                }
+                tournamentsData.tournaments[tournamentId].poolStandings[poolAId] = standings;
+                localStorage.setItem(tournamentsKey, JSON.stringify(tournamentsData));
             }
 
             // Set player positions (always ensure demo players have positions)
@@ -228,6 +305,10 @@
                         Select Line (<span id="line-count" class="text-cyan-400">0</span>/7)
                     </h2>
                     <div class="flex gap-2">
+                        <button onclick="suggestLine()" class="flex items-center gap-1 bg-violet-500/20 hover:bg-violet-500/40 text-violet-400 px-3 py-2 rounded-xl text-sm font-medium transition-all border border-violet-500/30" title="Smart line suggestion based on chemistry & performance">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span class="hidden sm:inline">Suggest</span>
+                        </button>
                         <button onclick="clearLineSelection()" class="flex items-center gap-2 bg-gray-500/20 hover:bg-gray-500/40 text-gray-400 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-gray-500/30">
                             <i data-lucide="x" class="w-4 h-4"></i>
                             Clear
@@ -250,6 +331,9 @@
                         <i data-lucide="sparkles" class="w-3 h-3 inline-block align-middle"></i> Best Fit
                     </button>
                 </div>
+
+                <!-- Chemistry Recommendations Strip -->
+                <div id="chemistry-recommendations" class="hidden flex flex-wrap items-center gap-1.5 mb-3 px-1"></div>
 
                 <div id="line-selection-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-2">
                     <!-- Player selection buttons populated here -->
@@ -435,9 +519,12 @@
                     </button>
                 </div>
                 <div class="flex gap-1 mb-3" id="analysis-tabs">
-                    <button onclick="switchAnalysisTab('pairings')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Pairings</button>
-                    <button onclick="switchAnalysisTab('lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Lines</button>
-                    <button onclick="switchAnalysisTab('impact')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all">Player Impact</button>
+                    <button onclick="switchAnalysisTab('pairings')" class="analysis-tab active text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="pairings">Pairings</button>
+                    <button onclick="switchAnalysisTab('lines')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="lines">Lines</button>
+                    <button onclick="switchAnalysisTab('impact')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="impact">Player Impact</button>
+                    <button onclick="switchAnalysisTab('chemistry')" class="analysis-tab text-xs px-3 py-1.5 rounded-lg font-medium transition-all" data-tab="chemistry">
+                        <i data-lucide="heart-handshake" class="w-3 h-3 inline-block align-middle"></i> Chemistry
+                    </button>
                 </div>
                 <div id="analysis-content" class="max-h-64 overflow-y-auto custom-scrollbar text-xs">
                     <div class="text-gray-500 text-center py-4">Play some points to see analysis</div>
@@ -477,5 +564,6 @@
         window.isDashboardPage = false;
     </script>
     <script src="script.js"></script>
+    <script type="module" src="/src/js/pages/game.js"></script>
 </body>
 </html>

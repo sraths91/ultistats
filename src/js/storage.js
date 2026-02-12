@@ -1,52 +1,71 @@
 /**
- * @fileoverview LocalStorage management module
+ * @fileoverview Storage management module — delegates to Dexie-backed store when available,
+ * falls back to localStorage.
  * @module storage
  */
 
 import { STORAGE_KEYS } from './constants.js';
 
+function _store() {
+    return typeof window !== 'undefined' && window.__ultistatsStore && window.__ultistatsStore.isInitialized()
+        ? window.__ultistatsStore
+        : null;
+}
+
 /**
- * Safely get item from localStorage with JSON parsing
+ * Safely get item from storage
  * @param {string} key - Storage key
  * @param {*} defaultValue - Default value if key doesn't exist
  * @returns {*} Parsed value or default
  */
 export function getItem(key, defaultValue = null) {
+    const s = _store();
+    if (s) return s.getSync(key, defaultValue);
     try {
         const item = localStorage.getItem(key);
         if (item === null) return defaultValue;
         return JSON.parse(item);
     } catch (error) {
-        console.error(`Error reading from localStorage [${key}]:`, error);
+        console.error(`Error reading from storage [${key}]:`, error);
         return defaultValue;
     }
 }
 
 /**
- * Safely set item in localStorage with JSON stringification
+ * Safely set item in storage
  * @param {string} key - Storage key
  * @param {*} value - Value to store
  * @returns {boolean} Success status
  */
 export function setItem(key, value) {
+    const s = _store();
+    if (s) {
+        s.setItem(key, value);
+        return true;
+    }
     try {
         localStorage.setItem(key, JSON.stringify(value));
         return true;
     } catch (error) {
-        console.error(`Error writing to localStorage [${key}]:`, error);
+        console.error(`Error writing to storage [${key}]:`, error);
         return false;
     }
 }
 
 /**
- * Remove item from localStorage
+ * Remove item from storage
  * @param {string} key - Storage key
  */
 export function removeItem(key) {
+    const s = _store();
+    if (s) {
+        s.removeItem(key);
+        return;
+    }
     try {
         localStorage.removeItem(key);
     } catch (error) {
-        console.error(`Error removing from localStorage [${key}]:`, error);
+        console.error(`Error removing from storage [${key}]:`, error);
     }
 }
 
@@ -54,7 +73,7 @@ export function removeItem(key) {
  * Clear all app-related localStorage items
  */
 export function clearAll() {
-    Object.values(STORAGE_KEYS).forEach(key => {
+    Object.values(STORAGE_KEYS).forEach((key) => {
         removeItem(key);
     });
 }
@@ -77,7 +96,7 @@ export function saveAuthState(_token, user) {
  */
 export function loadAuthState() {
     return {
-        user: getItem(STORAGE_KEYS.AUTH_USER)
+        user: getItem(STORAGE_KEYS.AUTH_USER),
     };
 }
 
@@ -193,7 +212,7 @@ export function loadCareerStats() {
         players: {},
         totalGames: 0,
         totalSeasons: 0,
-        startDate: null
+        startDate: null,
     });
 }
 
@@ -215,7 +234,7 @@ export function loadSeasonStats() {
         games: [],
         totalGames: 0,
         wins: 0,
-        losses: 0
+        losses: 0,
     });
 }
 
@@ -240,7 +259,7 @@ export function loadTournamentStats() {
         games: [],
         totalGames: 0,
         wins: 0,
-        losses: 0
+        losses: 0,
     });
 }
 
@@ -293,7 +312,7 @@ export function saveTeamsData(teamsData) {
 export function loadTeamsData() {
     return getItem(STORAGE_KEYS.TEAMS, {
         teams: {},
-        currentTeamId: null
+        currentTeamId: null,
     });
 }
 
@@ -332,7 +351,7 @@ export function loadSettings() {
         darkMode: true,
         hapticEnabled: true,
         soundEnabled: false,
-        confirmDestructive: true
+        confirmDestructive: true,
     });
 }
 

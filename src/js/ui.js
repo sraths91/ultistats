@@ -119,40 +119,40 @@ export function refreshIcons() {
 export function showToast(message, type = 'info', duration = 3000) {
     // Remove existing toasts
     const existing = document.querySelectorAll('.toast-notification');
-    existing.forEach(t => t.remove());
-    
+    existing.forEach((t) => t.remove());
+
     const colors = {
         info: 'bg-slate-800 border-cyan-500/30',
         success: 'bg-slate-800 border-emerald-500/30',
         error: 'bg-slate-800 border-red-500/30',
-        warning: 'bg-slate-800 border-amber-500/30'
+        warning: 'bg-slate-800 border-amber-500/30',
     };
-    
+
     const icons = {
         info: 'info',
         success: 'check-circle',
         error: 'alert-circle',
-        warning: 'alert-triangle'
+        warning: 'alert-triangle',
     };
-    
+
     const iconColors = {
         info: 'text-cyan-400',
         success: 'text-emerald-400',
         error: 'text-red-400',
-        warning: 'text-amber-400'
+        warning: 'text-amber-400',
     };
-    
+
     const toast = createElement('div', {
         className: `toast-notification fixed bottom-20 left-1/2 -translate-x-1/2 px-4 py-3 rounded-xl border ${colors[type]} text-white text-sm font-medium shadow-xl z-[100] flex items-center gap-2 animate-fade-in-up`,
         innerHTML: `
             <i data-lucide="${icons[type]}" class="w-4 h-4 ${iconColors[type]}"></i>
             <span>${message}</span>
-        `
+        `,
     });
-    
+
     document.body.appendChild(toast);
     refreshIcons();
-    
+
     setTimeout(() => {
         toast.classList.add('opacity-0', 'translate-y-2');
         toast.style.transition = 'all 0.3s ease';
@@ -169,7 +169,7 @@ export function showToast(message, type = 'info', duration = 3000) {
 export function vibrate(pattern) {
     if (!appSettings.hapticEnabled) return;
     if (!navigator.vibrate) return;
-    
+
     try {
         if (Array.isArray(pattern)) {
             navigator.vibrate(pattern);
@@ -210,12 +210,12 @@ function initAudio() {
 export function playSound(type) {
     if (!appSettings.soundEnabled) return;
     initAudio();
-    
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     const sounds = {
         score: () => {
             oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
@@ -248,9 +248,9 @@ export function playSound(type) {
             gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
             oscillator.start();
             oscillator.stop(audioContext.currentTime + 0.05);
-        }
+        },
     };
-    
+
     const soundFn = sounds[type] || sounds.tap;
     soundFn();
 }
@@ -267,7 +267,13 @@ export function playSound(type) {
  * @param {string} [options.confirmClass] - Confirm button class
  * @returns {Promise<boolean>} - Resolves to true if confirmed
  */
-export function showConfirmModal({ title, message, confirmText = 'Confirm', cancelText = 'Cancel', confirmClass = 'bg-red-500 hover:bg-red-600' }) {
+export function showConfirmModal({
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    confirmClass = 'bg-red-500 hover:bg-red-600',
+}) {
     return new Promise((resolve) => {
         const modal = createElement('div', {
             id: 'confirm-modal',
@@ -285,16 +291,16 @@ export function showConfirmModal({ title, message, confirmText = 'Confirm', canc
                         </button>
                     </div>
                 </div>
-            `
+            `,
         });
-        
+
         document.body.appendChild(modal);
-        
+
         const cleanup = (result) => {
             modal.remove();
             resolve(result);
         };
-        
+
         modal.querySelector('#confirm-cancel').onclick = () => cleanup(false);
         modal.querySelector('#confirm-ok').onclick = () => cleanup(true);
         modal.onclick = (e) => {
@@ -332,20 +338,20 @@ export function showInputModal({ title, placeholder = '', defaultValue = '', inp
                         </button>
                     </div>
                 </div>
-            `
+            `,
         });
-        
+
         document.body.appendChild(modal);
-        
+
         const input = modal.querySelector('#modal-input');
         input.focus();
         input.select();
-        
+
         const cleanup = (value) => {
             modal.remove();
             resolve(value);
         };
-        
+
         modal.querySelector('#input-cancel').onclick = () => cleanup(null);
         modal.querySelector('#input-ok').onclick = () => cleanup(input.value);
         input.onkeydown = (e) => {
@@ -395,24 +401,24 @@ export function loadAppSettings() {
 export function getContentAreaCoordinates(event, element) {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
-    
+
     const borderLeft = parseFloat(style.borderLeftWidth) || 0;
     const borderTop = parseFloat(style.borderTopWidth) || 0;
     const borderRight = parseFloat(style.borderRightWidth) || 0;
     const borderBottom = parseFloat(style.borderBottomWidth) || 0;
-    
+
     const contentWidth = rect.width - borderLeft - borderRight;
     const contentHeight = rect.height - borderTop - borderBottom;
-    
+
     const clientX = event.clientX || event.touches?.[0]?.clientX || 0;
     const clientY = event.clientY || event.touches?.[0]?.clientY || 0;
-    
+
     return {
         x: clientX - rect.left - borderLeft,
         y: clientY - rect.top - borderTop,
         percentX: ((clientX - rect.left - borderLeft) / contentWidth) * 100,
         percentY: ((clientY - rect.top - borderTop) / contentHeight) * 100,
         contentWidth,
-        contentHeight
+        contentHeight,
     };
 }

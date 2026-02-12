@@ -28,7 +28,7 @@ const authState = {
     user: null,
     token: null,
     currentTeam: null,
-    userTeams: []
+    userTeams: [],
 };
 
 /**
@@ -103,7 +103,7 @@ export function setUserTeams(teams) {
  */
 export async function register(email, password, name) {
     const result = await api.register(email, password, name);
-    
+
     if (result.ok && result.data) {
         authState.token = result.data.token;
         authState.user = result.data.user;
@@ -111,7 +111,7 @@ export async function register(email, password, name) {
         hapticFeedback('success');
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Registration failed' };
 }
 
@@ -123,7 +123,7 @@ export async function register(email, password, name) {
  */
 export async function login(email, password) {
     const result = await api.login(email, password);
-    
+
     if (result.ok && result.data) {
         authState.token = result.data.token;
         authState.user = result.data.user;
@@ -131,7 +131,7 @@ export async function login(email, password) {
         hapticFeedback('success');
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Login failed' };
 }
 
@@ -162,13 +162,13 @@ export function selectTeam(team) {
  */
 export async function loadUserTeams() {
     if (!authState.token) return [];
-    
+
     const result = await api.getTeams();
     if (result.ok && result.data) {
         authState.userTeams = result.data;
         return result.data;
     }
-    
+
     return [];
 }
 
@@ -179,14 +179,14 @@ export async function loadUserTeams() {
  */
 export async function createTeam(name) {
     const result = await api.createTeam(name);
-    
+
     if (result.ok && result.data) {
         authState.userTeams.push(result.data);
         selectTeam(result.data);
         hapticFeedback('success');
         return { success: true, team: result.data };
     }
-    
+
     return { success: false, error: result.error || 'Failed to create team' };
 }
 
@@ -200,14 +200,14 @@ export async function inviteToTeam(email, role = 'coach') {
     if (!authState.currentTeam) {
         return { success: false, error: 'No team selected' };
     }
-    
+
     const result = await api.inviteToTeam(authState.currentTeam.id, email, role);
-    
+
     if (result.ok) {
         hapticFeedback('success');
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Failed to send invitation' };
 }
 
@@ -218,11 +218,11 @@ export async function inviteToTeam(email, role = 'coach') {
  */
 export async function requestPasswordReset(email) {
     const result = await api.requestPasswordReset(email);
-    
+
     if (result.ok) {
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Failed to send reset email' };
 }
 
@@ -242,14 +242,14 @@ export async function checkPendingInvitations() {
  */
 export async function acceptInvitation(invitationId) {
     const result = await api.acceptInvitation(invitationId);
-    
+
     if (result.ok) {
         // Reload teams to get the new team
         await loadUserTeams();
         hapticFeedback('success');
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Failed to accept invitation' };
 }
 
@@ -260,11 +260,11 @@ export async function acceptInvitation(invitationId) {
  */
 export async function declineInvitation(invitationId) {
     const result = await api.declineInvitation(invitationId);
-    
+
     if (result.ok) {
         return { success: true };
     }
-    
+
     return { success: false, error: result.error || 'Failed to decline invitation' };
 }
 
@@ -276,12 +276,12 @@ export async function declineInvitation(invitationId) {
  */
 export async function handleLoginSubmit(event) {
     event.preventDefault();
-    
+
     const email = document.getElementById('login-email')?.value;
     const password = document.getElementById('login-password')?.value;
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const errorDiv = document.getElementById('login-error');
-    
+
     if (!email || !password) {
         if (errorDiv) {
             errorDiv.textContent = 'Please fill in all fields';
@@ -289,13 +289,13 @@ export async function handleLoginSubmit(event) {
         }
         return;
     }
-    
+
     showLoadingState(submitBtn, 'Signing in...');
-    
+
     const result = await login(email, password);
-    
+
     hideLoadingState(submitBtn);
-    
+
     if (result.success) {
         showToast('Welcome back!', 'success');
         // Redirect to dashboard
@@ -315,14 +315,14 @@ export async function handleLoginSubmit(event) {
  */
 export async function handleRegisterSubmit(event) {
     event.preventDefault();
-    
+
     const name = document.getElementById('register-name')?.value;
     const email = document.getElementById('register-email')?.value;
     const password = document.getElementById('register-password')?.value;
     const confirmPassword = document.getElementById('register-confirm-password')?.value;
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const errorDiv = document.getElementById('register-error');
-    
+
     if (!name || !email || !password) {
         if (errorDiv) {
             errorDiv.textContent = 'Please fill in all fields';
@@ -330,7 +330,7 @@ export async function handleRegisterSubmit(event) {
         }
         return;
     }
-    
+
     if (password !== confirmPassword) {
         if (errorDiv) {
             errorDiv.textContent = 'Passwords do not match';
@@ -338,7 +338,7 @@ export async function handleRegisterSubmit(event) {
         }
         return;
     }
-    
+
     if (password.length < 6) {
         if (errorDiv) {
             errorDiv.textContent = 'Password must be at least 6 characters';
@@ -346,13 +346,13 @@ export async function handleRegisterSubmit(event) {
         }
         return;
     }
-    
+
     showLoadingState(submitBtn, 'Creating account...');
-    
+
     const result = await register(email, password, name);
-    
+
     hideLoadingState(submitBtn);
-    
+
     if (result.success) {
         showToast('Account created!', 'success');
         // Redirect to dashboard

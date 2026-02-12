@@ -1,5 +1,48 @@
 // Ultimate Frisbee Stats Tracker JavaScript
 
+// Store access helpers — backed by IndexedDB via Dexie.js (see src/js/store.js)
+// Falls back to localStorage if store not initialized yet
+function _storeGet(key, defaultValue) {
+    if (window.__ultistatsStore && window.__ultistatsStore.isInitialized()) {
+        return window.__ultistatsStore.getSync(key, defaultValue);
+    }
+    try {
+        const raw = localStorage.getItem(key);
+        return raw !== null ? JSON.parse(raw) : defaultValue !== undefined ? defaultValue : null;
+    } catch {
+        return defaultValue !== undefined ? defaultValue : null;
+    }
+}
+function _storeSet(key, value) {
+    if (window.__ultistatsStore) {
+        window.__ultistatsStore.setItem(key, value);
+    } else {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+            console.warn('Storage write failed:', e);
+        }
+    }
+}
+function _storeRemove(key) {
+    if (window.__ultistatsStore) {
+        window.__ultistatsStore.removeItem(key);
+    } else {
+        localStorage.removeItem(key);
+    }
+}
+function _storeBulkSet(entries) {
+    if (window.__ultistatsStore) {
+        window.__ultistatsStore.bulkSet(entries);
+    } else {
+        for (const [key, value] of entries) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch (e) {}
+        }
+    }
+}
+
 // HTML sanitization helper — prevents XSS when interpolating user data into innerHTML
 function escapeHtml(str) {
     if (typeof str !== 'string') return '';
@@ -22,13 +65,13 @@ function getCsrfToken() {
 
 // Game Constants
 const GAME_CONSTANTS = {
-    FIELD_LENGTH_YARDS: 120,      // Total field length including end zones
-    FIELD_WIDTH_YARDS: 40,        // Field width
-    ENDZONE_PERCENT: 13.3,        // End zone as percentage of field (20/150)
-    BRICK_MARK_PERCENT: 26.6,     // Brick mark position as percentage
-    MAX_LINE_SIZE: 7,             // Players per line
-    MAX_UNDO_HISTORY: 20,         // Maximum undo states to keep
-    DEFAULT_SCORE_DISTANCE: 20    // Estimated scoring throw distance in yards
+    FIELD_LENGTH_YARDS: 120, // Total field length including end zones
+    FIELD_WIDTH_YARDS: 40, // Field width
+    ENDZONE_PERCENT: 13.3, // End zone as percentage of field (20/150)
+    BRICK_MARK_PERCENT: 26.6, // Brick mark position as percentage
+    MAX_LINE_SIZE: 7, // Players per line
+    MAX_UNDO_HISTORY: 20, // Maximum undo states to keep
+    DEFAULT_SCORE_DISTANCE: 20, // Estimated scoring throw distance in yards
 };
 
 // Google Sheets API Configuration
@@ -56,11 +99,11 @@ let gameHistory = [];
 
 // Cross-game chemistry analytics (aggregated across all completed games)
 let chemistryData = {
-    pairings: {},     // 'thrower|receiver' → { completions, goals, games, throwValue }
-    lineHistory: {},  // 'sorted|player|names' → { played, scored, scoredAgainst, games }
-    playerPairs: {},  // 'playerA|playerB' (sorted) → { pointsTogether, scoredTogether, allowedTogether, connectionCount, games, offPointsTogether, offScored, offAllowed, defPointsTogether, defScored, defAllowed }
+    pairings: {}, // 'thrower|receiver' → { completions, goals, games, throwValue }
+    lineHistory: {}, // 'sorted|player|names' → { played, scored, scoredAgainst, games }
+    playerPairs: {}, // 'playerA|playerB' (sorted) → { pointsTogether, scoredTogether, allowedTogether, connectionCount, games, offPointsTogether, offScored, offAllowed, defPointsTogether, defScored, defAllowed }
     gamesAnalyzed: 0,
-    gameTimestamps: [] // Track when each game was analyzed for recency weighting
+    gameTimestamps: [], // Track when each game was analyzed for recency weighting
 };
 
 // Persistent roster (survives game resets)
@@ -71,25 +114,25 @@ let careerStats = {
     players: {},
     totalGames: 0,
     totalSeasons: 0,
-    startDate: null
+    startDate: null,
 };
 
 // Team management
 let teamsData = {
     teams: {},
-    currentTeamId: null
+    currentTeamId: null,
 };
 
 // League management (ongoing seasons with linked tournaments)
 let leaguesData = {
     leagues: {},
-    currentLeagueId: null
+    currentLeagueId: null,
 };
 
 // Tournament management (short events: weekend tournaments, regionals, USAU imports)
 let tournamentsData = {
     tournaments: {},
-    currentTournamentId: null
+    currentTournamentId: null,
 };
 
 // Player positions
@@ -137,7 +180,7 @@ function flashElement(element, color = 'emerald') {
 }
 
 function tryCatch(fn, errorMessage = 'An error occurred') {
-    return function(...args) {
+    return function (...args) {
         try {
             return fn.apply(this, args);
         } catch (error) {
@@ -157,37 +200,39 @@ function handleError(error, context = 'Operation') {
 function getContentAreaCoordinates(event, element) {
     const rect = element.getBoundingClientRect();
     const style = window.getComputedStyle(element);
-    
+
     const borderLeft = parseFloat(style.borderLeftWidth) || 0;
     const borderTop = parseFloat(style.borderTopWidth) || 0;
     const borderRight = parseFloat(style.borderRightWidth) || 0;
     const borderBottom = parseFloat(style.borderBottomWidth) || 0;
-    
+
     const contentWidth = rect.width - borderLeft - borderRight;
     const contentHeight = rect.height - borderTop - borderBottom;
-    
+
     return {
         x: event.clientX - rect.left - borderLeft,
         y: event.clientY - rect.top - borderTop,
         percentX: ((event.clientX - rect.left - borderLeft) / contentWidth) * 100,
         percentY: ((event.clientY - rect.top - borderTop) / contentHeight) * 100,
         contentWidth,
-        contentHeight
+        contentHeight,
     };
 }
 
 // Generate unique ID (UUID v4)
 function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 }
 
 // Generate unique player number (jersey number style)
 function generatePlayerNumber() {
-    const usedNumbers = Object.values(playerRegistry).map(p => p.number).filter(n => n);
+    const usedNumbers = Object.values(playerRegistry)
+        .map((p) => p.number)
+        .filter((n) => n);
     let number;
     do {
         number = Math.floor(Math.random() * 99) + 1;
@@ -204,7 +249,7 @@ function createPlayer(name, position = null) {
         name,
         number,
         position: position || 'Hybrid',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
     };
 }
 
@@ -215,24 +260,19 @@ function getPlayerById(id) {
 
 // Get player by name (for backwards compatibility)
 function getPlayerByName(name) {
-    return Object.values(playerRegistry).find(p => p.name === name) || null;
+    return Object.values(playerRegistry).find((p) => p.name === name) || null;
 }
 
 // Save player registry
 function savePlayerRegistry() {
-    localStorage.setItem(PLAYER_REGISTRY_KEY, JSON.stringify(playerRegistry));
+    _storeSet(PLAYER_REGISTRY_KEY, playerRegistry);
 }
 
 // Load player registry
 function loadPlayerRegistry() {
-    try {
-        const saved = localStorage.getItem(PLAYER_REGISTRY_KEY);
-        if (saved) {
-            playerRegistry = JSON.parse(saved);
-        }
-    } catch (e) {
-        console.error('Error loading player registry:', e);
-        playerRegistry = {};
+    const saved = _storeGet(PLAYER_REGISTRY_KEY);
+    if (saved) {
+        playerRegistry = saved;
     }
 }
 
@@ -247,7 +287,7 @@ let appSettings = {
     darkMode: true,
     hapticEnabled: true,
     soundEnabled: false,
-    confirmDestructive: true
+    confirmDestructive: true,
 };
 
 let playerAvatars = {}; // playerName -> { type: 'initials'|'color'|'image', value: string }
@@ -257,6 +297,130 @@ let currentUser = null;
 let currentTeam = null;
 let userTeams = [];
 
+// ==================== STATE BRIDGE FOR ENGINE MODULES ====================
+// ES module engine components (src/js/engine/*) are type="module" scripts that cannot
+// access let/const variables from this non-module script. This bridge exposes key state
+// via getters/setters so modules always see the latest values.
+window.__state = Object.create(null);
+Object.defineProperties(window.__state, {
+    gameState: {
+        get() {
+            return gameState;
+        },
+    },
+    chemistryData: {
+        get() {
+            return chemistryData;
+        },
+        set(v) {
+            chemistryData = v;
+        },
+    },
+    careerStats: {
+        get() {
+            return careerStats;
+        },
+        set(v) {
+            careerStats = v;
+        },
+    },
+    throwConnections: {
+        get() {
+            return _throwConnections;
+        },
+    },
+    throwValues: {
+        get() {
+            return _throwValues;
+        },
+        set(v) {
+            _throwValues = v;
+        },
+    },
+    pointHistory: {
+        get() {
+            return _pointHistory;
+        },
+    },
+    activeAnalysisTab: {
+        get() {
+            return _activeAnalysisTab;
+        },
+        set(v) {
+            _activeAnalysisTab = v;
+        },
+    },
+    playerPositions: {
+        get() {
+            return playerPositions;
+        },
+    },
+    appSettings: {
+        get() {
+            return appSettings;
+        },
+    },
+    currentUser: {
+        get() {
+            return currentUser;
+        },
+        set(v) {
+            currentUser = v;
+        },
+    },
+    currentTeam: {
+        get() {
+            return currentTeam;
+        },
+        set(v) {
+            currentTeam = v;
+        },
+    },
+    userTeams: {
+        get() {
+            return userTeams;
+        },
+        set(v) {
+            userTeams = v;
+        },
+    },
+    savedRoster: {
+        get() {
+            return savedRoster;
+        },
+    },
+    teamsData: {
+        get() {
+            return teamsData;
+        },
+    },
+    leaguesData: {
+        get() {
+            return leaguesData;
+        },
+    },
+    tournamentsData: {
+        get() {
+            return tournamentsData;
+        },
+    },
+    gameHistory: {
+        get() {
+            return gameHistory;
+        },
+    },
+    seasonStats: {
+        get() {
+            return seasonStats;
+        },
+    },
+    playerAvatars: {
+        get() {
+            return playerAvatars;
+        },
+    },
+});
+
 // ==================== CLIENT-SIDE ROUTER ====================
 const routes = {
     '/': 'auth',
@@ -264,7 +428,7 @@ const routes = {
     '/dashboard': 'dashboard',
     '/game': 'game',
     '/stats': 'stats',
-    '/settings': 'settings'
+    '/settings': 'settings',
 };
 
 function navigateTo(path) {
@@ -275,24 +439,24 @@ function navigateTo(path) {
 function handleRoute() {
     const path = window.location.pathname;
     const route = routes[path] || 'auth';
-    
+
     // Check auth state (user info in localStorage; token in HttpOnly cookie)
-    const isLoggedIn = !!localStorage.getItem(AUTH_USER_KEY);
-    
+    const isLoggedIn = !!_storeGet(AUTH_USER_KEY);
+
     // Redirect to login if not authenticated and trying to access protected routes
     if (!isLoggedIn && route !== 'auth') {
         window.history.replaceState({}, '', '/');
         showAuthScreen();
         return;
     }
-    
+
     // Redirect to dashboard if logged in and on auth page
     if (isLoggedIn && (route === 'auth' || path === '/')) {
         window.history.replaceState({}, '', '/dashboard');
         showMainApp();
         return;
     }
-    
+
     // Handle specific routes
     switch (route) {
         case 'auth':
@@ -325,109 +489,44 @@ const HAPTIC_PATTERNS = {
     undo: [40, 40],
     swipeUndo: [20, 10, 40],
     halfTime: [80, 60, 80, 60, 80], // rhythmic pulse for half/game point
-    gamePoint: [60, 40, 60, 40, 120, 80, 120] // intense build-up
+    gamePoint: [60, 40, 60, 40, 120, 80, 120], // intense build-up
 };
 
-// Sound effects (Web Audio API)
-let audioContext = null;
-
+// Sound effects — delegated to src/js/engine/audio.js module
 function initAudio() {
-    if (!audioContext) {
-        audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
+    if (window.__audio) window.__audio.init();
 }
-
 function playSound(type) {
-    if (!appSettings.soundEnabled) return;
-    initAudio();
-    
-    const oscillator = audioContext.createOscillator();
-    const gainNode = audioContext.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(audioContext.destination);
-    
-    switch(type) {
-        case 'score':
-            oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1);
-            oscillator.frequency.setValueAtTime(1320, audioContext.currentTime + 0.2);
-            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-            gainNode.gain.exponentialDecayTo(0.01, audioContext.currentTime + 0.4);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.4);
-            break;
-        case 'turnover':
-            oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(200, audioContext.currentTime + 0.1);
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-            gainNode.gain.exponentialDecayTo(0.01, audioContext.currentTime + 0.2);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.2);
-            break;
-        case 'block':
-            oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
-            gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-            gainNode.gain.exponentialDecayTo(0.01, audioContext.currentTime + 0.15);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.15);
-            break;
-        case 'tap':
-            oscillator.frequency.setValueAtTime(500, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
-            gainNode.gain.exponentialDecayTo(0.01, audioContext.currentTime + 0.05);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.05);
-            break;
-        default:
-            oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
-            gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
-            gainNode.gain.exponentialDecayTo(0.01, audioContext.currentTime + 0.1);
-            oscillator.start();
-            oscillator.stop(audioContext.currentTime + 0.1);
-    }
+    if (window.__audio) window.__audio.play(type);
 }
-
-// Fix for exponentialDecayTo not existing
-AudioParam.prototype.exponentialDecayTo = AudioParam.prototype.exponentialDecayTo || function(value, endTime) {
-    this.exponentialRampToValueAtTime(Math.max(value, 0.0001), endTime);
-};
 
 // ==================== AUTHENTICATION ====================
 
 function loadAuthState() {
-    try {
-        const user = localStorage.getItem(AUTH_USER_KEY);
-        const team = localStorage.getItem(CURRENT_TEAM_KEY);
+    const user = _storeGet(AUTH_USER_KEY);
+    const team = _storeGet(CURRENT_TEAM_KEY);
 
-        if (user) {
-            currentUser = JSON.parse(user);
-            if (team) {
-                currentTeam = JSON.parse(team);
-            }
-            return true;
+    if (user) {
+        currentUser = user;
+        if (team) {
+            currentTeam = team;
         }
-    } catch (e) {
-        console.warn('Could not load auth state:', e);
+        return true;
     }
     return false;
 }
 
 function saveAuthState(token, user) {
-    try {
-        // Token is stored in HttpOnly cookie by the server.
-        // Only save user info to localStorage for UI state.
-        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-        currentUser = user;
-    } catch (e) {
-        console.warn('Could not save auth state:', e);
-    }
+    // Token is stored in HttpOnly cookie by the server.
+    // Only save user info to localStorage for UI state.
+    _storeSet(AUTH_USER_KEY, user);
+    currentUser = user;
 }
 
 function clearAuthState() {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USER_KEY);
-    localStorage.removeItem(CURRENT_TEAM_KEY);
+    _storeRemove(AUTH_TOKEN_KEY);
+    _storeRemove(AUTH_USER_KEY);
+    _storeRemove(CURRENT_TEAM_KEY);
     currentUser = null;
     currentTeam = null;
     userTeams = [];
@@ -479,9 +578,11 @@ async function handleForgotPassword() {
         await fetch(`${API_BASE_URL}/auth/forgot-password`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+            body: JSON.stringify({ email }),
         });
-    } catch (_) { /* always show success to prevent enumeration */ }
+    } catch (_) {
+        /* always show success to prevent enumeration */
+    }
     showToast('If that email is registered, a reset link has been sent.', 4000, 'success');
 }
 
@@ -490,7 +591,7 @@ function showAuthTab(tab) {
     const registerTab = document.getElementById('register-tab');
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('register-form');
-    
+
     if (tab === 'login') {
         loginTab.classList.add('bg-white/10', 'text-white');
         loginTab.classList.remove('text-gray-400');
@@ -520,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
             e.preventDefault();
             const isLogin = document.getElementById('login-tab').getAttribute('aria-selected') === 'true';
-            const nextTab = (e.key === 'ArrowRight') ? (isLogin ? 'register' : 'login') : (isLogin ? 'register' : 'login');
+            const nextTab = e.key === 'ArrowRight' ? (isLogin ? 'register' : 'login') : isLogin ? 'register' : 'login';
             showAuthTab(nextTab);
             document.getElementById(nextTab === 'login' ? 'login-tab' : 'register-tab').focus();
         }
@@ -530,7 +631,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function showPageTransition(message = 'Loading...') {
     const overlay = document.createElement('div');
     overlay.id = 'page-transition';
-    overlay.className = 'fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center';
+    overlay.className =
+        'fixed inset-0 z-[100] bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center';
     overlay.innerHTML = `
         <div class="text-center">
             <div class="w-16 h-16 mx-auto mb-4 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin"></div>
@@ -543,7 +645,7 @@ function showPageTransition(message = 'Loading...') {
 function setFormDisabled(formId, disabled) {
     const form = document.getElementById(formId);
     if (!form) return;
-    form.querySelectorAll('input, button, select, textarea').forEach(el => {
+    form.querySelectorAll('input, button, select, textarea').forEach((el) => {
         el.disabled = disabled;
     });
     form.style.opacity = disabled ? '0.6' : '1';
@@ -577,7 +679,7 @@ async function handleLogin(event) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ email, password }),
         });
 
         const data = await response.json();
@@ -589,9 +691,10 @@ async function handleLogin(event) {
         saveAuthState(data.token, data.user);
         hapticFeedback('success');
         showPageTransition('Welcome back!');
-        setTimeout(() => { window.location.href = '/dashboard.html'; }, 400);
+        setTimeout(() => {
+            window.location.href = '/dashboard.html';
+        }, 400);
         return; // Don't re-enable form since we're navigating away
-
     } catch (error) {
         errorDiv.textContent = error.message;
         errorDiv.classList.remove('hidden');
@@ -604,16 +707,16 @@ async function handleLogin(event) {
 
 async function handleRegister(event) {
     event.preventDefault();
-    
+
     const name = document.getElementById('register-name').value;
     const email = document.getElementById('register-email').value;
     const password = document.getElementById('register-password').value;
     const confirm = document.getElementById('register-confirm').value;
     const errorDiv = document.getElementById('register-error');
     const submitBtn = document.getElementById('register-submit-btn');
-    
+
     errorDiv.classList.add('hidden');
-    
+
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -622,7 +725,7 @@ async function handleRegister(event) {
         hapticFeedback('error');
         return;
     }
-    
+
     if (password !== confirm) {
         errorDiv.textContent = 'Passwords do not match';
         errorDiv.classList.remove('hidden');
@@ -638,7 +741,7 @@ async function handleRegister(event) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ name, email, password })
+            body: JSON.stringify({ name, email, password }),
         });
 
         const data = await response.json();
@@ -652,13 +755,14 @@ async function handleRegister(event) {
 
         // Store auto-joined teams info for dashboard to show
         if (data.autoJoinedTeams && data.autoJoinedTeams.length > 0) {
-            localStorage.setItem('ultistats_auto_joined_teams', JSON.stringify(data.autoJoinedTeams));
+            _storeSet('ultistats_auto_joined_teams', data.autoJoinedTeams);
         }
 
         showPageTransition('Setting up your account...');
-        setTimeout(() => { window.location.href = '/dashboard.html'; }, 400);
+        setTimeout(() => {
+            window.location.href = '/dashboard.html';
+        }, 400);
         return; // Don't re-enable form since we're navigating away
-
     } catch (error) {
         errorDiv.textContent = error.message;
         errorDiv.classList.remove('hidden');
@@ -672,19 +776,19 @@ async function handleRegister(event) {
 function showMainApp() {
     const authScreen = document.getElementById('auth-screen');
     const mainApp = document.getElementById('main-app');
-    
+
     // Only run on pages that have these elements (index.html)
     if (!authScreen || !mainApp) return;
-    
+
     authScreen.classList.add('hidden');
     mainApp.classList.remove('hidden');
-    
+
     // Ensure game-history section is visible
     const gameHistorySection = document.getElementById('game-history');
     if (gameHistorySection) {
         gameHistorySection.classList.remove('hidden');
     }
-    
+
     updateUserDisplay();
     updateGameSetupUI();
     updateGameHistoryDisplay();
@@ -694,7 +798,7 @@ function showMainApp() {
 function showAuthScreen() {
     const authScreen = document.getElementById('auth-screen');
     const mainApp = document.getElementById('main-app');
-    
+
     // Show auth screen if it exists (index.html)
     if (authScreen) authScreen.classList.remove('hidden');
     if (mainApp) mainApp.classList.add('hidden');
@@ -714,7 +818,14 @@ function updateUserDisplay() {
             userMenu.innerHTML = `
                 <div class="flex items-center gap-2 bg-white/10 px-3 py-2 rounded-xl border border-white/10">
                     <div class="w-8 h-8 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        ${escapeHtml(currentUser.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2))}
+                        ${escapeHtml(
+                            currentUser.name
+                                .split(' ')
+                                .map((n) => n[0])
+                                .join('')
+                                .toUpperCase()
+                                .substring(0, 2)
+                        )}
                     </div>
                     <span class="text-white text-sm font-medium hidden sm:inline">${escapeHtml(currentUser.name)}</span>
                 </div>
@@ -738,19 +849,19 @@ async function loadUserTeams() {
 
     try {
         const response = await fetch(`${API_BASE_URL}/teams`, {
-            credentials: 'include'
+            credentials: 'include',
         });
-        
+
         if (response.ok) {
             userTeams = await response.json();
-            
+
             if (userTeams.length > 0) {
                 // Select first team if none selected
                 if (!currentTeam) {
                     selectTeam(userTeams[0]);
                 }
                 updateTeamSelector();
-                
+
                 // Also load games, player stats, and tournaments from API
                 await loadGamesFromAPI();
                 await loadPlayerStatsFromAPI();
@@ -767,29 +878,29 @@ async function loadUserTeams() {
 async function loadGamesFromAPI() {
     try {
         const response = await fetch(`${API_BASE_URL}/games`);
-        
+
         if (response.ok) {
             const games = await response.json();
-            
+
             // Filter games for current team and format them
             const teamGames = games
-                .filter(g => g.ourTeam === (currentTeam?.name || 'Disc Dynasty') && g.status === 'completed')
-                .map(g => ({
+                .filter((g) => g.ourTeam === (currentTeam?.name || 'Disc Dynasty') && g.status === 'completed')
+                .map((g) => ({
                     ...g,
-                    result: g.isWin ? 'W' : (g.ourScore < g.opponentScore ? 'L' : 'T')
+                    result: g.isWin ? 'W' : g.ourScore < g.opponentScore ? 'L' : 'T',
                 }));
-            
+
             // Merge with existing gameHistory (avoid duplicates)
-            const existingIds = new Set(gameHistory.map(g => g.id));
-            teamGames.forEach(game => {
+            const existingIds = new Set(gameHistory.map((g) => g.id));
+            teamGames.forEach((game) => {
                 if (!existingIds.has(game.id)) {
                     gameHistory.unshift(game);
                 }
             });
-            
+
             // Sort by date descending
             gameHistory.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
+
             updateGameHistoryDisplay();
         }
     } catch (error) {
@@ -800,16 +911,16 @@ async function loadGamesFromAPI() {
 async function loadPlayerStatsFromAPI() {
     try {
         const response = await fetch(`${API_BASE_URL}/stats`);
-        
+
         if (response.ok) {
             const stats = await response.json();
-            
+
             // Filter for career totals and populate careerStats and seasonStats
-            const careerTotals = stats.filter(s => s.gameId === 'career-totals');
-            
-            careerTotals.forEach(stat => {
+            const careerTotals = stats.filter((s) => s.gameId === 'career-totals');
+
+            careerTotals.forEach((stat) => {
                 const playerName = stat.playerName;
-                
+
                 // Populate careerStats
                 careerStats.players[playerName] = {
                     goals: stat.goals || 0,
@@ -821,16 +932,16 @@ async function loadPlayerStatsFromAPI() {
                     yardsCaught: stat.yardsCaught || 0,
                     throws: stat.throws || 0,
                     catches: stat.catches || 0,
-                    gamesPlayed: stat.gamesPlayed || 0
+                    gamesPlayed: stat.gamesPlayed || 0,
                 };
-                
+
                 // Also populate seasonStats with same data for export
                 seasonStats.players[playerName] = { ...careerStats.players[playerName] };
             });
-            
+
             careerStats.totalGames = gameHistory.length;
             seasonStats.totalGames = gameHistory.length;
-            
+
             // Update leaderboard display
             updateLeaderboard();
         }
@@ -842,21 +953,21 @@ async function loadPlayerStatsFromAPI() {
 async function loadTournamentsFromAPI() {
     try {
         const response = await fetch(`${API_BASE_URL}/tournaments`);
-        
+
         if (response.ok) {
             const tournaments = await response.json();
-            
+
             // Merge with existing pastTournaments (avoid duplicates)
-            const existingIds = new Set(pastTournaments.map(t => t.id));
-            tournaments.forEach(tournament => {
+            const existingIds = new Set(pastTournaments.map((t) => t.id));
+            tournaments.forEach((tournament) => {
                 if (!existingIds.has(tournament.id)) {
                     pastTournaments.push(tournament);
                 }
             });
-            
+
             // Sort by date descending (most recent first)
             pastTournaments.sort((a, b) => new Date(b.startDate) - new Date(a.startDate));
-            
+
             // Update tournament selector if on tournament tab
             if (currentLeaderboardTab === 'tournament') {
                 updateTournamentSelector();
@@ -869,26 +980,33 @@ async function loadTournamentsFromAPI() {
 
 function selectTeam(team) {
     currentTeam = team;
-    localStorage.setItem(CURRENT_TEAM_KEY, JSON.stringify(team));
-    
+    _storeSet(CURRENT_TEAM_KEY, team);
+
     // Load team roster and player data
     if (team.roster && team.roster.length > 0) {
         savedRoster = [...team.roster];
         gameState.players = [...team.roster];
-        
+
         // Initialize player stats for each player if not already present
-        team.roster.forEach(player => {
+        team.roster.forEach((player) => {
             if (!gameState.playerStats[player]) {
                 gameState.playerStats[player] = {
-                    goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
-                    yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0
+                    goals: 0,
+                    assists: 0,
+                    hockeyAssists: 0,
+                    blocks: 0,
+                    turnovers: 0,
+                    yardsThrown: 0,
+                    yardsCaught: 0,
+                    throws: 0,
+                    catches: 0,
                 };
             }
         });
-        
+
         saveRoster();
     }
-    
+
     updateTeamSelector();
     updateGameSetupUI();
     updatePlayerList();
@@ -930,33 +1048,32 @@ function showTeamSetup() {
 
 async function handleCreateTeam(event) {
     event.preventDefault();
-    
+
     const name = document.getElementById('new-team-name').value;
     const errorDiv = document.getElementById('create-team-error');
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/teams`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
-            body: JSON.stringify({ name })
+            body: JSON.stringify({ name }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to create team');
         }
-        
+
         userTeams.push(data);
         selectTeam(data);
-        
+
         const modal = document.getElementById('team-setup-modal');
         if (modal) modal.remove();
-        
+
         showToast(`Team "${name}" created!`);
         hapticFeedback('success');
-        
     } catch (error) {
         errorDiv.textContent = error.message;
         errorDiv.classList.remove('hidden');
@@ -968,25 +1085,24 @@ async function inviteToTeam(email, role = 'coach') {
         showToast('No team selected', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/teams/${currentTeam.id}/invite`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
-            body: JSON.stringify({ email, role })
+            body: JSON.stringify({ email, role }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to send invitation');
         }
-        
+
         showToast(data.message);
         hapticFeedback('success');
         return data;
-        
     } catch (error) {
         showToast(error.message);
         hapticFeedback('error');
@@ -999,9 +1115,9 @@ async function checkPendingInvitations() {
 
     try {
         const response = await fetch(`${API_BASE_URL}/invitations`, {
-            credentials: 'include'
+            credentials: 'include',
         });
-        
+
         if (response.ok) {
             const invitations = await response.json();
             if (invitations.length > 0) {
@@ -1017,7 +1133,8 @@ function showInvitationNotification(invitations) {
     const safeTeamName = escapeHtml(invitations[0].teamName);
     const safeId = escapeHtml(invitations[0].id);
     const notification = document.createElement('div');
-    notification.className = 'fixed top-20 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-xl shadow-lg z-50 max-w-sm animate-fadeIn';
+    notification.className =
+        'fixed top-20 right-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white p-4 rounded-xl shadow-lg z-50 max-w-sm animate-fadeIn';
     notification.innerHTML = `
         <div class="flex items-start gap-3">
             <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
@@ -1049,23 +1166,22 @@ async function acceptInvitation(invitationId) {
         const response = await fetch(`${API_BASE_URL}/invitations/${invitationId}/accept`, {
             method: 'POST',
             headers: { 'X-CSRF-Token': getCsrfToken() },
-            credentials: 'include'
+            credentials: 'include',
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.error || 'Failed to accept invitation');
         }
-        
+
         userTeams.push(data.team);
         selectTeam(data.team);
         showToast('Successfully joined team!', 'success');
         hapticFeedback('success');
-        
+
         // Remove notification
         document.querySelector('.fixed.top-20.right-4')?.remove();
-        
     } catch (error) {
         showToast(error.message);
     }
@@ -1076,12 +1192,11 @@ async function declineInvitation(invitationId) {
         await fetch(`${API_BASE_URL}/invitations/${invitationId}/decline`, {
             method: 'POST',
             headers: { 'X-CSRF-Token': getCsrfToken() },
-            credentials: 'include'
+            credentials: 'include',
         });
-        
+
         document.querySelector('.fixed.top-20.right-4')?.remove();
         showToast('Invitation declined');
-        
     } catch (error) {
         showToast('Failed to decline invitation', 'error');
     }
@@ -1092,13 +1207,13 @@ async function declineInvitation(invitationId) {
 function showTeamManagement() {
     closeSettingsModal();
     document.getElementById('team-management-modal').classList.remove('hidden');
-    
+
     // Update team name display
     const teamNameEl = document.getElementById('current-team-name');
     if (teamNameEl && currentTeam) {
         teamNameEl.textContent = currentTeam.name;
     }
-    
+
     populateTeamMembers();
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
@@ -1113,24 +1228,32 @@ function populateTeamMembers() {
         if (list) list.innerHTML = '<div class="text-center text-gray-400 py-4">No team selected</div>';
         return;
     }
-    
+
     const members = currentTeam.members || [];
-    
+
     if (members.length === 0) {
         list.innerHTML = '<div class="text-center text-gray-400 py-4">No team members yet</div>';
         return;
     }
-    
-    list.innerHTML = members.map(member => {
-        const initials = escapeHtml(member.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2));
-        const roleColors = {
-            owner: 'bg-amber-500 text-amber-100',
-            admin: 'bg-purple-500 text-purple-100',
-            coach: 'bg-emerald-500 text-emerald-100'
-        };
-        const roleColor = roleColors[member.role] || roleColors.coach;
-        
-        return `
+
+    list.innerHTML = members
+        .map((member) => {
+            const initials = escapeHtml(
+                member.name
+                    .split(' ')
+                    .map((n) => n[0])
+                    .join('')
+                    .toUpperCase()
+                    .substring(0, 2)
+            );
+            const roleColors = {
+                owner: 'bg-amber-500 text-amber-100',
+                admin: 'bg-purple-500 text-purple-100',
+                coach: 'bg-emerald-500 text-emerald-100',
+            };
+            const roleColor = roleColors[member.role] || roleColors.coach;
+
+            return `
             <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
                 <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-cyan-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                     ${initials}
@@ -1144,30 +1267,30 @@ function populateTeamMembers() {
                 </span>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 }
 
 async function handleInviteSubmit(event) {
     event.preventDefault();
-    
+
     const email = document.getElementById('invite-email').value;
     const role = document.getElementById('invite-role').value;
     const errorDiv = document.getElementById('invite-error');
     const successDiv = document.getElementById('invite-success');
-    
+
     errorDiv.classList.add('hidden');
     successDiv.classList.add('hidden');
-    
+
     try {
         const result = await inviteToTeam(email, role);
-        
-        successDiv.textContent = result.existingUser 
+
+        successDiv.textContent = result.existingUser
             ? `Invitation sent to ${email}! They have an existing account.`
             : `Invitation sent to ${email}! They will need to create an account.`;
         successDiv.classList.remove('hidden');
-        
+
         document.getElementById('invite-email').value = '';
-        
     } catch (error) {
         errorDiv.textContent = error.message;
         errorDiv.classList.remove('hidden');
@@ -1175,37 +1298,21 @@ async function handleInviteSubmit(event) {
 }
 
 function loadCustomPositions() {
-    try {
-        const saved = localStorage.getItem(POSITIONS_KEY);
-        if (saved) customPositions = JSON.parse(saved);
-    } catch (e) {
-        console.warn('Could not load custom positions:', e);
-    }
+    const saved = _storeGet(POSITIONS_KEY);
+    if (saved) customPositions = saved;
 }
 
 function saveCustomPositions() {
-    try {
-        localStorage.setItem(POSITIONS_KEY, JSON.stringify(customPositions));
-    } catch (e) {
-        console.warn('Could not save custom positions:', e);
-    }
+    _storeSet(POSITIONS_KEY, customPositions);
 }
 
 function loadPlayerPositions() {
-    try {
-        const saved = localStorage.getItem(PLAYER_POSITIONS_KEY);
-        if (saved) playerPositions = JSON.parse(saved);
-    } catch (e) {
-        console.warn('Could not load player positions:', e);
-    }
+    const saved = _storeGet(PLAYER_POSITIONS_KEY);
+    if (saved) playerPositions = saved;
 }
 
 function savePlayerPositions() {
-    try {
-        localStorage.setItem(PLAYER_POSITIONS_KEY, JSON.stringify(playerPositions));
-    } catch (e) {
-        console.warn('Could not save player positions:', e);
-    }
+    _storeSet(PLAYER_POSITIONS_KEY, playerPositions);
 }
 
 function getAllPositions() {
@@ -1241,7 +1348,7 @@ function createEmptyTeam(name, id = null, enableProfiles = true) {
         careerStats: { players: {}, totalGames: 0, startDate: new Date().toISOString() },
         seasonStats: { players: {}, games: [], totalGames: 0, wins: 0, losses: 0 },
         gameHistory: [],
-        enableProfiles: enableProfiles // Whether player profiles/emails are enabled for this team
+        enableProfiles: enableProfiles, // Whether player profiles/emails are enabled for this team
     };
 }
 
@@ -1255,11 +1362,11 @@ function findExistingTeam(name, usauLink, leagueId) {
     if (leagueId) {
         const league = leaguesData.leagues[leagueId];
         if (league) {
-            for (const teamId of (league.teamIds || [])) {
+            for (const teamId of league.teamIds || []) {
                 const team = teamsData.teams[teamId];
                 if (team && team.name.trim().toLowerCase() === normalizedName) return team;
             }
-            for (const tId of (league.tournamentIds || [])) {
+            for (const tId of league.tournamentIds || []) {
                 for (const teamId of getEntityTeams(tId)) {
                     const team = teamsData.teams[teamId];
                     if (team && team.name.trim().toLowerCase() === normalizedName) return team;
@@ -1297,7 +1404,9 @@ function extractUsauTeamParam(url) {
         if (teamId) return teamId;
         const m = urlObj.pathname.match(/\/teams\/([^\/]+)/);
         return m ? m[1] : null;
-    } catch (e) { return null; }
+    } catch (e) {
+        return null;
+    }
 }
 
 // Application State
@@ -1309,7 +1418,7 @@ let gameState = {
         opponentTeam: '',
         date: '',
         sheetId: '',
-        isActive: false
+        isActive: false,
     },
     playerStats: {},
     teamStats: {
@@ -1318,7 +1427,7 @@ let gameState = {
         turnovers: 0,
         turnoversGained: 0,
         totalYardsThrown: 0,
-        totalYardsCaught: 0
+        totalYardsCaught: 0,
     },
     actions: [],
     actionHistory: [],
@@ -1342,7 +1451,7 @@ let gameState = {
     gameTimerSeconds: 0, // Game elapsed time in seconds
     gameTimerRunning: false, // Is timer currently running
     gameTimerInterval: null, // Timer interval reference
-    pointNumber: 1 // Current point number
+    pointNumber: 1, // Current point number
 };
 
 // ==================== PROGRESSIVE STAT ENTRY ====================
@@ -1358,13 +1467,10 @@ let _playerSortMode = 'alphabetical'; // alphabetical | playing-time | plus-minu
 const PLAYER_SORT_KEY = 'ultistats_player_sort_mode';
 
 function loadThrowConnections() {
-    try {
-        const saved = localStorage.getItem(THROW_CONNECTIONS_KEY);
-        if (saved) _throwConnections = JSON.parse(saved);
-    } catch (e) { /* ignore */ }
-    try {
-        _quickThrowMode = localStorage.getItem(QUICK_THROW_KEY) !== 'false';
-    } catch (e) { /* ignore */ }
+    const saved = _storeGet(THROW_CONNECTIONS_KEY);
+    if (saved) _throwConnections = saved;
+    const qtm = _storeGet(QUICK_THROW_KEY);
+    _quickThrowMode = qtm !== 'false';
     // Sync toggle button visual state
     requestAnimationFrame(() => {
         const btn = document.getElementById('quick-throw-toggle');
@@ -1380,9 +1486,7 @@ function loadThrowConnections() {
 }
 
 function saveThrowConnections() {
-    try {
-        localStorage.setItem(THROW_CONNECTIONS_KEY, JSON.stringify(_throwConnections));
-    } catch (e) { /* ignore */ }
+    _storeSet(THROW_CONNECTIONS_KEY, _throwConnections);
 }
 
 // Track throw value (yards gained toward endzone) per connection
@@ -1401,7 +1505,7 @@ function trackConnection(thrower, receiver, yardage) {
     }
     saveThrowConnections();
     // Update recency tracking
-    _recentFieldPlayers = _recentFieldPlayers.filter(p => p !== receiver);
+    _recentFieldPlayers = _recentFieldPlayers.filter((p) => p !== receiver);
     _recentFieldPlayers.unshift(receiver);
     if (_recentFieldPlayers.length > 14) _recentFieldPlayers.pop();
 }
@@ -1432,7 +1536,7 @@ function sortPlayersByRecency(players) {
 
 function toggleQuickThrowMode() {
     _quickThrowMode = !_quickThrowMode;
-    localStorage.setItem(QUICK_THROW_KEY, _quickThrowMode ? 'true' : 'false');
+    _storeSet(QUICK_THROW_KEY, _quickThrowMode ? 'true' : 'false');
     const btn = document.getElementById('quick-throw-toggle');
     if (btn) {
         btn.classList.toggle('bg-cyan-500/30', _quickThrowMode);
@@ -1443,7 +1547,12 @@ function toggleQuickThrowMode() {
         btn.classList.toggle('border-white/10', !_quickThrowMode);
     }
     hapticFeedback('tap');
-    showToast(_quickThrowMode ? 'Quick-throw ON — tap field to select receiver directly' : 'Quick-throw OFF — full action menu on tap', 2000);
+    showToast(
+        _quickThrowMode
+            ? 'Quick-throw ON — tap field to select receiver directly'
+            : 'Quick-throw OFF — full action menu on tap',
+        2000
+    );
 }
 
 // ==================== OFFLINE SYNC QUEUE ====================
@@ -1492,7 +1601,10 @@ class SyncQueue {
             const tx = this.db.transaction(SYNC_STORE, 'readwrite');
             const store = tx.objectStore(SYNC_STORE);
             store.add({ ...action, timestamp: Date.now(), synced: 0 });
-            tx.oncomplete = () => { this._updateBadge(); resolve(); };
+            tx.oncomplete = () => {
+                this._updateBadge();
+                resolve();
+            };
             tx.onerror = (e) => reject(e);
         });
     }
@@ -1519,11 +1631,17 @@ class SyncQueue {
             const req = store.get(id);
             req.onsuccess = () => {
                 const record = req.result;
-                if (record) { record.synced = 1; store.put(record); }
+                if (record) {
+                    record.synced = 1;
+                    store.put(record);
+                }
             };
         }
         return new Promise((resolve) => {
-            tx.oncomplete = () => { this._updateBadge(); resolve(); };
+            tx.oncomplete = () => {
+                this._updateBadge();
+                resolve();
+            };
         });
     }
 
@@ -1537,7 +1655,10 @@ class SyncQueue {
             const request = index.openCursor(IDBKeyRange.only(1));
             request.onsuccess = (e) => {
                 const cursor = e.target.result;
-                if (cursor) { cursor.delete(); cursor.continue(); }
+                if (cursor) {
+                    cursor.delete();
+                    cursor.continue();
+                }
             };
             tx.oncomplete = () => resolve();
         });
@@ -1573,7 +1694,7 @@ class SyncQueue {
         const pending = await this.getPending();
         if (pending.length === 0) return;
         console.log(`[SyncQueue] Flushing ${pending.length} pending actions`);
-        const syncedIds = pending.map(a => a.id);
+        const syncedIds = pending.map((a) => a.id);
         await this.markSynced(syncedIds);
         await this.clearSynced();
         console.log(`[SyncQueue] Synced ${syncedIds.length} actions`);
@@ -1591,11 +1712,13 @@ function initSyncQueue() {
     });
     // Register for background sync if available
     if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        navigator.serviceWorker.ready.then(reg => {
-            return reg.sync.register('sync-game-data');
-        }).catch(err => {
-            console.log('[SyncQueue] Background sync registration failed:', err);
-        });
+        navigator.serviceWorker.ready
+            .then((reg) => {
+                return reg.sync.register('sync-game-data');
+            })
+            .catch((err) => {
+                console.log('[SyncQueue] Background sync registration failed:', err);
+            });
     }
     // Listen for sync messages from service worker
     if ('serviceWorker' in navigator) {
@@ -1614,7 +1737,7 @@ let seasonStats = {
     games: [],
     totalGames: 0,
     wins: 0,
-    losses: 0
+    losses: 0,
 };
 
 // Tournament stats (persists within a tournament)
@@ -1626,7 +1749,7 @@ let tournamentStats = {
     games: [],
     totalGames: 0,
     wins: 0,
-    losses: 0
+    losses: 0,
 };
 
 // Past tournaments archive
@@ -1635,11 +1758,11 @@ let selectedTournamentId = null; // For leaderboard view
 
 // Field dimensions (normalized to SVG coordinates - matching actual field proportions)
 const FIELD_DIMENSIONS = {
-    totalLength: 100,       // SVG width
+    totalLength: 100, // SVG width
     playingFieldLength: 64, // 64% of total length
-    endZoneDepth: 18,       // 18% on each side
-    width: 37,              // SVG height (proportional to real field)
-    brickMarkDistance: 10   // from goal line
+    endZoneDepth: 18, // 18% on each side
+    width: 37, // SVG height (proportional to real field)
+    brickMarkDistance: 10, // from goal line
 };
 
 function isInEndzone(y) {
@@ -1647,7 +1770,7 @@ function isInEndzone(y) {
     // Field is vertical: top = their endzone (0-13.3%), bottom = our endzone (86.7-100%)
     const ENDZONE_PERCENT = 13.3;
     if (y <= ENDZONE_PERCENT) return 'their';
-    if (y >= (100 - ENDZONE_PERCENT)) return 'our';
+    if (y >= 100 - ENDZONE_PERCENT) return 'our';
     return null;
 }
 
@@ -1657,10 +1780,18 @@ let gapiInited = false;
 let gisInited = false;
 
 // Initialize the application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function () {
     registerServiceWorker();
+    // Wait for IndexedDB store to initialize (migrates from localStorage on first run)
+    if (window.__storeReady) {
+        try {
+            await window.__storeReady;
+        } catch (e) {
+            console.warn('[Store] Init failed, using localStorage fallback:', e);
+        }
+    }
     loadSettings(); // Load settings first for theme
-    
+
     // Check which page we're on
     const isDashboard = window.isDashboardPage === true;
     const isGamePage = window.isGamePage === true;
@@ -1678,22 +1809,23 @@ document.addEventListener('DOMContentLoaded', function() {
             loadPlayerRegistry();
             loadCareerStats();
             loadSeasonStats();
-            
+
             // Restore team roster from currentTeam if available (loaded by loadAuthState)
             if (currentTeam && currentTeam.roster && currentTeam.roster.length > 0) {
                 gameState.players = [...currentTeam.roster];
                 savedRoster = [...currentTeam.roster];
             }
-            
+
             loadCustomPositions();
             loadPlayerPositions();
             loadThrowConnections();
+            loadChemistryData();
             loadPlayerSortMode();
             initializeGameFromSetup();
             initializeEventListeners();
             initSyncQueue();
             // Note: Don't call drawField() - game.html has static SVG with different orientation
-            
+
             // Initialize Lucide icons
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
@@ -1703,7 +1835,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         return;
     }
-    
+
     if (isDashboard) {
         // Dashboard page - already authenticated (checked in dashboard.html)
         // Load all dashboard data
@@ -1711,11 +1843,10 @@ document.addEventListener('DOMContentLoaded', function() {
         checkPendingInvitations();
 
         // Check for auto-joined teams message
-        const autoJoinedTeams = localStorage.getItem('ultistats_auto_joined_teams');
+        const autoJoinedTeams = _storeGet('ultistats_auto_joined_teams');
         if (autoJoinedTeams) {
-            const teams = JSON.parse(autoJoinedTeams);
-            showToast(`Welcome! You've been added to: ${teams.join(', ')}`);
-            localStorage.removeItem('ultistats_auto_joined_teams');
+            showToast(`Welcome! You've been added to: ${autoJoinedTeams.join(', ')}`);
+            _storeRemove('ultistats_auto_joined_teams');
         }
     } else if (isLeaguePage || isTournamentPage) {
         // League/Tournament page - no special init needed here, page handles its own setup
@@ -1729,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
     }
-    
+
     loadTeamsData();
     loadLeaguesData();
     loadTournamentsData();
@@ -1761,7 +1892,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-    
+
     // Auto-save when user switches tabs or closes page
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -1798,7 +1929,9 @@ async function requestWakeLock() {
     if (!('wakeLock' in navigator)) return;
     try {
         _wakeLockSentinel = await navigator.wakeLock.request('screen');
-        _wakeLockSentinel.addEventListener('release', () => { _wakeLockSentinel = null; });
+        _wakeLockSentinel.addEventListener('release', () => {
+            _wakeLockSentinel = null;
+        });
         console.log('[WakeLock] Screen wake lock acquired');
     } catch (err) {
         console.log('[WakeLock] Could not acquire:', err.message);
@@ -1815,225 +1948,173 @@ function releaseWakeLock() {
 
 // Register service worker for PWA
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('Service Worker registered'))
-            .catch(err => console.log('SW registration failed:', err));
-    }
+    if (!('serviceWorker' in navigator)) return;
+    // Skip SW on Capacitor native (WKWebView handles caching)
+    if (window.Capacitor?.isNativePlatform()) return;
+    navigator.serviceWorker
+        .register('/sw-source.js')
+        .then((reg) => {
+            console.log('Service Worker registered');
+            // Listen for updates
+            reg.addEventListener('updatefound', () => {
+                const newWorker = reg.installing;
+                if (!newWorker) return;
+                newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                        showToast('App updated — refresh for latest version', 5000, 'success');
+                    }
+                });
+            });
+        })
+        .catch((err) => console.log('SW registration failed:', err));
 }
 
 // LocalStorage functions
 function saveToStorage() {
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(gameState));
-    } catch (e) {
-        console.warn('Could not save to localStorage:', e);
-    }
+    _storeSet(STORAGE_KEY, gameState);
 }
 
 function saveSeasonStats() {
-    try {
-        localStorage.setItem(SEASON_STORAGE_KEY, JSON.stringify(seasonStats));
-    } catch (e) {
-        console.warn('Could not save season stats:', e);
-    }
+    _storeSet(SEASON_STORAGE_KEY, seasonStats);
 }
 
 function loadSeasonStats() {
-    try {
-        const saved = localStorage.getItem(SEASON_STORAGE_KEY);
-        if (saved) {
-            seasonStats = { ...seasonStats, ...JSON.parse(saved) };
-        }
-    } catch (e) {
-        console.warn('Could not load season stats:', e);
+    const saved = _storeGet(SEASON_STORAGE_KEY);
+    if (saved) {
+        seasonStats = { ...seasonStats, ...saved };
     }
 }
 
 function saveTournamentStats() {
-    try {
-        localStorage.setItem(TOURNAMENT_STORAGE_KEY, JSON.stringify(tournamentStats));
-    } catch (e) {
-        console.warn('Could not save tournament stats:', e);
-    }
+    _storeSet(TOURNAMENT_STORAGE_KEY, tournamentStats);
 }
 
 function loadTournamentStats() {
-    try {
-        const saved = localStorage.getItem(TOURNAMENT_STORAGE_KEY);
-        if (saved) {
-            tournamentStats = { ...tournamentStats, ...JSON.parse(saved) };
-        }
-    } catch (e) {
-        console.warn('Could not load tournament stats:', e);
+    const saved = _storeGet(TOURNAMENT_STORAGE_KEY);
+    if (saved) {
+        tournamentStats = { ...tournamentStats, ...saved };
     }
 }
 
 function savePastTournaments() {
-    try {
-        localStorage.setItem(PAST_TOURNAMENTS_KEY, JSON.stringify(pastTournaments));
-    } catch (e) {
-        console.warn('Could not save past tournaments:', e);
-    }
+    _storeSet(PAST_TOURNAMENTS_KEY, pastTournaments);
 }
 
 function loadPastTournaments() {
-    try {
-        const saved = localStorage.getItem(PAST_TOURNAMENTS_KEY);
-        if (saved) {
-            pastTournaments = JSON.parse(saved);
-        }
-    } catch (e) {
-        console.warn('Could not load past tournaments:', e);
-        pastTournaments = [];
+    const saved = _storeGet(PAST_TOURNAMENTS_KEY);
+    if (saved) {
+        pastTournaments = saved;
     }
 }
 
 function saveGameHistory() {
-    try {
-        localStorage.setItem(GAME_HISTORY_KEY, JSON.stringify(gameHistory));
-    } catch (e) {
-        console.warn('Could not save game history:', e);
-    }
+    _storeSet(GAME_HISTORY_KEY, gameHistory);
 }
 
 function loadGameHistory() {
-    try {
-        const saved = localStorage.getItem(GAME_HISTORY_KEY);
-        if (saved) {
-            gameHistory = JSON.parse(saved) || [];
-        }
-    } catch (e) {
-        console.warn('Could not load game history:', e);
+    const saved = _storeGet(GAME_HISTORY_KEY);
+    if (saved) {
+        gameHistory = saved;
     }
 }
 
 function saveRoster() {
-    try {
-        localStorage.setItem(ROSTER_KEY, JSON.stringify(savedRoster));
-    } catch (e) {
-        console.warn('Could not save roster:', e);
-    }
+    _storeSet(ROSTER_KEY, savedRoster);
 }
 
 function loadRoster() {
-    try {
-        const saved = localStorage.getItem(ROSTER_KEY);
-        if (saved) {
-            savedRoster = JSON.parse(saved) || [];
-            // Merge saved roster into gameState players if not already present
-            savedRoster.forEach(player => {
-                if (!gameState.players.includes(player)) {
-                    gameState.players.push(player);
-                }
-            });
-        }
-    } catch (e) {
-        console.warn('Could not load roster:', e);
+    const saved = _storeGet(ROSTER_KEY);
+    if (saved) {
+        savedRoster = saved;
+        // Merge saved roster into gameState players if not already present
+        savedRoster.forEach((player) => {
+            if (!gameState.players.includes(player)) {
+                gameState.players.push(player);
+            }
+        });
     }
 }
 
 function saveCareerStats() {
-    try {
-        localStorage.setItem(CAREER_STATS_KEY, JSON.stringify(careerStats));
-    } catch (e) {
-        console.warn('Could not save career stats:', e);
-    }
+    _storeSet(CAREER_STATS_KEY, careerStats);
 }
 
 function loadCareerStats() {
-    try {
-        const saved = localStorage.getItem(CAREER_STATS_KEY);
-        if (saved) {
-            careerStats = { ...careerStats, ...JSON.parse(saved) };
-        }
-        // Set start date if not set
-        if (!careerStats.startDate) {
-            careerStats.startDate = new Date().toISOString();
-            saveCareerStats();
-        }
-    } catch (e) {
-        console.warn('Could not load career stats:', e);
+    const saved = _storeGet(CAREER_STATS_KEY);
+    if (saved) {
+        careerStats = { ...careerStats, ...saved };
+    }
+    // Set start date if not set
+    if (!careerStats.startDate) {
+        careerStats.startDate = new Date().toISOString();
+        saveCareerStats();
     }
 }
 
 function saveChemistryData() {
-    try {
-        localStorage.setItem(CHEMISTRY_KEY, JSON.stringify(chemistryData));
-    } catch (e) {
-        console.warn('Could not save chemistry data:', e);
-    }
+    _storeSet(CHEMISTRY_KEY, chemistryData);
 }
 
 function loadChemistryData() {
-    try {
-        const saved = localStorage.getItem(CHEMISTRY_KEY);
-        if (saved) {
-            chemistryData = { pairings: {}, lineHistory: {}, playerPairs: {}, gamesAnalyzed: 0, gameTimestamps: [], ...JSON.parse(saved) };
-            // Backward-compat: ensure new fields exist on existing pairs
-            if (!chemistryData.gameTimestamps) chemistryData.gameTimestamps = [];
-            for (const key in chemistryData.playerPairs) {
-                const p = chemistryData.playerPairs[key];
-                if (p.offPointsTogether === undefined) {
-                    p.offPointsTogether = 0; p.offScored = 0; p.offAllowed = 0;
-                    p.defPointsTogether = 0; p.defScored = 0; p.defAllowed = 0;
-                }
-            }
-            for (const key in chemistryData.pairings) {
-                if (chemistryData.pairings[key].throwValue === undefined) {
-                    chemistryData.pairings[key].throwValue = 0;
-                }
+    const saved = _storeGet(CHEMISTRY_KEY);
+    if (saved) {
+        chemistryData = {
+            pairings: {},
+            lineHistory: {},
+            playerPairs: {},
+            gamesAnalyzed: 0,
+            gameTimestamps: [],
+            ...saved,
+        };
+        // Backward-compat: ensure new fields exist on existing pairs
+        if (!chemistryData.gameTimestamps) chemistryData.gameTimestamps = [];
+        for (const key in chemistryData.playerPairs) {
+            const p = chemistryData.playerPairs[key];
+            if (p.offPointsTogether === undefined) {
+                p.offPointsTogether = 0;
+                p.offScored = 0;
+                p.offAllowed = 0;
+                p.defPointsTogether = 0;
+                p.defScored = 0;
+                p.defAllowed = 0;
             }
         }
-    } catch (e) {
-        console.warn('Could not load chemistry data:', e);
+        for (const key in chemistryData.pairings) {
+            if (chemistryData.pairings[key].throwValue === undefined) {
+                chemistryData.pairings[key].throwValue = 0;
+            }
+        }
     }
 }
 
 function saveTeamsData() {
-    try {
-        localStorage.setItem(TEAMS_KEY, JSON.stringify(teamsData));
-    } catch (e) {
-        console.warn('Could not save teams data:', e);
-    }
+    _storeSet(TEAMS_KEY, teamsData);
 }
 
 function loadTeamsData() {
-    try {
-        const saved = localStorage.getItem(TEAMS_KEY);
-        if (saved) {
-            teamsData = JSON.parse(saved);
-        }
-        // Create default team if none exists
-        if (Object.keys(teamsData.teams).length === 0) {
-            const defaultTeam = createEmptyTeam('My Team');
-            teamsData.teams[defaultTeam.id] = defaultTeam;
-            teamsData.currentTeamId = defaultTeam.id;
-            saveTeamsData();
-        }
-    } catch (e) {
-        console.warn('Could not load teams data:', e);
+    const saved = _storeGet(TEAMS_KEY);
+    if (saved) {
+        teamsData = saved;
+    }
+    // Create default team if none exists
+    if (Object.keys(teamsData.teams).length === 0) {
+        const defaultTeam = createEmptyTeam('My Team');
+        teamsData.teams[defaultTeam.id] = defaultTeam;
+        teamsData.currentTeamId = defaultTeam.id;
+        saveTeamsData();
     }
 }
 
 // ==================== LEAGUE MANAGEMENT ====================
 
 function saveLeaguesData() {
-    try {
-        localStorage.setItem(LEAGUES_KEY, JSON.stringify(leaguesData));
-    } catch (e) {
-        console.warn('Could not save leagues data:', e);
-    }
+    _storeSet(LEAGUES_KEY, leaguesData);
 }
 
 function loadLeaguesData() {
-    try {
-        const saved = localStorage.getItem(LEAGUES_KEY);
-        if (saved) {
-            leaguesData = JSON.parse(saved);
-        }
-    } catch (e) {
-        console.warn('Could not load leagues data:', e);
+    const saved = _storeGet(LEAGUES_KEY);
+    if (saved) {
+        leaguesData = saved;
     }
 }
 
@@ -2049,7 +2130,7 @@ function createLeague(name, description = '', season = '') {
         teamIds: [],
         regularSeasonMatchups: [],
         tournamentIds: [],
-        overallStandings: {}
+        overallStandings: {},
     };
 
     leaguesData.leagues[id] = league;
@@ -2149,10 +2230,16 @@ function calculateLeagueStandings(leagueId) {
     // Initialize standings for all league teams
     for (const teamId of league.teamIds) {
         standings[teamId] = {
-            wins: 0, losses: 0, ties: 0,
-            regularWins: 0, regularLosses: 0,
-            tournamentWins: 0, tournamentLosses: 0,
-            pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+            wins: 0,
+            losses: 0,
+            ties: 0,
+            regularWins: 0,
+            regularLosses: 0,
+            tournamentWins: 0,
+            tournamentLosses: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+            pointDiff: 0,
         };
     }
 
@@ -2169,13 +2256,18 @@ function calculateLeagueStandings(leagueId) {
         away.pointsAgainst += matchup.homeScore || 0;
 
         if (matchup.homeScore > matchup.awayScore) {
-            home.wins++; home.regularWins++;
-            away.losses++; away.regularLosses++;
+            home.wins++;
+            home.regularWins++;
+            away.losses++;
+            away.regularLosses++;
         } else if (matchup.awayScore > matchup.homeScore) {
-            away.wins++; away.regularWins++;
-            home.losses++; home.regularLosses++;
+            away.wins++;
+            away.regularWins++;
+            home.losses++;
+            home.regularLosses++;
         } else {
-            home.ties++; away.ties++;
+            home.ties++;
+            away.ties++;
         }
     }
 
@@ -2197,13 +2289,18 @@ function calculateLeagueStandings(leagueId) {
             away.pointsAgainst += matchup.homeScore || 0;
 
             if (matchup.homeScore > matchup.awayScore) {
-                home.wins++; home.tournamentWins++;
-                away.losses++; away.tournamentLosses++;
+                home.wins++;
+                home.tournamentWins++;
+                away.losses++;
+                away.tournamentLosses++;
             } else if (matchup.awayScore > matchup.homeScore) {
-                away.wins++; away.tournamentWins++;
-                home.losses++; home.tournamentLosses++;
+                away.wins++;
+                away.tournamentWins++;
+                home.losses++;
+                home.tournamentLosses++;
             } else {
-                home.ties++; away.ties++;
+                home.ties++;
+                away.ties++;
             }
         }
     }
@@ -2223,7 +2320,7 @@ function recordRegularSeasonResult(leagueId, matchupId, homeScore, awayScore, ga
     const league = leaguesData.leagues[leagueId];
     if (!league) return false;
 
-    const matchup = league.regularSeasonMatchups.find(m => m.id === matchupId);
+    const matchup = league.regularSeasonMatchups.find((m) => m.id === matchupId);
     if (!matchup) return false;
 
     matchup.homeScore = homeScore;
@@ -2238,26 +2335,25 @@ function recordRegularSeasonResult(leagueId, matchupId, homeScore, awayScore, ga
 // ==================== TOURNAMENT MANAGEMENT ====================
 
 function saveTournamentsData() {
-    try {
-        localStorage.setItem(TOURNAMENTS_LOCAL_KEY, JSON.stringify(tournamentsData));
-    } catch (e) {
-        console.warn('Could not save tournaments data:', e);
-    }
+    _storeSet(TOURNAMENTS_LOCAL_KEY, tournamentsData);
 }
 
 function loadTournamentsData() {
-    try {
-        const saved = localStorage.getItem(TOURNAMENTS_LOCAL_KEY);
-        if (saved) {
-            tournamentsData = JSON.parse(saved);
-        }
-    } catch (e) {
-        console.warn('Could not load tournaments data:', e);
+    const saved = _storeGet(TOURNAMENTS_LOCAL_KEY);
+    if (saved) {
+        tournamentsData = saved;
     }
 }
 
 // Create a new tournament
-function createTournament(name, description = '', format = 'pool-to-bracket', numPools = 2, startDate = null, endDate = null) {
+function createTournament(
+    name,
+    description = '',
+    format = 'pool-to-bracket',
+    numPools = 2,
+    startDate = null,
+    endDate = null
+) {
     const id = generateUUID();
     const tournament = {
         id,
@@ -2280,7 +2376,7 @@ function createTournament(name, description = '', format = 'pool-to-bracket', nu
         sharedTournamentId: null,
         usauFormat: null,
         competitionLevel: null,
-        genderDivision: null
+        genderDivision: null,
     };
 
     if (format !== 'bracket') {
@@ -2344,16 +2440,16 @@ function selectTournament(tournamentId) {
 
 // Get current tournament
 function getCurrentTournament() {
-    return tournamentsData.currentTournamentId ? tournamentsData.tournaments[tournamentsData.currentTournamentId] : null;
+    return tournamentsData.currentTournamentId
+        ? tournamentsData.tournaments[tournamentsData.currentTournamentId]
+        : null;
 }
 
 // ==================== ENTITY-AGNOSTIC HELPERS ====================
 // These allow pool/bracket functions to work with both tournaments and leagues
 
 function getEntityById(entityId) {
-    return tournamentsData.tournaments[entityId]
-        || leaguesData.leagues[entityId]
-        || null;
+    return tournamentsData.tournaments[entityId] || leaguesData.leagues[entityId] || null;
 }
 
 function saveEntityData(entityId) {
@@ -2390,7 +2486,7 @@ function getEntityTeamCount(entityId) {
 
 function migrateLeaguesToTournaments() {
     const MIGRATION_KEY = 'ultistats_league_tournament_migration_v1';
-    if (localStorage.getItem(MIGRATION_KEY)) return;
+    if (_storeGet(MIGRATION_KEY)) return;
 
     let migrated = 0;
     for (const [id, league] of Object.entries(leaguesData.leagues)) {
@@ -2406,7 +2502,7 @@ function migrateLeaguesToTournaments() {
                 sharedTournamentId: league.sharedTournamentId || null,
                 usauFormat: league.usauFormat || null,
                 competitionLevel: league.competitionLevel || null,
-                genderDivision: league.genderDivision || null
+                genderDivision: league.genderDivision || null,
             };
             delete leaguesData.leagues[id];
             migrated++;
@@ -2424,7 +2520,7 @@ function migrateLeaguesToTournaments() {
         console.log(`Migration: moved ${migrated} leagues to tournaments`);
     }
 
-    localStorage.setItem(MIGRATION_KEY, new Date().toISOString());
+    _storeSet(MIGRATION_KEY, new Date().toISOString());
 }
 
 // Add a team to a pool (works for tournaments and legacy leagues)
@@ -2432,7 +2528,7 @@ function addTeamToPool(entityId, poolId, teamId) {
     const entity = getEntityById(entityId);
     if (!entity) return false;
 
-    const pool = entity.pools.find(p => p.id === poolId);
+    const pool = entity.pools.find((p) => p.id === poolId);
     if (!pool) return false;
 
     // Check if team is already in any pool
@@ -2448,8 +2544,12 @@ function addTeamToPool(entityId, poolId, teamId) {
         entity.poolStandings[poolId] = {};
     }
     entity.poolStandings[poolId][teamId] = {
-        wins: 0, losses: 0, ties: 0,
-        pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        pointsFor: 0,
+        pointsAgainst: 0,
+        pointDiff: 0,
     };
     saveEntityData(entityId);
     return true;
@@ -2460,7 +2560,7 @@ function removeTeamFromPool(entityId, poolId, teamId) {
     const entity = getEntityById(entityId);
     if (!entity) return false;
 
-    const pool = entity.pools.find(p => p.id === poolId);
+    const pool = entity.pools.find((p) => p.id === poolId);
     if (!pool) return false;
 
     const idx = pool.teamIds.indexOf(teamId);
@@ -2526,7 +2626,7 @@ function generatePoolPlaySchedule(entityId) {
                         status: 'scheduled',
                         homeScore: null,
                         awayScore: null,
-                        gameId: null
+                        gameId: null,
                     });
                 }
             }
@@ -2584,7 +2684,7 @@ function generateBracketFromPools(entityId, teamsPerPool = 2) {
                 status: poolRankings[poolA.id][0] && poolRankings[poolB.id][1] ? 'scheduled' : 'pending',
                 homeScore: null,
                 awayScore: null,
-                gameId: null
+                gameId: null,
             },
             {
                 id: generateUUID(),
@@ -2597,7 +2697,7 @@ function generateBracketFromPools(entityId, teamsPerPool = 2) {
                 status: poolRankings[poolB.id][0] && poolRankings[poolA.id][1] ? 'scheduled' : 'pending',
                 homeScore: null,
                 awayScore: null,
-                gameId: null
+                gameId: null,
             },
             // Finals (teams TBD until semis complete)
             {
@@ -2611,8 +2711,8 @@ function generateBracketFromPools(entityId, teamsPerPool = 2) {
                 status: 'pending',
                 homeScore: null,
                 awayScore: null,
-                gameId: null
-            }
+                gameId: null,
+            },
         ];
     }
 
@@ -2650,10 +2750,10 @@ function generateSingleEliminationBracket(entityId) {
             awaySeed: `S${i * 2 + 2}`,
             homeTeamId: home,
             awayTeamId: away,
-            status: home && away ? 'scheduled' : (home || away ? 'bye' : 'pending'),
+            status: home && away ? 'scheduled' : home || away ? 'bye' : 'pending',
             homeScore: null,
             awayScore: null,
-            gameId: null
+            gameId: null,
         });
     }
 
@@ -2672,7 +2772,7 @@ function generateSingleEliminationBracket(entityId) {
                 status: 'pending',
                 homeScore: null,
                 awayScore: null,
-                gameId: null
+                gameId: null,
             });
         }
     }
@@ -2686,20 +2786,24 @@ function updatePoolStandings(entityId, poolId) {
     const entity = getEntityById(entityId);
     if (!entity) return;
 
-    const pool = entity.pools.find(p => p.id === poolId);
+    const pool = entity.pools.find((p) => p.id === poolId);
     if (!pool) return;
 
     // Reset standings for this pool
     entity.poolStandings[poolId] = {};
     for (const teamId of pool.teamIds) {
         entity.poolStandings[poolId][teamId] = {
-            wins: 0, losses: 0, ties: 0,
-            pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+            wins: 0,
+            losses: 0,
+            ties: 0,
+            pointsFor: 0,
+            pointsAgainst: 0,
+            pointDiff: 0,
         };
     }
 
     // Calculate from completed matchups
-    const poolMatchups = entity.poolMatchups.filter(m => m.poolId === poolId && m.status === 'completed');
+    const poolMatchups = entity.poolMatchups.filter((m) => m.poolId === poolId && m.status === 'completed');
     for (const matchup of poolMatchups) {
         const homeStats = entity.poolStandings[poolId][matchup.homeTeamId];
         const awayStats = entity.poolStandings[poolId][matchup.awayTeamId];
@@ -2735,7 +2839,7 @@ function recordMatchupResult(entityId, matchupId, matchupType, homeScore, awaySc
     if (!entity) return false;
 
     const matchups = matchupType === 'pool' ? entity.poolMatchups : entity.bracketMatchups;
-    const matchup = matchups.find(m => m.id === matchupId);
+    const matchup = matchups.find((m) => m.id === matchupId);
 
     if (!matchup) return false;
 
@@ -2763,20 +2867,19 @@ function advanceBracketWinner(entityId, completedMatchupId) {
     const entity = getEntityById(entityId);
     if (!entity) return;
 
-    const completed = entity.bracketMatchups.find(m => m.id === completedMatchupId);
+    const completed = entity.bracketMatchups.find((m) => m.id === completedMatchupId);
     if (!completed || completed.status !== 'completed') return;
 
-    const winnerId = completed.homeScore > completed.awayScore
-        ? completed.homeTeamId
-        : completed.awayTeamId;
+    const winnerId = completed.homeScore > completed.awayScore ? completed.homeTeamId : completed.awayTeamId;
 
     // Find next round matchup
     const nextRound = completed.round - 1;
     if (nextRound < 1) return; // Finals completed, tournament over
 
-    const nextMatchup = entity.bracketMatchups.find(m =>
-        m.round === nextRound &&
-        (m.homeSeed === `W${completed.position}` || m.awaySeed === `W${completed.position}`)
+    const nextMatchup = entity.bracketMatchups.find(
+        (m) =>
+            m.round === nextRound &&
+            (m.homeSeed === `W${completed.position}` || m.awaySeed === `W${completed.position}`)
     );
 
     if (nextMatchup) {
@@ -2807,7 +2910,7 @@ function startMatchupGame(entityId, matchupId, matchupType) {
     } else {
         matchups = entity.bracketMatchups || [];
     }
-    const matchup = matchups.find(m => m.id === matchupId);
+    const matchup = matchups.find((m) => m.id === matchupId);
 
     if (!matchup || !matchup.homeTeamId || !matchup.awayTeamId) return false;
 
@@ -2829,12 +2932,12 @@ function startMatchupGame(entityId, matchupId, matchupType) {
         gameDate: new Date().toISOString().split('T')[0],
         gameType: isTournament ? 'tournament' : 'league',
         tournamentId: isTournament ? entityId : null,
-        leagueId: isTournament ? (entity.leagueId || null) : entityId,
+        leagueId: isTournament ? entity.leagueId || null : entityId,
         matchupId: matchupId,
-        matchupType: matchupType
+        matchupType: matchupType,
     };
 
-    localStorage.setItem('ultistats_game_setup', JSON.stringify(gameSetup));
+    _storeSet('ultistats_game_setup', gameSetup);
 
     // Set active team to home team
     teamsData.currentTeamId = matchup.homeTeamId;
@@ -2867,7 +2970,7 @@ let usauImportState = {
         importPools: true,
         importBracket: true,
         importRosters: true,
-        enableProfiles: true
+        enableProfiles: true,
     },
     progress: {
         phase: 'init', // 'init', 'creating', 'importing-teams', 'fetching-rosters', 'finalizing', 'complete', 'error'
@@ -2878,13 +2981,13 @@ let usauImportState = {
         rostersFetched: 0,
         currentTeam: null,
         failed: [],
-        message: ''
+        message: '',
     },
     aborted: false,
     leagueId: null,
     tournamentId: null,
     importDestination: 'standalone', // 'standalone' | 'add-to-league'
-    targetLeagueId: null
+    targetLeagueId: null,
 };
 
 // Reset import state
@@ -2898,24 +3001,24 @@ function resetUsauImportState() {
             importPools: true,
             importBracket: true,
             importRosters: true,
-            enableProfiles: true
+            enableProfiles: true,
         },
         progress: {
             phase: 'init',
             teamsTotal: 0,
             teamsImported: 0,
-        teamsReused: 0,
+            teamsReused: 0,
             rostersTotal: 0,
             rostersFetched: 0,
             currentTeam: null,
             failed: [],
-            message: ''
+            message: '',
         },
         aborted: false,
         leagueId: null,
         tournamentId: null,
         importDestination: 'standalone',
-        targetLeagueId: null
+        targetLeagueId: null,
     };
 }
 
@@ -2938,16 +3041,17 @@ async function fetchCompleteTournament(tournamentUrl) {
 
     if (tournament.scheduleLinks && tournament.scheduleLinks.length > 0) {
         // Prioritize links: division links first, then schedule/pool links
-        const scheduleLink = tournament.scheduleLinks.find(l =>
-            l.type === 'division' ||
-            l.href.includes('/schedule/')
-        ) || tournament.scheduleLinks.find(l =>
-            l.text.toLowerCase().includes('pool') ||
-            l.text.toLowerCase().includes('schedule') ||
-            l.text.toLowerCase().includes('men') ||
-            l.text.toLowerCase().includes('women') ||
-            l.text.toLowerCase().includes('college')
-        ) || tournament.scheduleLinks[0];
+        const scheduleLink =
+            tournament.scheduleLinks.find((l) => l.type === 'division' || l.href.includes('/schedule/')) ||
+            tournament.scheduleLinks.find(
+                (l) =>
+                    l.text.toLowerCase().includes('pool') ||
+                    l.text.toLowerCase().includes('schedule') ||
+                    l.text.toLowerCase().includes('men') ||
+                    l.text.toLowerCase().includes('women') ||
+                    l.text.toLowerCase().includes('college')
+            ) ||
+            tournament.scheduleLinks[0];
 
         scheduleUrl = scheduleLink.href;
     } else if (tournament.competitionLevel && tournament.genderDivision) {
@@ -2963,7 +3067,9 @@ async function fetchCompleteTournament(tournamentUrl) {
     if (scheduleUrl) {
         try {
             console.log('Fetching schedule from:', scheduleUrl);
-            const poolsResponse = await fetch(`${apiBase}/api/usau/tournament/pools?url=${encodeURIComponent(scheduleUrl)}`);
+            const poolsResponse = await fetch(
+                `${apiBase}/api/usau/tournament/pools?url=${encodeURIComponent(scheduleUrl)}`
+            );
             if (poolsResponse.ok) {
                 usauImportState.pools = await poolsResponse.json();
 
@@ -2971,15 +3077,15 @@ async function fetchCompleteTournament(tournamentUrl) {
                 if (usauImportState.pools.teams && usauImportState.pools.teams.length > 0) {
                     // Merge with existing team links if available
                     const teamLinkMap = {};
-                    tournament.teams.forEach(t => {
+                    tournament.teams.forEach((t) => {
                         teamLinkMap[t.name.toLowerCase()] = t.link;
                     });
 
-                    usauImportState.tournament.teams = usauImportState.pools.teams.map(t => ({
+                    usauImportState.tournament.teams = usauImportState.pools.teams.map((t) => ({
                         name: t.name,
                         pool: t.pool,
                         seed: t.seed,
-                        link: teamLinkMap[t.name.toLowerCase()] || null
+                        link: teamLinkMap[t.name.toLowerCase()] || null,
                     }));
                 }
             }
@@ -2992,19 +3098,20 @@ async function fetchCompleteTournament(tournamentUrl) {
     usauImportState.selectedTeams = usauImportState.tournament.teams.map((t, i) => ({
         ...t,
         selected: true,
-        index: i
+        index: i,
     }));
 
     // 3. Try to fetch bracket structure if available (from same schedule page or bracket link)
     if (tournament.scheduleLinks && tournament.scheduleLinks.length > 0) {
         try {
-            const bracketLink = tournament.scheduleLinks.find(l =>
-                l.text.toLowerCase().includes('bracket') ||
-                l.text.toLowerCase().includes('elimination')
+            const bracketLink = tournament.scheduleLinks.find(
+                (l) => l.text.toLowerCase().includes('bracket') || l.text.toLowerCase().includes('elimination')
             );
 
             if (bracketLink) {
-                const bracketResponse = await fetch(`${apiBase}/api/usau/tournament/bracket?url=${encodeURIComponent(bracketLink.href)}`);
+                const bracketResponse = await fetch(
+                    `${apiBase}/api/usau/tournament/bracket?url=${encodeURIComponent(bracketLink.href)}`
+                );
                 if (bracketResponse.ok) {
                     usauImportState.bracket = await bracketResponse.json();
                 }
@@ -3027,7 +3134,7 @@ async function fetchTeamRosterWithRetry(teamUrl, maxRetries = 3) {
 
             if (response.status === 429) {
                 // Rate limited - wait longer
-                await new Promise(resolve => setTimeout(resolve, 60000));
+                await new Promise((resolve) => setTimeout(resolve, 60000));
                 continue;
             }
 
@@ -3039,7 +3146,7 @@ async function fetchTeamRosterWithRetry(teamUrl, maxRetries = 3) {
         } catch (error) {
             if (attempt === maxRetries) throw error;
             // Exponential backoff: 1s, 2s, 4s
-            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
+            await new Promise((resolve) => setTimeout(resolve, 1000 * Math.pow(2, attempt - 1)));
         }
     }
 }
@@ -3080,7 +3187,7 @@ async function batchFetchRosters(teams, batchSize = 3, delayMs = 2000, onProgres
 
         // Delay before next batch (respect rate limiting)
         if (i + batchSize < teams.length && !usauImportState.aborted) {
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
     }
 
@@ -3108,7 +3215,7 @@ function detectTournamentFormat(teamCount, poolCount) {
 async function createTournamentFromUsauImport(options = {}) {
     const { importPools, importBracket, importRosters, enableProfiles } = {
         ...usauImportState.importOptions,
-        ...options
+        ...options,
     };
 
     const tournament = usauImportState.tournament;
@@ -3121,7 +3228,7 @@ async function createTournamentFromUsauImport(options = {}) {
     usauImportState.progress.message = 'Creating tournament structure...';
 
     // Get selected teams
-    const selectedTeams = usauImportState.selectedTeams.filter(t => t.selected);
+    const selectedTeams = usauImportState.selectedTeams.filter((t) => t.selected);
     const poolData = usauImportState.pools;
 
     // Detect format
@@ -3179,8 +3286,10 @@ async function createTournamentFromUsauImport(options = {}) {
     }
 
     // Determine league context for team reuse
-    const targetLeagueId = (usauImportState.importDestination === 'add-to-league'
-        && usauImportState.targetLeagueId) ? usauImportState.targetLeagueId : null;
+    const targetLeagueId =
+        usauImportState.importDestination === 'add-to-league' && usauImportState.targetLeagueId
+            ? usauImportState.targetLeagueId
+            : null;
 
     // Create or reuse each team
     for (let i = 0; i < selectedTeams.length && !usauImportState.aborted; i++) {
@@ -3216,12 +3325,12 @@ async function createTournamentFromUsauImport(options = {}) {
         if (importPools && format !== 'bracket') {
             const assignedPool = poolAssignments[usauTeam.name.toLowerCase()];
             if (assignedPool) {
-                const pool = newTournament.pools.find(p => p.name === assignedPool);
+                const pool = newTournament.pools.find((p) => p.name === assignedPool);
                 if (pool) {
                     addTeamToPool(newTournament.id, pool.id, teamId);
                 }
             } else {
-                const targetPool = newTournament.pools.find(p => p.teamIds.length < 6) || newTournament.pools[0];
+                const targetPool = newTournament.pools.find((p) => p.teamIds.length < 6) || newTournament.pools[0];
                 if (targetPool) {
                     addTeamToPool(newTournament.id, targetPool.id, teamId);
                 }
@@ -3248,7 +3357,7 @@ async function createTournamentFromUsauImport(options = {}) {
         usauImportState.progress.rostersTotal = selectedTeams.length;
         usauImportState.progress.message = 'Fetching rosters...';
 
-        const teamsWithLinks = selectedTeams.filter(t => {
+        const teamsWithLinks = selectedTeams.filter((t) => {
             if (!t.link) return false;
             // Skip roster fetch for reused teams that already have a roster
             const tid = teamIdMap[t.name.toLowerCase()];
@@ -3280,7 +3389,7 @@ async function createTournamentFromUsauImport(options = {}) {
                 usauImportState.progress.failed.push({
                     teamName: result.team.name,
                     teamId: teamId,
-                    error: result.error
+                    error: result.error,
                 });
             } else if (result.roster && result.roster.length > 0) {
                 team.rosterStatus = 'fetched';
@@ -3298,10 +3407,15 @@ async function createTournamentFromUsauImport(options = {}) {
                     // Initialize career stats
                     if (!team.careerStats.players[player.name]) {
                         team.careerStats.players[player.name] = {
-                            goals: 0, assists: 0, hockeyAssists: 0,
-                            blocks: 0, turnovers: 0,
-                            yardsThrown: 0, yardsCaught: 0,
-                            gamesPlayed: 0, pointsPlayed: 0
+                            goals: 0,
+                            assists: 0,
+                            hockeyAssists: 0,
+                            blocks: 0,
+                            turnovers: 0,
+                            yardsThrown: 0,
+                            yardsCaught: 0,
+                            gamesPlayed: 0,
+                            pointsPlayed: 0,
                         };
                     }
                 }
@@ -3331,7 +3445,7 @@ async function createTournamentFromUsauImport(options = {}) {
                 format: format,
                 pools: usauImportState.pools?.pools,
                 matchups: usauImportState.pools?.matchups,
-                teams: usauImportState.pools?.teams || tournament.teams
+                teams: usauImportState.pools?.teams || tournament.teams,
             });
 
             if (sharedTournament) {
@@ -3360,7 +3474,7 @@ async function createTournamentFromUsauImport(options = {}) {
         teamsImported: usauImportState.progress.teamsImported,
         teamsReused: usauImportState.progress.teamsReused,
         rostersFetched: usauImportState.progress.rostersFetched,
-        failed: usauImportState.progress.failed
+        failed: usauImportState.progress.failed,
     };
 }
 
@@ -3385,15 +3499,17 @@ async function retryFailedRosters() {
     usauImportState.progress.phase = 'fetching-rosters';
     usauImportState.aborted = false;
 
-    const teamsToRetry = failed.map(f => ({
-        name: teamsData.teams[f.teamId]?.name || f.teamName,
-        link: teamsData.teams[f.teamId]?.usauLink
-    })).filter(t => t.link);
+    const teamsToRetry = failed
+        .map((f) => ({
+            name: teamsData.teams[f.teamId]?.name || f.teamName,
+            link: teamsData.teams[f.teamId]?.usauLink,
+        }))
+        .filter((t) => t.link);
 
     const results = await batchFetchRosters(teamsToRetry, 2, 3000);
 
     for (const result of results) {
-        const failedEntry = failed.find(f => f.teamName.toLowerCase() === result.team.name.toLowerCase());
+        const failedEntry = failed.find((f) => f.teamName.toLowerCase() === result.team.name.toLowerCase());
         if (!failedEntry) continue;
 
         const team = teamsData.teams[failedEntry.teamId];
@@ -3447,8 +3563,9 @@ async function shareTournamentToServer(tournamentData, linkedTeamId = null, link
                 teams: tournamentData.teams,
                 teamId: linkedTeamId,
                 teamName: linkedTeamName,
-                poolName: tournamentData.teams?.find(t => t.name.toLowerCase() === linkedTeamName?.toLowerCase())?.pool
-            })
+                poolName: tournamentData.teams?.find((t) => t.name.toLowerCase() === linkedTeamName?.toLowerCase())
+                    ?.pool,
+            }),
         });
 
         if (!response.ok) {
@@ -3471,7 +3588,7 @@ async function getLinkedSharedTournaments() {
 
     try {
         const response = await fetch(`${API_BASE}/api/shared-tournaments`, {
-            credentials: 'include'
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -3493,9 +3610,12 @@ async function findTournamentsWithTeamName(teamName) {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/api/shared-tournaments/find-by-team?teamName=${encodeURIComponent(teamName)}`, {
-            credentials: 'include'
-        });
+        const response = await fetch(
+            `${API_BASE}/api/shared-tournaments/find-by-team?teamName=${encodeURIComponent(teamName)}`,
+            {
+                credentials: 'include',
+            }
+        );
 
         if (!response.ok) {
             return [];
@@ -3523,8 +3643,8 @@ async function linkTeamToSharedTournament(tournamentId, teamId, teamName, poolNa
             body: JSON.stringify({
                 teamId,
                 teamName,
-                poolName
-            })
+                poolName,
+            }),
         });
 
         if (!response.ok) {
@@ -3549,7 +3669,7 @@ async function updateSharedTournamentResults(tournamentId) {
         const response = await fetch(`${API_BASE}/api/shared-tournaments/${tournamentId}/update`, {
             method: 'POST',
             headers: { 'X-CSRF-Token': getCsrfToken() },
-            credentials: 'include'
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -3586,7 +3706,7 @@ function getImportSummary() {
         totalPlayers: totalPlayers,
         poolCount: entity?.pools?.length || 0,
         failedRosters: usauImportState.progress.failed.length,
-        format: entity?.format || 'unknown'
+        format: entity?.format || 'unknown',
     };
 }
 
@@ -3607,7 +3727,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
         standingsUpdated: [],
         matchupsCompleted: [],
         newMatchups: [],
-        errors: []
+        errors: [],
     };
 
     if (onProgress) onProgress('Fetching latest results...', 0);
@@ -3642,7 +3762,9 @@ async function updateTournamentResults(entityId, onProgress = null) {
         if (onProgress) onProgress('Fetching pool standings...', 20);
 
         // Fetch fresh pool data
-        const poolsResponse = await fetch(`${apiBase}/api/usau/tournament/pools?url=${encodeURIComponent(scheduleUrl)}`);
+        const poolsResponse = await fetch(
+            `${apiBase}/api/usau/tournament/pools?url=${encodeURIComponent(scheduleUrl)}`
+        );
 
         if (!poolsResponse.ok) {
             throw new Error(`Failed to fetch pools: ${poolsResponse.status}`);
@@ -3697,7 +3819,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
 
             // Update each pool's standings
             for (const [poolName, usauTeams] of Object.entries(poolsData.pools)) {
-                const entityPool = entity.pools.find(p => p.name === poolName);
+                const entityPool = entity.pools.find((p) => p.name === poolName);
                 if (!entityPool) continue;
 
                 for (const usauTeam of usauTeams) {
@@ -3710,8 +3832,12 @@ async function updateTournamentResults(entityId, onProgress = null) {
                     }
 
                     const currentStats = entity.poolStandings[entityPool.id][teamId] || {
-                        wins: 0, losses: 0, ties: 0,
-                        pointsFor: 0, pointsAgainst: 0, pointDiff: 0
+                        wins: 0,
+                        losses: 0,
+                        ties: 0,
+                        pointsFor: 0,
+                        pointsAgainst: 0,
+                        pointDiff: 0,
                     };
 
                     // Check if standings changed
@@ -3724,7 +3850,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                             teamName: usauTeam.name,
                             poolName: poolName,
                             oldRecord: `${currentStats.wins}-${currentStats.losses}`,
-                            newRecord: `${newWins}-${newLosses}`
+                            newRecord: `${newWins}-${newLosses}`,
                         });
 
                         // Update standings
@@ -3732,7 +3858,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                             ...currentStats,
                             wins: newWins,
                             losses: newLosses,
-                            pointDiff: usauTeam.pointDiff || 0
+                            pointDiff: usauTeam.pointDiff || 0,
                         };
                     }
                 }
@@ -3753,9 +3879,10 @@ async function updateTournamentResults(entityId, onProgress = null) {
                 if (!homeTeamId || !awayTeamId) continue;
 
                 // Find existing matchup
-                const existingMatchup = entity.poolMatchups.find(m =>
-                    (m.homeTeamId === homeTeamId && m.awayTeamId === awayTeamId) ||
-                    (m.homeTeamId === awayTeamId && m.awayTeamId === homeTeamId)
+                const existingMatchup = entity.poolMatchups.find(
+                    (m) =>
+                        (m.homeTeamId === homeTeamId && m.awayTeamId === awayTeamId) ||
+                        (m.homeTeamId === awayTeamId && m.awayTeamId === homeTeamId)
                 );
 
                 if (existingMatchup) {
@@ -3768,7 +3895,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                         changes.matchupsCompleted.push({
                             homeTeam: usauMatchup.homeTeam,
                             awayTeam: usauMatchup.awayTeam,
-                            score: `${usauMatchup.homeScore}-${usauMatchup.awayScore}`
+                            score: `${usauMatchup.homeScore}-${usauMatchup.awayScore}`,
                         });
                     }
                 } else {
@@ -3777,9 +3904,10 @@ async function updateTournamentResults(entityId, onProgress = null) {
                         homeTeam: usauMatchup.homeTeam,
                         awayTeam: usauMatchup.awayTeam,
                         status: usauMatchup.status,
-                        score: usauMatchup.status === 'completed'
-                            ? `${usauMatchup.homeScore}-${usauMatchup.awayScore}`
-                            : 'TBD'
+                        score:
+                            usauMatchup.status === 'completed'
+                                ? `${usauMatchup.homeScore}-${usauMatchup.awayScore}`
+                                : 'TBD',
                     });
                 }
             }
@@ -3837,9 +3965,10 @@ async function updateTournamentResults(entityId, onProgress = null) {
                     const roundNum = roundMapping[game.round] || 1;
 
                     // Check if this bracket matchup already exists
-                    const existing = entity.bracketMatchups.find(m =>
-                        (m.homeTeamId === homeTeamId && m.awayTeamId === awayTeamId) ||
-                        (m.homeTeamId === awayTeamId && m.awayTeamId === homeTeamId)
+                    const existing = entity.bracketMatchups.find(
+                        (m) =>
+                            (m.homeTeamId === homeTeamId && m.awayTeamId === awayTeamId) ||
+                            (m.homeTeamId === awayTeamId && m.awayTeamId === homeTeamId)
                     );
 
                     if (existing) {
@@ -3852,7 +3981,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                                 homeTeam: game.homeTeam,
                                 awayTeam: game.awayTeam,
                                 score: `${homeScore}-${awayScore}`,
-                                bracket: section.name || 'Bracket'
+                                bracket: section.name || 'Bracket',
                             });
                         }
                         // Update round info if missing
@@ -3874,7 +4003,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                             awayScore: isCompleted ? awayScore : null,
                             status: isCompleted ? 'completed' : 'scheduled',
                             bracketSection: section.name || 'Bracket',
-                            gameId: null
+                            gameId: null,
                         });
                         bracketGamesAdded++;
                         changes.newMatchups.push({
@@ -3882,7 +4011,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
                             awayTeam: game.awayTeam,
                             status: isCompleted ? 'completed' : 'scheduled',
                             score: isCompleted ? `${homeScore}-${awayScore}` : 'TBD',
-                            bracket: section.name || 'Bracket'
+                            bracket: section.name || 'Bracket',
                         });
                     }
                 }
@@ -3906,10 +4035,9 @@ async function updateTournamentResults(entityId, onProgress = null) {
                 standingsUpdated: changes.standingsUpdated.length,
                 matchupsCompleted: changes.matchupsCompleted.length,
                 newMatchups: changes.newMatchups.length,
-                timestamp: new Date().toISOString()
-            }
+                timestamp: new Date().toISOString(),
+            },
         };
-
     } catch (error) {
         console.error('Update tournament results error:', error);
         changes.errors.push(error.message);
@@ -3919,7 +4047,7 @@ async function updateTournamentResults(entityId, onProgress = null) {
             entityId: entityId,
             leagueId: entityId, // backward compat
             changes: changes,
-            error: error.message
+            error: error.message,
         };
     }
 }
@@ -3932,7 +4060,7 @@ function getNextOpponents(entityId, teamId) {
     const upcomingMatchups = [];
 
     // Check pool matchups
-    for (const matchup of (entity.poolMatchups || [])) {
+    for (const matchup of entity.poolMatchups || []) {
         if (matchup.status === 'scheduled' || matchup.status === 'pending') {
             if (matchup.homeTeamId === teamId || matchup.awayTeamId === teamId) {
                 const opponentId = matchup.homeTeamId === teamId ? matchup.awayTeamId : matchup.homeTeamId;
@@ -3945,7 +4073,7 @@ function getNextOpponents(entityId, teamId) {
                         opponent: opponent.name,
                         opponentId: opponentId,
                         poolId: matchup.poolId,
-                        scheduledDate: matchup.scheduledDate
+                        scheduledDate: matchup.scheduledDate,
                     });
                 }
             }
@@ -3953,7 +4081,7 @@ function getNextOpponents(entityId, teamId) {
     }
 
     // Check bracket matchups
-    for (const matchup of (entity.bracketMatchups || [])) {
+    for (const matchup of entity.bracketMatchups || []) {
         if (matchup.status === 'scheduled' || matchup.status === 'pending') {
             if (matchup.homeTeamId === teamId || matchup.awayTeamId === teamId) {
                 const opponentId = matchup.homeTeamId === teamId ? matchup.awayTeamId : matchup.homeTeamId;
@@ -3965,7 +4093,7 @@ function getNextOpponents(entityId, teamId) {
                         round: matchup.round,
                         opponent: opponent.name,
                         opponentId: opponentId,
-                        scheduledDate: matchup.scheduledDate
+                        scheduledDate: matchup.scheduledDate,
                     });
                 }
             }
@@ -3983,7 +4111,7 @@ function getRecentResults(entityId, limit = 10) {
     const completedMatchups = [];
 
     // Collect completed pool matchups
-    for (const matchup of (entity.poolMatchups || [])) {
+    for (const matchup of entity.poolMatchups || []) {
         if (matchup.status === 'completed') {
             const homeTeam = teamsData.teams[matchup.homeTeamId];
             const awayTeam = teamsData.teams[matchup.awayTeamId];
@@ -3999,14 +4127,14 @@ function getRecentResults(entityId, limit = 10) {
                     awayTeam: awayTeam.name,
                     awayTeamId: matchup.awayTeamId,
                     awayScore: matchup.awayScore,
-                    completedAt: matchup.completedAt
+                    completedAt: matchup.completedAt,
                 });
             }
         }
     }
 
     // Collect completed bracket matchups
-    for (const matchup of (entity.bracketMatchups || [])) {
+    for (const matchup of entity.bracketMatchups || []) {
         if (matchup.status === 'completed') {
             const homeTeam = teamsData.teams[matchup.homeTeamId];
             const awayTeam = teamsData.teams[matchup.awayTeamId];
@@ -4021,7 +4149,7 @@ function getRecentResults(entityId, limit = 10) {
                     awayTeam: awayTeam.name,
                     awayTeamId: matchup.awayTeamId,
                     awayScore: matchup.awayScore,
-                    completedAt: matchup.completedAt
+                    completedAt: matchup.completedAt,
                 });
             }
         }
@@ -4040,7 +4168,7 @@ function calculateGameRatingDiff(winnerScore, loserScore) {
     if (winnerScore - loserScore === 1) return 125;
     const r = loserScore / (winnerScore - 1);
     const sinArg = Math.min(1, (1 - r) / 0.5) * 0.4 * Math.PI;
-    const diff = 125 + 475 * Math.sin(sinArg) / Math.sin(0.4 * Math.PI);
+    const diff = 125 + (475 * Math.sin(sinArg)) / Math.sin(0.4 * Math.PI);
     return Math.min(600, Math.round(diff));
 }
 
@@ -4053,9 +4181,7 @@ function calculateGameRating(opponentRating, ownScore, opponentScore) {
 }
 
 function isBlowout(ratingGap, winnerScore, loserScore, winnerOtherResults) {
-    return ratingGap >= 600 &&
-           winnerScore > 2 * loserScore + 1 &&
-           winnerOtherResults >= 5;
+    return ratingGap >= 600 && winnerScore > 2 * loserScore + 1 && winnerOtherResults >= 5;
 }
 
 function calculateTournamentRatingImpacts(entityId, rankingsMap) {
@@ -4063,10 +4189,9 @@ function calculateTournamentRatingImpacts(entityId, rankingsMap) {
     if (!entity) return {};
 
     const allTeamIds = getEntityTeams(entityId);
-    const allMatchups = [
-        ...(entity.poolMatchups || []),
-        ...(entity.bracketMatchups || [])
-    ].filter(m => m.status === 'completed');
+    const allMatchups = [...(entity.poolMatchups || []), ...(entity.bracketMatchups || [])].filter(
+        (m) => m.status === 'completed'
+    );
 
     // Build teamId -> rating lookup with fuzzy matching
     const teamRatings = {};
@@ -4101,9 +4226,7 @@ function calculateTournamentRatingImpacts(entityId, rankingsMap) {
         let biggestWin = null;
         let worstLoss = null;
 
-        const teamGames = allMatchups.filter(
-            m => m.homeTeamId === teamId || m.awayTeamId === teamId
-        );
+        const teamGames = allMatchups.filter((m) => m.homeTeamId === teamId || m.awayTeamId === teamId);
 
         for (const game of teamGames) {
             const isHome = game.homeTeamId === teamId;
@@ -4116,16 +4239,26 @@ function calculateTournamentRatingImpacts(entityId, rankingsMap) {
 
             if (preRating == null || opponentRating == null) {
                 gameRatings.push({
-                    opponentId, opponentName: opponent?.name || 'Unknown',
-                    ownScore, oppScore, gameRating: null, ratingImpact: null, isWin
+                    opponentId,
+                    opponentName: opponent?.name || 'Unknown',
+                    ownScore,
+                    oppScore,
+                    gameRating: null,
+                    ratingImpact: null,
+                    isWin,
                 });
                 continue;
             }
 
             const gameRating = calculateGameRating(opponentRating, ownScore, oppScore);
             const entry = {
-                opponentId, opponentName: opponent?.name || 'Unknown',
-                ownScore, oppScore, gameRating, ratingImpact: gameRating - preRating, isWin
+                opponentId,
+                opponentName: opponent?.name || 'Unknown',
+                ownScore,
+                oppScore,
+                gameRating,
+                ratingImpact: gameRating - preRating,
+                isWin,
             };
             gameRatings.push(entry);
 
@@ -4137,10 +4270,11 @@ function calculateTournamentRatingImpacts(entityId, rankingsMap) {
             }
         }
 
-        const validGameRatings = gameRatings.filter(g => g.gameRating != null);
-        const projectedRating = validGameRatings.length > 0
-            ? validGameRatings.reduce((sum, g) => sum + g.gameRating, 0) / validGameRatings.length
-            : preRating;
+        const validGameRatings = gameRatings.filter((g) => g.gameRating != null);
+        const projectedRating =
+            validGameRatings.length > 0
+                ? validGameRatings.reduce((sum, g) => sum + g.gameRating, 0) / validGameRatings.length
+                : preRating;
 
         impacts[teamId] = {
             teamName: team.name,
@@ -4149,12 +4283,12 @@ function calculateTournamentRatingImpacts(entityId, rankingsMap) {
             seed: entity.teamSeeds ? entity.teamSeeds[teamId] : null,
             gameRatings,
             projectedRating: projectedRating ? Math.round(projectedRating) : null,
-            ratingChange: (preRating != null && projectedRating != null) ? Math.round(projectedRating - preRating) : null,
+            ratingChange: preRating != null && projectedRating != null ? Math.round(projectedRating - preRating) : null,
             biggestWin,
             worstLoss,
             gamesPlayed: teamGames.length,
-            wins: gameRatings.filter(g => g.isWin).length,
-            losses: gameRatings.filter(g => !g.isWin).length
+            wins: gameRatings.filter((g) => g.isWin).length,
+            losses: gameRatings.filter((g) => !g.isWin).length,
         };
     }
 
@@ -4167,18 +4301,16 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
     const entity = getEntityById(entityId);
     if (!entity) return null;
 
-    const allMatchups = [
-        ...(entity.poolMatchups || []),
-        ...(entity.bracketMatchups || [])
-    ];
-    const completedMatchups = allMatchups.filter(m => m.status === 'completed');
+    const allMatchups = [...(entity.poolMatchups || []), ...(entity.bracketMatchups || [])];
+    const completedMatchups = allMatchups.filter((m) => m.status === 'completed');
 
     // Overview stats
     const totalGames = allMatchups.length;
     const completedGames = completedMatchups.length;
     const completionPct = totalGames > 0 ? Math.round((completedGames / totalGames) * 100) : 0;
 
-    let totalWinnerScore = 0, totalLoserScore = 0;
+    let totalWinnerScore = 0,
+        totalLoserScore = 0;
     for (const m of completedMatchups) {
         const high = Math.max(m.homeScore || 0, m.awayScore || 0);
         const low = Math.min(m.homeScore || 0, m.awayScore || 0);
@@ -4187,7 +4319,8 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
     }
     const avgWinnerScore = completedGames > 0 ? Math.round(totalWinnerScore / completedGames) : 0;
     const avgLoserScore = completedGames > 0 ? Math.round(totalLoserScore / completedGames) : 0;
-    const avgMargin = completedGames > 0 ? Math.round((totalWinnerScore - totalLoserScore) / completedGames * 10) / 10 : 0;
+    const avgMargin =
+        completedGames > 0 ? Math.round(((totalWinnerScore - totalLoserScore) / completedGames) * 10) / 10 : 0;
 
     const overview = { totalGames, completedGames, completionPct, avgWinnerScore, avgLoserScore, avgMargin };
 
@@ -4215,10 +4348,11 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                 const loserId = homeWon ? m.awayTeamId : m.homeTeamId;
                 biggestSeedUpset = {
                     seedGap,
-                    winnerSeed, loserSeed,
+                    winnerSeed,
+                    loserSeed,
                     winnerName: teamsData.teams[winnerId]?.name || 'Unknown',
                     loserName: teamsData.teams[loserId]?.name || 'Unknown',
-                    score: `${m.homeScore}-${m.awayScore}`
+                    score: `${m.homeScore}-${m.awayScore}`,
                 };
             }
         }
@@ -4245,7 +4379,7 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                     loserRating: Math.round(loserRating),
                     winnerName: teamsData.teams[winnerId]?.name || 'Unknown',
                     loserName: teamsData.teams[loserId]?.name || 'Unknown',
-                    score: `${m.homeScore}-${m.awayScore}`
+                    score: `${m.homeScore}-${m.awayScore}`,
                 };
             }
         }
@@ -4261,7 +4395,7 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                 margin,
                 team1: teamsData.teams[m.homeTeamId]?.name || 'Unknown',
                 team2: teamsData.teams[m.awayTeamId]?.name || 'Unknown',
-                score: `${m.homeScore}-${m.awayScore}`
+                score: `${m.homeScore}-${m.awayScore}`,
             };
         }
     }
@@ -4279,7 +4413,7 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                 margin,
                 winnerName: teamsData.teams[winnerId]?.name || 'Unknown',
                 loserName: teamsData.teams[loserId]?.name || 'Unknown',
-                score: `${m.homeScore}-${m.awayScore}`
+                score: `${m.homeScore}-${m.awayScore}`,
             };
         }
     }
@@ -4303,7 +4437,7 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                 seed: seed,
                 rating: rating,
                 record: `${impact.wins}-${impact.losses}`,
-                ratingChange: impact.ratingChange
+                ratingChange: impact.ratingChange,
             };
         }
     }
@@ -4314,16 +4448,14 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
     let groupOfDeath = null;
     if (entity.pools && entity.pools.length > 1) {
         for (const pool of entity.pools) {
-            const poolRatings = pool.teamIds
-                .map(tid => teamImpacts[tid]?.preRating)
-                .filter(r => r != null);
+            const poolRatings = pool.teamIds.map((tid) => teamImpacts[tid]?.preRating).filter((r) => r != null);
             if (poolRatings.length < 2) continue;
             const avgRating = Math.round(poolRatings.reduce((a, b) => a + b, 0) / poolRatings.length);
             if (!groupOfDeath || avgRating > groupOfDeath.avgRating) {
                 groupOfDeath = {
                     poolName: pool.name,
                     avgRating,
-                    teamCount: pool.teamIds.length
+                    teamCount: pool.teamIds.length,
                 };
             }
         }
@@ -4342,7 +4474,7 @@ function generateTournamentSynopsis(entityId, rankingsMap) {
                 teamName: impact.teamName,
                 record: `${impact.wins}-${impact.losses}`,
                 pointDiff: totalDiff >= 0 ? `+${totalDiff}` : `${totalDiff}`,
-                ratingChange: impact.ratingChange
+                ratingChange: impact.ratingChange,
             };
         }
     }
@@ -4362,21 +4494,25 @@ function generateNarrative(entity, overview, storylines, teamImpacts) {
 
     // Opening
     if (poolCount > 0) {
-        parts.push(`${entity.name} featured ${teamCount} teams across ${poolCount} pools with ${overview.completedGames} games played.`);
+        parts.push(
+            `${entity.name} featured ${teamCount} teams across ${poolCount} pools with ${overview.completedGames} games played.`
+        );
     } else {
         parts.push(`${entity.name} featured ${teamCount} teams with ${overview.completedGames} games completed.`);
     }
 
     // Championship result
     if (entity.bracketMatchups && entity.bracketMatchups.length > 0) {
-        const finals = entity.bracketMatchups.filter(m => m.round === 1 && m.status === 'completed');
+        const finals = entity.bracketMatchups.filter((m) => m.round === 1 && m.status === 'completed');
         if (finals.length > 0) {
             const final = finals[0];
             const homeWon = final.homeScore > final.awayScore;
             const champion = teamsData.teams[homeWon ? final.homeTeamId : final.awayTeamId];
             const runnerUp = teamsData.teams[homeWon ? final.awayTeamId : final.homeTeamId];
             if (champion && runnerUp) {
-                parts.push(`${champion.name} claimed the title with a ${final.homeScore}-${final.awayScore} victory over ${runnerUp.name} in the final.`);
+                parts.push(
+                    `${champion.name} claimed the title with a ${final.homeScore}-${final.awayScore} victory over ${runnerUp.name} in the final.`
+                );
             }
         }
     }
@@ -4384,16 +4520,22 @@ function generateNarrative(entity, overview, storylines, teamImpacts) {
     // Dominant performance
     if (storylines.dominantPerformance) {
         const d = storylines.dominantPerformance;
-        parts.push(`${d.teamName} delivered the most dominant performance, going ${d.record} with a ${d.pointDiff} point differential.`);
+        parts.push(
+            `${d.teamName} delivered the most dominant performance, going ${d.record} with a ${d.pointDiff} point differential.`
+        );
     }
 
     // Biggest upset
     if (storylines.biggestUpsetBySeed) {
         const u = storylines.biggestUpsetBySeed;
-        parts.push(`The biggest upset saw #${u.winnerSeed} seed ${u.winnerName} take down #${u.loserSeed} seed ${u.loserName} (${u.score}).`);
+        parts.push(
+            `The biggest upset saw #${u.winnerSeed} seed ${u.winnerName} take down #${u.loserSeed} seed ${u.loserName} (${u.score}).`
+        );
     } else if (storylines.biggestUpsetByRating) {
         const u = storylines.biggestUpsetByRating;
-        parts.push(`The biggest upset came when ${u.winnerName} (rated ${u.winnerRating}) defeated ${u.loserName} (rated ${u.loserRating}) in a ${u.ratingGap}-point rating gap upset.`);
+        parts.push(
+            `The biggest upset came when ${u.winnerName} (rated ${u.winnerRating}) defeated ${u.loserName} (rated ${u.loserRating}) in a ${u.ratingGap}-point rating gap upset.`
+        );
     }
 
     // Cinderella
@@ -4420,7 +4562,9 @@ function generateNarrative(entity, overview, storylines, teamImpacts) {
     }
 
     // Avg score
-    parts.push(`Games averaged ${overview.avgWinnerScore}-${overview.avgLoserScore} with a ${overview.avgMargin}-point average margin.`);
+    parts.push(
+        `Games averaged ${overview.avgWinnerScore}-${overview.avgLoserScore} with a ${overview.avgMargin}-point average margin.`
+    );
 
     return parts.join(' ');
 }
@@ -4434,85 +4578,60 @@ function buildRankSet(league) {
 }
 
 function cacheRankings(league, rankingsData) {
-    try {
-        const cache = JSON.parse(localStorage.getItem(RANKINGS_CACHE_KEY) || '{}');
-        const rankSet = buildRankSet(league);
-        cache[rankSet] = { data: rankingsData, cachedAt: new Date().toISOString() };
-        localStorage.setItem(RANKINGS_CACHE_KEY, JSON.stringify(cache));
-    } catch (e) {
-        console.warn('Could not cache rankings:', e);
-    }
+    const cache = _storeGet(RANKINGS_CACHE_KEY, {});
+    const rankSet = buildRankSet(league);
+    cache[rankSet] = { data: rankingsData, cachedAt: new Date().toISOString() };
+    _storeSet(RANKINGS_CACHE_KEY, cache);
 }
 
 function getCachedRankings(league) {
-    try {
-        const cache = JSON.parse(localStorage.getItem(RANKINGS_CACHE_KEY) || '{}');
-        const rankSet = buildRankSet(league);
-        const entry = cache[rankSet];
-        if (!entry) return null;
-        const ageMs = Date.now() - new Date(entry.cachedAt).getTime();
-        if (ageMs > 60 * 60 * 1000) return null;
-        return entry.data;
-    } catch (e) {
-        return null;
-    }
+    const cache = _storeGet(RANKINGS_CACHE_KEY, {});
+    const rankSet = buildRankSet(league);
+    const entry = cache[rankSet];
+    if (!entry) return null;
+    const ageMs = Date.now() - new Date(entry.cachedAt).getTime();
+    if (ageMs > 60 * 60 * 1000) return null;
+    return entry.data;
 }
 
 function loadFromStorage() {
-    try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            gameState = { ...gameState, ...parsed };
-            
-            // If there was an active game, restore it
-            if (gameState.currentGame.isActive) {
-                restoreGameSession();
-            }
+    const saved = _storeGet(STORAGE_KEY);
+    if (saved) {
+        gameState = { ...gameState, ...saved };
+
+        // If there was an active game, restore it
+        if (gameState.currentGame.isActive) {
+            restoreGameSession();
         }
-    } catch (e) {
-        console.warn('Could not load from localStorage:', e);
     }
 }
 
 // ==================== SETTINGS MANAGEMENT ====================
 
 function loadSettings() {
-    try {
-        const saved = localStorage.getItem(SETTINGS_KEY);
-        if (saved) {
-            appSettings = { ...appSettings, ...JSON.parse(saved) };
-        }
-        const avatars = localStorage.getItem(AVATARS_KEY);
-        if (avatars) {
-            playerAvatars = JSON.parse(avatars);
-        }
-    } catch (e) {
-        console.warn('Could not load settings:', e);
+    const saved = _storeGet(SETTINGS_KEY);
+    if (saved) {
+        appSettings = { ...appSettings, ...saved };
+    }
+    const avatars = _storeGet(AVATARS_KEY);
+    if (avatars) {
+        playerAvatars = avatars;
     }
     applySettings();
 }
 
 function saveSettings() {
-    try {
-        localStorage.setItem(SETTINGS_KEY, JSON.stringify(appSettings));
-    } catch (e) {
-        console.warn('Could not save settings:', e);
-    }
+    _storeSet(SETTINGS_KEY, appSettings);
 }
 
 function saveAvatars() {
-    try {
-        localStorage.setItem(AVATARS_KEY, JSON.stringify(playerAvatars));
-    } catch (e) {
-        console.warn('Could not save avatars:', e);
-    }
+    _storeSet(AVATARS_KEY, playerAvatars);
 }
 
 function applySettings() {
     // Apply theme
     applyTheme(appSettings.darkMode);
-    
+
     // Update toggle UI states
     updateSettingsToggles();
 }
@@ -4549,7 +4668,7 @@ function updateSettingsToggles() {
             themeDot.classList.add('bg-gray-500');
         }
     }
-    
+
     // Haptic toggle
     const hapticToggle = document.getElementById('haptic-toggle');
     const hapticDot = document.getElementById('haptic-toggle-dot');
@@ -4570,7 +4689,7 @@ function updateSettingsToggles() {
             hapticDot.classList.add('bg-gray-500');
         }
     }
-    
+
     // Sound toggle
     const soundToggle = document.getElementById('sound-toggle');
     const soundDot = document.getElementById('sound-toggle-dot');
@@ -4591,7 +4710,7 @@ function updateSettingsToggles() {
             soundDot.classList.add('bg-gray-500');
         }
     }
-    
+
     // Confirm toggle
     const confirmToggle = document.getElementById('confirm-toggle');
     const confirmDot = document.getElementById('confirm-toggle-dot');
@@ -4625,7 +4744,10 @@ function showSettingsModal() {
 
 function closeSettingsModal() {
     document.getElementById('settings-modal').classList.add('hidden');
-    if (settingsFocusCleanup) { settingsFocusCleanup(); settingsFocusCleanup = null; }
+    if (settingsFocusCleanup) {
+        settingsFocusCleanup();
+        settingsFocusCleanup = null;
+    }
 }
 
 let clearDataBackup = null;
@@ -4635,18 +4757,22 @@ function clearAllData() {
     closeSettingsModal();
     showConfirmDialog(
         'Clear All Data',
-        'This will delete all local data including teams, games, stats, and settings. You\'ll have 5 seconds to undo.',
-        () => {
-            // Backup all ultistats keys
-            clearDataBackup = {};
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('ultistats_')) {
-                    clearDataBackup[key] = localStorage.getItem(key);
+        "This will delete all local data including teams, games, stats, and settings. You'll have 5 seconds to undo.",
+        async () => {
+            // Backup and clear via store (clears both in-memory cache and IndexedDB)
+            if (window.__ultistatsStore && window.__ultistatsStore.isInitialized()) {
+                clearDataBackup = await window.__ultistatsStore.clearAll();
+            } else {
+                // Fallback: backup from localStorage
+                clearDataBackup = {};
+                const allKeys = Object.keys(localStorage);
+                for (const key of allKeys) {
+                    if (key.startsWith('ultistats_')) {
+                        clearDataBackup[key] = _storeGet(key);
+                    }
                 }
+                Object.keys(clearDataBackup).forEach((key) => _storeRemove(key));
             }
-            // Clear the data
-            Object.keys(clearDataBackup).forEach(key => localStorage.removeItem(key));
 
             // Show undo toast with countdown
             showUndoClearToast();
@@ -4660,7 +4786,8 @@ function showUndoClearToast() {
 
     const toast = document.createElement('div');
     toast.id = 'undo-clear-toast';
-    toast.className = 'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-white/20 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-4';
+    toast.className =
+        'fixed bottom-20 left-1/2 transform -translate-x-1/2 bg-slate-800 border border-white/20 text-white px-5 py-3 rounded-xl shadow-lg z-50 flex items-center gap-4';
     toast.innerHTML = `
         <span>Data cleared.</span>
         <button onclick="undoClearData()" class="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-medium rounded-lg transition-colors">Undo</button>
@@ -4680,7 +4807,9 @@ function showUndoClearToast() {
         clearDataBackup = null;
         toast.remove();
         showToast('All local data permanently deleted', 3000, 'success');
-        setTimeout(() => { window.location.href = '/index.html'; }, 1500);
+        setTimeout(() => {
+            window.location.href = '/index.html';
+        }, 1500);
     }, 5000);
 }
 
@@ -4690,9 +4819,13 @@ function undoClearData() {
         clearDataTimeout = null;
     }
     if (clearDataBackup) {
-        Object.entries(clearDataBackup).forEach(([key, value]) => {
-            localStorage.setItem(key, value);
-        });
+        if (window.__ultistatsStore && window.__ultistatsStore.isInitialized()) {
+            window.__ultistatsStore.restoreFromBackup(clearDataBackup);
+        } else {
+            Object.entries(clearDataBackup).forEach(([key, value]) => {
+                _storeSet(key, value);
+            });
+        }
         clearDataBackup = null;
     }
     const toast = document.getElementById('undo-clear-toast');
@@ -4760,10 +4893,22 @@ function toggleConfirmActions() {
 // ==================== AVATAR MANAGEMENT ====================
 
 const AVATAR_COLORS = [
-    'bg-red-500', 'bg-orange-500', 'bg-amber-500', 'bg-yellow-500',
-    'bg-lime-500', 'bg-green-500', 'bg-emerald-500', 'bg-teal-500',
-    'bg-cyan-500', 'bg-sky-500', 'bg-blue-500', 'bg-indigo-500',
-    'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500', 'bg-pink-500'
+    'bg-red-500',
+    'bg-orange-500',
+    'bg-amber-500',
+    'bg-yellow-500',
+    'bg-lime-500',
+    'bg-green-500',
+    'bg-emerald-500',
+    'bg-teal-500',
+    'bg-cyan-500',
+    'bg-sky-500',
+    'bg-blue-500',
+    'bg-indigo-500',
+    'bg-violet-500',
+    'bg-purple-500',
+    'bg-fuchsia-500',
+    'bg-pink-500',
 ];
 
 let avatarFocusCleanup = null;
@@ -4778,26 +4923,30 @@ function showAvatarManager() {
 
 function closeAvatarModal() {
     document.getElementById('avatar-modal').classList.add('hidden');
-    if (avatarFocusCleanup) { avatarFocusCleanup(); avatarFocusCleanup = null; }
+    if (avatarFocusCleanup) {
+        avatarFocusCleanup();
+        avatarFocusCleanup = null;
+    }
 }
 
 function populateAvatarList() {
     const list = document.getElementById('avatar-list');
     if (!list) return;
-    
+
     const allPlayers = [...new Set([...gameState.players, ...savedRoster])];
-    
+
     if (allPlayers.length === 0) {
         list.innerHTML = '<div class="text-center text-gray-400 py-8">No players added yet</div>';
         return;
     }
-    
-    list.innerHTML = allPlayers.map(player => {
-        const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
-        const initials = getPlayerInitials(player);
-        const color = avatar.color || getRandomAvatarColor(player);
-        
-        return `
+
+    list.innerHTML = allPlayers
+        .map((player) => {
+            const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
+            const initials = getPlayerInitials(player);
+            const color = avatar.color || getRandomAvatarColor(player);
+
+            return `
             <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl">
                 <div class="w-12 h-12 ${color} rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
                     ${avatar.type === 'image' && avatar.value ? `<img src="${escapeHtml(avatar.value)}" class="w-full h-full rounded-full object-cover">` : escapeHtml(initials)}
@@ -4813,8 +4962,9 @@ function populateAvatarList() {
                 </div>
             </div>
         `;
-    }).join('');
-    
+        })
+        .join('');
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -4839,12 +4989,12 @@ function cycleAvatarColor(playerName) {
     const current = playerAvatars[playerName] || { type: 'initials', color: getRandomAvatarColor(playerName) };
     const currentIndex = AVATAR_COLORS.indexOf(current.color);
     const nextIndex = (currentIndex + 1) % AVATAR_COLORS.length;
-    
+
     playerAvatars[playerName] = {
         type: 'initials',
-        color: AVATAR_COLORS[nextIndex]
+        color: AVATAR_COLORS[nextIndex],
     };
-    
+
     saveAvatars();
     populateAvatarList();
     hapticFeedback('tap');
@@ -4854,7 +5004,7 @@ function getPlayerAvatar(playerName) {
     const avatar = playerAvatars[playerName] || { type: 'initials', color: getRandomAvatarColor(playerName) };
     const initials = getPlayerInitials(playerName);
     const color = avatar.color || getRandomAvatarColor(playerName);
-    
+
     return `<div class="w-8 h-8 ${color} rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">${initials}</div>`;
 }
 
@@ -4882,7 +5032,10 @@ function showConfirmDialog(title, message, onConfirm) {
 function cancelConfirm() {
     pendingConfirmAction = null;
     document.getElementById('confirm-modal').classList.add('hidden');
-    if (confirmFocusCleanup) { confirmFocusCleanup(); confirmFocusCleanup = null; }
+    if (confirmFocusCleanup) {
+        confirmFocusCleanup();
+        confirmFocusCleanup = null;
+    }
 }
 
 function executeConfirm() {
@@ -4891,7 +5044,10 @@ function executeConfirm() {
         pendingConfirmAction = null;
     }
     document.getElementById('confirm-modal').classList.add('hidden');
-    if (confirmFocusCleanup) { confirmFocusCleanup(); confirmFocusCleanup = null; }
+    if (confirmFocusCleanup) {
+        confirmFocusCleanup();
+        confirmFocusCleanup = null;
+    }
 }
 
 // Wire up confirm button
@@ -4926,14 +5082,14 @@ function restoreGameSession() {
     const recentActions = document.getElementById('recent-actions');
     const lineSelection = document.getElementById('line-selection');
     const fieldSection = document.getElementById('field-section');
-    
+
     if (hero) hero.classList.add('hidden');
     if (gameSetup) gameSetup.classList.add('hidden');
     if (playerRoster) playerRoster.classList.remove('hidden');
     if (leaderboards) leaderboards.classList.remove('hidden');
     if (statsDashboard) statsDashboard.classList.remove('hidden');
     if (recentActions) recentActions.classList.remove('hidden');
-    
+
     // Show appropriate section based on point state
     if (gameState.pointInProgress && gameState.onFieldPlayers.length === 7) {
         if (lineSelection) lineSelection.classList.add('hidden');
@@ -4943,7 +5099,7 @@ function restoreGameSession() {
         if (lineSelection) lineSelection.classList.remove('hidden');
         if (fieldSection) fieldSection.classList.add('hidden');
     }
-    
+
     // Update displays
     updatePlayerList();
     updatePlayerDropdowns();
@@ -4953,12 +5109,12 @@ function restoreGameSession() {
     updateScoreDisplay();
     updateLeaderboard();
     updateTournamentStatus();
-    
+
     // Re-initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
-    
+
     logAction('Session restored', 'system');
 }
 
@@ -4974,23 +5130,24 @@ function initializeEventListeners() {
     const addPlayerBtn = document.getElementById('add-player');
     const newPlayerInput = document.getElementById('new-player');
     const csvImport = document.getElementById('csv-import');
-    
+
     if (startGameBtn) startGameBtn.addEventListener('click', startGame);
     if (addPlayerBtn) addPlayerBtn.addEventListener('click', addPlayer);
-    if (newPlayerInput) newPlayerInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addPlayer();
-    });
+    if (newPlayerInput)
+        newPlayerInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') addPlayer();
+        });
     if (csvImport) csvImport.addEventListener('change', handleCSVImport);
 
     // Field interaction
     const fieldContainer = document.getElementById('field-container');
     const actionType = document.getElementById('action-type');
-    
+
     if (fieldContainer) {
-        // Touch: touchstart tracks multi-finger swipes, touchend handles taps + swipe-to-undo
-        fieldContainer.addEventListener('touchstart', handleFieldTouchStart, { passive: true });
-        fieldContainer.addEventListener('touchend', handleFieldTouch, { passive: false });
-        fieldContainer.addEventListener('click', handleFieldClick);
+        // Pointer Events: unified mouse/touch/pen handling
+        fieldContainer.addEventListener('pointerdown', handleFieldPointerDown);
+        fieldContainer.addEventListener('pointerup', handleFieldPointerUp);
+        fieldContainer.addEventListener('pointercancel', handleFieldPointerCancel);
         fieldContainer.addEventListener('keydown', handleFieldKeydown);
     }
     if (actionType) actionType.addEventListener('change', handleActionTypeChange);
@@ -5013,7 +5170,7 @@ function initializeEventListeners() {
     const btnTurnover = document.getElementById('btn-turnover');
     const btnTurnoverGained = document.getElementById('btn-turnover-gained');
     const btnUndo = document.getElementById('btn-undo');
-    
+
     if (btnScore) btnScore.addEventListener('click', quickScore);
     if (btnTurnover) btnTurnover.addEventListener('click', quickTurnover);
     if (btnTurnoverGained) btnTurnoverGained.addEventListener('click', quickTurnoverGained);
@@ -5025,7 +5182,7 @@ function initializeEventListeners() {
     const endPointBtn = document.getElementById('end-point-btn');
     const injurySubBtn = document.getElementById('injury-sub-btn');
     const endGameBtn = document.getElementById('end-game-btn');
-    
+
     if (startPointBtn) startPointBtn.addEventListener('click', startPoint);
     if (clearLineBtn) clearLineBtn.addEventListener('click', clearLineSelection);
     if (endPointBtn) endPointBtn.addEventListener('click', endPoint);
@@ -5033,10 +5190,10 @@ function initializeEventListeners() {
     if (endGameBtn) endGameBtn.addEventListener('click', confirmEndGame);
 
     // Leaderboard tabs and sorting
-    document.querySelectorAll('.leaderboard-tab').forEach(tab => {
+    document.querySelectorAll('.leaderboard-tab').forEach((tab) => {
         tab.addEventListener('click', () => switchLeaderboardTab(tab.id.replace('tab-', '')));
     });
-    document.querySelectorAll('.sort-btn').forEach(btn => {
+    document.querySelectorAll('.sort-btn').forEach((btn) => {
         btn.addEventListener('click', () => sortLeaderboard(btn.dataset.sort));
     });
     const manageTournamentBtn = document.getElementById('manage-tournament-btn');
@@ -5047,7 +5204,7 @@ function initializeEventListeners() {
     const signoutBtn = document.getElementById('signout_button');
     if (authorizeBtn) authorizeBtn.addEventListener('click', handleAuthClick);
     if (signoutBtn) signoutBtn.addEventListener('click', handleSignoutClick);
-    
+
     // Keyboard shortcuts (game page only)
     if (window.isGamePage) {
         document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -5057,10 +5214,10 @@ function initializeEventListeners() {
 function handleKeyboardShortcuts(event) {
     // Don't trigger shortcuts when typing in inputs
     if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
-    
+
     // Don't trigger with modifier keys (allow browser shortcuts)
     if (event.ctrlKey || event.metaKey || event.altKey) return;
-    
+
     switch (event.key.toLowerCase()) {
         case 'u':
             event.preventDefault();
@@ -5095,23 +5252,23 @@ function quickScore() {
         showToast('Select thrower then receiver first!', 'error');
         return;
     }
-    
+
     const thrower = gameState.selectedThrower;
     const receiver = gameState.selectedReceiver;
     const hockeyAssister = gameState.previousThrower;
-    
+
     // Save state for undo
     saveActionState('score', { thrower, receiver, hockeyAssister });
-    
+
     // Update game stats
     gameState.playerStats[thrower].assists++;
     gameState.playerStats[receiver].goals++;
     gameState.teamStats.score++;
-    
+
     // Update season/tournament stats
     updateAggregateStats(thrower, 'assists');
     updateAggregateStats(receiver, 'goals');
-    
+
     // Hockey assist (the throw before the goal)
     if (hockeyAssister && hockeyAssister !== thrower && hockeyAssister !== receiver) {
         gameState.playerStats[hockeyAssister].hockeyAssists++;
@@ -5120,10 +5277,10 @@ function quickScore() {
     } else {
         logAction(`🎉 GOAL! ${thrower} → ${receiver}`, 'score');
     }
-    
+
     // Reset previous thrower after score
     gameState.previousThrower = null;
-    
+
     clearPlayerSelection();
     updateAllDisplays();
     vibrate([50, 30, 50]);
@@ -5137,9 +5294,9 @@ function recordBlock() {
 function quickTurnover() {
     // Save state for undo
     saveActionState('turnover', {});
-    
+
     gameState.teamStats.turnovers++;
-    
+
     // If thrower selected, assign turnover to them
     if (gameState.selectedThrower) {
         gameState.playerStats[gameState.selectedThrower].turnovers++;
@@ -5148,7 +5305,7 @@ function quickTurnover() {
     } else {
         logAction('❌ Team turnover', 'turnover');
     }
-    
+
     clearPlayerSelection();
     updateAllDisplays();
     vibrate();
@@ -5157,10 +5314,10 @@ function quickTurnover() {
 function quickTurnoverGained() {
     // Save state for undo
     saveActionState('turnover-gained', {});
-    
+
     gameState.teamStats.turnoversGained++;
     logAction('✅ Turnover gained!', 'turnover-gained');
-    
+
     clearPlayerSelection();
     updateAllDisplays();
     vibrate([30, 20, 30]);
@@ -5171,12 +5328,14 @@ function saveActionState(type, data) {
         type,
         data,
         timestamp: Date.now(),
-        previousState: JSON.parse(JSON.stringify({
-            playerStats: gameState.playerStats,
-            teamStats: gameState.teamStats
-        }))
+        previousState: JSON.parse(
+            JSON.stringify({
+                playerStats: gameState.playerStats,
+                teamStats: gameState.teamStats,
+            })
+        ),
     });
-    
+
     // Keep only last N undo states
     if (gameState.actionHistory.length > GAME_CONSTANTS.MAX_UNDO_HISTORY) {
         gameState.actionHistory.shift();
@@ -5188,13 +5347,13 @@ function undoLastAction() {
         showToast('Nothing to undo', 'error');
         return;
     }
-    
+
     const lastAction = gameState.actionHistory.pop();
-    
+
     // Restore previous state
     gameState.playerStats = lastAction.previousState.playerStats;
     gameState.teamStats = lastAction.previousState.teamStats;
-    
+
     logAction(`↩️ Undid: ${lastAction.type}`, 'system');
     updateAllDisplays();
     vibrate();
@@ -5213,7 +5372,7 @@ function togglePeriod() {
 function updatePeriodDisplay() {
     const periodLabel = document.getElementById('period-label');
     const periodValue = document.getElementById('period-value');
-    
+
     if (periodLabel) {
         periodLabel.textContent = gameState.periodType === 'quarter' ? 'Qtr' : 'Half';
     }
@@ -5232,26 +5391,26 @@ function toggleGameTimer() {
 
 function startGameTimer() {
     if (gameState.gameTimerRunning) return;
-    
+
     gameState.gameTimerRunning = true;
     gameState.gameTimerInterval = setInterval(() => {
         gameState.gameTimerSeconds++;
         updateGameTimerDisplay();
     }, 1000);
-    
+
     showToast('Timer started');
     updateGameTimerDisplay();
 }
 
 function stopGameTimer() {
     if (!gameState.gameTimerRunning) return;
-    
+
     gameState.gameTimerRunning = false;
     if (gameState.gameTimerInterval) {
         clearInterval(gameState.gameTimerInterval);
         gameState.gameTimerInterval = null;
     }
-    
+
     showToast('Timer paused');
     updateGameTimerDisplay();
 }
@@ -5311,11 +5470,11 @@ function updateScoreDisplay() {
     const oppScoreEl = document.getElementById('opponent-score-display') || document.getElementById('opponent-score');
     const ourTeamEl = document.getElementById('our-team-label');
     const oppTeamEl = document.getElementById('opponent-team-label');
-    
+
     // Check if scores changed for animation
     const prevOurScore = ourScoreEl ? parseInt(ourScoreEl.textContent) || 0 : 0;
     const prevOppScore = oppScoreEl ? parseInt(oppScoreEl.textContent) || 0 : 0;
-    
+
     if (ourScoreEl) {
         ourScoreEl.textContent = gameState.teamStats.score;
         if (gameState.teamStats.score > prevOurScore) {
@@ -5356,14 +5515,20 @@ function trapFocus(container, onEscape) {
             return;
         }
         if (e.key !== 'Tab') return;
-        const focusable = Array.from(container.querySelectorAll(FOCUSABLE)).filter(el => !el.disabled);
+        const focusable = Array.from(container.querySelectorAll(FOCUSABLE)).filter((el) => !el.disabled);
         if (focusable.length === 0) return;
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
         if (e.shiftKey) {
-            if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+            if (document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            }
         } else {
-            if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+            if (document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
         }
     };
     container.addEventListener('keydown', handler);
@@ -5431,9 +5596,15 @@ function showScoreInputModal(title, currentValue) {
             const first = focusable[0];
             const last = focusable[focusable.length - 1];
             if (e.shiftKey) {
-                if (document.activeElement === first) { e.preventDefault(); last.focus(); }
+                if (document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                }
             } else {
-                if (document.activeElement === last) { e.preventDefault(); first.focus(); }
+                if (document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
             }
         });
     });
@@ -5465,9 +5636,9 @@ async function adjustOurScore() {
 function updateQuickPlayerSelect() {
     const container = document.getElementById('quick-player-select');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     // During a point, ONLY show the 7 on-field players
     // Otherwise show present players for general selection
     let playersToShow;
@@ -5485,15 +5656,16 @@ function updateQuickPlayerSelect() {
         playersToShow = sortPlayersByRecency(playersToShow);
     }
 
-    playersToShow.forEach(player => {
+    playersToShow.forEach((player) => {
         const position = getPlayerPosition(player);
-        const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
+        const posAbbrev = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
         const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
         const initials = getPlayerInitials(player);
         const avatarColor = avatar.color || getRandomAvatarColor(player);
-        
+
         const btn = document.createElement('button');
-        btn.className = 'player-quick-btn px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2';
+        btn.className =
+            'player-quick-btn px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2';
         btn.innerHTML = `
             <div class="w-7 h-7 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">${escapeHtml(initials)}</div>
             <div class="flex flex-col items-start">
@@ -5502,7 +5674,7 @@ function updateQuickPlayerSelect() {
             </div>
         `;
         btn.dataset.player = player;
-        
+
         // Highlight if selected
         if (player === gameState.selectedThrower) {
             btn.className += ' bg-blue-500/30 text-white ring-2 ring-blue-400 shadow-lg shadow-blue-500/20';
@@ -5511,7 +5683,7 @@ function updateQuickPlayerSelect() {
         } else {
             btn.className += ' bg-white/10 text-white hover:bg-white/20 hover:scale-105';
         }
-        
+
         btn.addEventListener('click', () => selectQuickPlayer(player));
         container.appendChild(btn);
     });
@@ -5541,7 +5713,7 @@ function selectQuickPlayer(player) {
         updateSelectionStatus();
         hapticFeedback('select');
     }
-    
+
     updateQuickPlayerSelect();
     updateOnFieldDisplay(); // Update to show current thrower
 }
@@ -5581,24 +5753,33 @@ function clearPlayerSelection() {
     updateQuickPlayerSelect();
 }
 
-// Haptic feedback with patterns
+// Haptic feedback — uses Taptic Engine on native iOS/Android, falls back to navigator.vibrate()
 function vibrate(pattern = 30, type = null) {
     if (!appSettings.hapticEnabled) return;
+    if (window.__nativeHaptics) {
+        window.__nativeHaptics.vibrate(pattern, type).then((handled) => {
+            if (!handled && 'vibrate' in navigator) {
+                if (type && HAPTIC_PATTERNS[type]) navigator.vibrate(HAPTIC_PATTERNS[type]);
+                else navigator.vibrate(pattern);
+            }
+        });
+        return;
+    }
     if ('vibrate' in navigator) {
-        // Use predefined pattern if type is specified
-        if (type && HAPTIC_PATTERNS[type]) {
-            navigator.vibrate(HAPTIC_PATTERNS[type]);
-        } else {
-            navigator.vibrate(pattern);
-        }
+        if (type && HAPTIC_PATTERNS[type]) navigator.vibrate(HAPTIC_PATTERNS[type]);
+        else navigator.vibrate(pattern);
     }
 }
 
 function hapticFeedback(type) {
     if (!appSettings.hapticEnabled) return;
-    if ('vibrate' in navigator && HAPTIC_PATTERNS[type]) {
-        navigator.vibrate(HAPTIC_PATTERNS[type]);
+    if (window.__nativeHaptics) {
+        window.__nativeHaptics.hapticFeedback(type).then((handled) => {
+            if (!handled && 'vibrate' in navigator && HAPTIC_PATTERNS[type]) navigator.vibrate(HAPTIC_PATTERNS[type]);
+        });
+        return;
     }
+    if ('vibrate' in navigator && HAPTIC_PATTERNS[type]) navigator.vibrate(HAPTIC_PATTERNS[type]);
 }
 
 // Toast notifications
@@ -5618,8 +5799,8 @@ function showToast(message, durationOrType = 2000, type = 'info') {
 
     const config = {
         success: { bg: 'bg-emerald-800 border border-emerald-600/40', icon: '&#x2713;', iconClass: 'text-emerald-300' },
-        error:   { bg: 'bg-red-900 border border-red-600/40',         icon: '&#x2717;', iconClass: 'text-red-300' },
-        info:    { bg: 'bg-gray-800 border border-white/10',          icon: '&#x2139;', iconClass: 'text-cyan-300' },
+        error: { bg: 'bg-red-900 border border-red-600/40', icon: '&#x2717;', iconClass: 'text-red-300' },
+        info: { bg: 'bg-gray-800 border border-white/10', icon: '&#x2139;', iconClass: 'text-cyan-300' },
     };
     const c = config[type] || config.info;
 
@@ -5644,15 +5825,13 @@ function showToast(message, durationOrType = 2000, type = 'info') {
 // ==================== PLAYER SORTING ====================
 
 function loadPlayerSortMode() {
-    try {
-        const saved = localStorage.getItem(PLAYER_SORT_KEY);
-        if (saved) _playerSortMode = saved;
-    } catch (e) { /* ignore */ }
+    const saved = _storeGet(PLAYER_SORT_KEY);
+    if (saved) _playerSortMode = saved;
 }
 
 function setPlayerSortMode(mode) {
     _playerSortMode = mode;
-    try { localStorage.setItem(PLAYER_SORT_KEY, mode); } catch (e) { /* ignore */ }
+    _storeSet(PLAYER_SORT_KEY, mode);
     updateLineSelectionGrid();
     updateSortButtons();
 }
@@ -5681,8 +5860,8 @@ function sortPlayers(players) {
 
         case 'playing-time':
             sorted.sort((a, b) => {
-                const aTime = (impact[a]?.pointsPlayed || 0);
-                const bTime = (impact[b]?.pointsPlayed || 0);
+                const aTime = impact[a]?.pointsPlayed || 0;
+                const bTime = impact[b]?.pointsPlayed || 0;
                 return bTime - aTime || a.localeCompare(b);
             });
             break;
@@ -5697,7 +5876,7 @@ function sortPlayers(players) {
 
         case 'predictive': {
             const scores = {};
-            sorted.forEach(player => {
+            sorted.forEach((player) => {
                 const stats = gameState.playerStats[player] || {};
                 const imp = impact[player] || { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
                 const pp = Math.max(1, imp.pointsPlayed);
@@ -5707,14 +5886,15 @@ function sortPlayers(players) {
                 const completionPct = (stats.catches || 0) / Math.max(1, (stats.catches || 0) + (stats.turnovers || 0));
                 const turnoverPenalty = (stats.turnovers || 0) / pp;
                 // Weighted composite: +/- most important, then offense, defense, completion, minus turnovers
-                scores[player] = (plusMinus * 3) + (offContrib * 2) + (defContrib * 1.5) + (completionPct * 1) - (turnoverPenalty * 1.5);
+                scores[player] =
+                    plusMinus * 3 + offContrib * 2 + defContrib * 1.5 + completionPct * 1 - turnoverPenalty * 1.5;
             });
             sorted.sort((a, b) => (scores[b] || 0) - (scores[a] || 0) || a.localeCompare(b));
             break;
         }
 
         case 'position': {
-            const posOrder = { 'Handler': 0, 'Hybrid': 1, 'Cutter': 2 };
+            const posOrder = { Handler: 0, Hybrid: 1, Cutter: 2 };
             sorted.sort((a, b) => {
                 const aPos = posOrder[getPlayerPosition(a)] ?? 3;
                 const bPos = posOrder[getPlayerPosition(b)] ?? 3;
@@ -5732,7 +5912,7 @@ function sortPlayers(players) {
 function updateSortButtons() {
     const container = document.getElementById('sort-buttons');
     if (!container) return;
-    container.querySelectorAll('.sort-pill').forEach(btn => {
+    container.querySelectorAll('.sort-pill').forEach((btn) => {
         const mode = btn.dataset.sort;
         if (mode === _playerSortMode) {
             btn.classList.add('active');
@@ -5748,9 +5928,9 @@ function updateSortButtons() {
 function updateLineSelectionGrid() {
     const container = document.getElementById('line-player-grid') || document.getElementById('line-selection-grid');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     // Only show present players (or all if no attendance taken), sorted
     const playersToShow = sortPlayers(getPresentPlayers());
     const impactData = getPlayerImpactData();
@@ -5761,7 +5941,7 @@ function updateLineSelectionGrid() {
     // Compute chemistry scores for bench players relative to selected players
     let chemScores = {};
     if (hasChemData && selected.length > 0 && selected.length < 7) {
-        playersToShow.forEach(player => {
+        playersToShow.forEach((player) => {
             if (selected.includes(player)) return;
             let totalChem = 0;
             for (const sel of selected) {
@@ -5771,11 +5951,11 @@ function updateLineSelectionGrid() {
         });
     }
 
-    playersToShow.forEach(player => {
+    playersToShow.forEach((player) => {
         const btn = document.createElement('button');
         const isOnField = selected.includes(player);
         const position = getPlayerPosition(player);
-        const posLabel = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
+        const posLabel = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
 
         // Chemistry-based styling for unselected players
         const chemScore = chemScores[player] || 0;
@@ -5786,20 +5966,22 @@ function updateLineSelectionGrid() {
         }
 
         btn.className = `line-select-btn px-3 py-3 rounded-xl text-sm font-medium transition-all active:scale-95${chemClass} ${
-            isOnField
-                ? 'bg-cyan-500 text-white ring-2 ring-cyan-300'
-                : 'bg-white/10 text-white hover:bg-white/20'
+            isOnField ? 'bg-cyan-500 text-white ring-2 ring-cyan-300' : 'bg-white/10 text-white hover:bg-white/20'
         }`;
         btn.setAttribute('role', 'switch');
         btn.setAttribute('aria-checked', String(isOnField));
-        btn.setAttribute('aria-label', `${player} - ${isOnField ? 'on field' : 'on bench'}${chemScore > 0 ? `, chemistry ${chemScore}` : ''}`);
+        btn.setAttribute(
+            'aria-label',
+            `${player} - ${isOnField ? 'on field' : 'on bench'}${chemScore > 0 ? `, chemistry ${chemScore}` : ''}`
+        );
         const checkmark = isOnField ? '<span class="opacity-80">✓</span> ' : '';
         const posHtml = posLabel ? `<span class="text-xs opacity-60">${escapeHtml(posLabel)}</span> ` : '';
 
         // Chemistry badge for bench players
         let chemBadge = '';
         if (!isOnField && chemScore > 0 && selected.length > 0 && selected.length < 7) {
-            const badgeClass = chemScore >= 60 ? 'chem-badge-high' : chemScore >= 35 ? 'chem-badge-mid' : 'chem-badge-low';
+            const badgeClass =
+                chemScore >= 60 ? 'chem-badge-high' : chemScore >= 35 ? 'chem-badge-mid' : 'chem-badge-low';
             chemBadge = `<span class="chem-badge ${badgeClass}">${chemScore}</span>`;
         }
 
@@ -5820,7 +6002,7 @@ function updateLineSelectionGrid() {
             const def = (stats.blocks || 0) / pp;
             const comp = (stats.catches || 0) / Math.max(1, (stats.catches || 0) + (stats.turnovers || 0));
             const to = (stats.turnovers || 0) / pp;
-            const score = (pm * 3) + (off * 2) + (def * 1.5) + (comp * 1) - (to * 1.5);
+            const score = pm * 3 + off * 2 + def * 1.5 + comp * 1 - to * 1.5;
             const cls = score > 0 ? 'plus-minus-pos' : score < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
             statHtml = `<span class="sort-stat ${cls}">${score.toFixed(1)}</span>`;
         }
@@ -5843,11 +6025,13 @@ function updateLineSelectionGrid() {
         if (selected.length === 7) {
             startBtn.disabled = false;
             startBtn.textContent = '▶️ Start Point';
-            startBtn.className = 'flex-1 bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all';
+            startBtn.className =
+                'flex-1 bg-emerald-500 hover:bg-emerald-400 text-white py-3 rounded-xl font-semibold transition-all';
         } else {
             startBtn.disabled = true;
             startBtn.textContent = `Select ${7 - selected.length} more`;
-            startBtn.className = 'flex-1 bg-emerald-500/30 text-emerald-300 py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed';
+            startBtn.className =
+                'flex-1 bg-emerald-500/30 text-emerald-300 py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed';
         }
     }
 
@@ -5857,7 +6041,7 @@ function updateLineSelectionGrid() {
 
 function togglePlayerOnField(player) {
     const index = gameState.onFieldPlayers.indexOf(player);
-    
+
     if (index > -1) {
         // Remove from field
         gameState.onFieldPlayers.splice(index, 1);
@@ -5869,7 +6053,7 @@ function togglePlayerOnField(player) {
         vibrate();
         return;
     }
-    
+
     vibrate(20);
     updateLineSelectionGrid();
     saveToStorage();
@@ -5890,24 +6074,24 @@ function selectLastLine() {
         showToast('No previous line to select', 'error');
         return;
     }
-    
+
     // Filter to only include players who are present
-    const availablePlayers = window.lastUsedLine.filter(p => gameState.presentPlayers.includes(p));
-    
+    const availablePlayers = window.lastUsedLine.filter((p) => gameState.presentPlayers.includes(p));
+
     if (availablePlayers.length === 0) {
         showToast('Previous players not available', 'error');
         return;
     }
-    
+
     gameState.onFieldPlayers = [...availablePlayers];
     updateLineSelectionGrid();
-    
+
     if (availablePlayers.length < 7) {
         showToast(`${availablePlayers.length}/7 from last line available`);
     } else {
         showToast('Last line selected');
     }
-    
+
     vibrate(30);
     saveToStorage();
 }
@@ -5917,10 +6101,10 @@ function startPoint() {
         showToast('Select exactly 7 players', 'error');
         return;
     }
-    
+
     // Save current line for "Last Line" button
     window.lastUsedLine = [...gameState.onFieldPlayers];
-    
+
     gameState.pointInProgress = true;
 
     // Track this point's line for live analysis
@@ -5928,7 +6112,7 @@ function startPoint() {
         pointNum: gameState.pointNumber,
         line: [...gameState.onFieldPlayers],
         startType: startingPossession,
-        result: null
+        result: null,
     });
 
     // Fade out line selection, fade in field
@@ -5938,24 +6122,24 @@ function startPoint() {
     setTimeout(() => {
         if (fieldSec) fieldSec.classList.remove('section-hidden');
     }, 260);
-    
+
     // Reset disc position for new point
     gameState.discPosition = null;
     gameState.currentThrower = null;
     gameState.pointThrows = 0;
     gameState.possessionThrows = 0;
-    
+
     // Update on-field display and quick select to only show on-field players
     updateOnFieldDisplay();
     updateQuickPlayerSelect();
     clearPlayerSelection();
-    
+
     // Ensure disc marker exists (don't remove, just hide)
     const discMarker = document.getElementById('disc-marker');
     if (discMarker) {
         discMarker.classList.add('hidden');
     }
-    
+
     // Based on starting possession, either show thrower popup or go to defense mode
     if (startingPossession === 'offense') {
         showInitialThrowerPopup();
@@ -5965,10 +6149,10 @@ function startPoint() {
         logAction(`Point started (Defense) with: ${gameState.onFieldPlayers.join(', ')}`, 'system');
         showToast('Defense - tap field when we get the disc');
     }
-    
+
     saveToStorage();
     vibrate([30, 20, 30]);
-    
+
     // Re-initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -5978,7 +6162,7 @@ function startPoint() {
 function showInitialThrowerPopup() {
     const existing = document.getElementById('initial-thrower-popup');
     if (existing) existing.remove();
-    
+
     const popup = document.createElement('div');
     popup.id = 'initial-thrower-popup';
     popup.className = 'fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4';
@@ -5992,18 +6176,21 @@ function showInitialThrowerPopup() {
             <p class="text-gray-400 text-sm mb-4">Tap the field where they are, then select them</p>
 
             <div class="grid grid-cols-2 gap-2 mb-4">
-                ${gameState.onFieldPlayers.map(player => {
-                    const position = getPlayerPosition(player);
-                    const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
-                    const posColor = getPositionColor(position);
-                    return `
+                ${gameState.onFieldPlayers
+                    .map((player) => {
+                        const position = getPlayerPosition(player);
+                        const posAbbrev =
+                            position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
+                        const posColor = getPositionColor(position);
+                        return `
                         <button onclick="selectInitialThrower('${escapeHtml(player).replace(/'/g, "\\'")}')"
                             class="p-3 rounded-xl bg-white/10 hover:bg-cyan-500/30 text-white text-sm font-medium transition-all flex items-center gap-2 border border-white/10 hover:border-cyan-500/50">
                             ${position ? `<span class="text-xs px-1.5 py-0.5 rounded ${posColor}">${escapeHtml(posAbbrev)}</span>` : ''}
                             <span class="truncate">${escapeHtml(player)}</span>
                         </button>
                     `;
-                }).join('')}
+                    })
+                    .join('')}
             </div>
 
             <p class="text-xs text-gray-500 text-center">After selecting, tap the field to set their position</p>
@@ -6017,12 +6204,12 @@ function showInitialThrowerPopup() {
 function selectInitialThrower(player) {
     const popup = document.getElementById('initial-thrower-popup');
     if (popup) popup.remove();
-    
+
     gameState.currentThrower = player;
     gameState.selectedThrower = player;
     updateSelectionStatus();
     updateQuickPlayerSelect();
-    
+
     showToast(`${player} has the disc - tap field to set position`);
 
     // Now wait for field tap to set position
@@ -6051,15 +6238,18 @@ function showFieldInstruction(text, autoHideMs) {
 function hideFieldInstruction() {
     const el = document.getElementById('tap-instruction');
     if (el) el.classList.add('hidden');
-    if (fieldInstructionTimer) { clearTimeout(fieldInstructionTimer); fieldInstructionTimer = null; }
+    if (fieldInstructionTimer) {
+        clearTimeout(fieldInstructionTimer);
+        fieldInstructionTimer = null;
+    }
 }
 
 function setStartingPossession(possession) {
     startingPossession = possession;
-    
+
     const offenseBtn = document.getElementById('offense-btn');
     const defenseBtn = document.getElementById('defense-btn');
-    
+
     if (possession === 'offense') {
         if (offenseBtn) {
             offenseBtn.classList.remove('bg-white/5', 'text-gray-400', 'border-white/10');
@@ -6079,24 +6269,24 @@ function setStartingPossession(possession) {
             offenseBtn.classList.add('bg-white/5', 'text-gray-400', 'border-white/10');
         }
     }
-    
+
     showToast(possession === 'offense' ? 'We have the disc' : 'They have the disc');
 }
 
 function endPoint() {
     gameState.pointInProgress = false;
     clearPlayerSelection();
-    
+
     // Show line selection, keep field visible but disabled
     document.getElementById('line-selection').classList.remove('section-hidden');
-    
+
     // Keep previous line as default for quick re-selection
     updateLineSelectionGrid();
-    
+
     logAction('Point ended - set line for next point', 'system');
     saveToStorage();
     vibrate();
-    
+
     // Re-initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -6106,32 +6296,37 @@ function endPoint() {
 function updateOnFieldDisplay() {
     const container = document.getElementById('on-field-display');
     if (!container) return;
-    
+
     if (gameState.onFieldPlayers.length === 0) {
         container.innerHTML = '<span class="text-gray-500 text-sm">No players on field</span>';
         return;
     }
-    
+
     const isCompact = window.innerWidth < 640;
     container.innerHTML = `
         <div class="flex items-center gap-1.5 sm:gap-2 w-full">
             <span class="text-[10px] sm:text-xs text-gray-400 font-medium flex-shrink-0">${isCompact ? 'ON:' : 'ON FIELD:'}</span>
             <div class="flex flex-wrap gap-1 sm:gap-1.5 flex-1">
-                ${gameState.onFieldPlayers.map(player => {
-                    const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
-                    const initials = getPlayerInitials(player);
-                    const avatarColor = avatar.color || getRandomAvatarColor(player);
-                    const isThrower = player === gameState.currentThrower;
-                    const displayName = isCompact ? player.split(' ')[0].substring(0, 4) : player.split(' ')[0];
+                ${gameState.onFieldPlayers
+                    .map((player) => {
+                        const avatar = playerAvatars[player] || {
+                            type: 'initials',
+                            color: getRandomAvatarColor(player),
+                        };
+                        const initials = getPlayerInitials(player);
+                        const avatarColor = avatar.color || getRandomAvatarColor(player);
+                        const isThrower = player === gameState.currentThrower;
+                        const displayName = isCompact ? player.split(' ')[0].substring(0, 4) : player.split(' ')[0];
 
-                    return `
+                        return `
                         <div class="flex items-center gap-1 sm:gap-1.5 px-1.5 sm:px-2 py-0.5 sm:py-1 ${isThrower ? 'bg-blue-500/30 ring-1 ring-blue-400' : 'bg-white/5'} rounded-lg">
                             <div class="w-4 h-4 sm:w-5 sm:h-5 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-[8px] sm:text-[10px]">${escapeHtml(initials)}</div>
                             <span class="text-[11px] sm:text-xs ${isThrower ? 'text-blue-300 font-semibold' : 'text-gray-300'}">${escapeHtml(displayName)}</span>
                             ${isThrower ? '<span class="text-[10px] text-blue-400">🎯</span>' : ''}
                         </div>
                     `;
-                }).join('')}
+                    })
+                    .join('')}
             </div>
             <span class="text-[10px] sm:text-xs text-gray-500">${gameState.onFieldPlayers.length}/7</span>
         </div>
@@ -6145,7 +6340,7 @@ function initiateInjurySub() {
         showToast('Start a point first', 'error');
         return;
     }
-    
+
     // Show injury sub modal
     showInjurySubModal();
 }
@@ -6154,7 +6349,7 @@ function showInjurySubModal() {
     // Remove existing modal
     const existing = document.getElementById('injury-modal');
     if (existing) existing.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'injury-modal';
     modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
@@ -6171,22 +6366,31 @@ function showInjurySubModal() {
             <div class="mb-4">
                 <p class="text-gray-400 text-sm mb-3">Select player leaving (injured):</p>
                 <div id="injury-out-grid" class="flex flex-wrap gap-2">
-                    ${gameState.onFieldPlayers.map(p => `
+                    ${gameState.onFieldPlayers
+                        .map(
+                            (p) => `
                         <button onclick="selectInjuredPlayer('${p}')" class="injury-out-btn px-4 py-2 bg-red-500/20 hover:bg-red-500/40 text-red-400 rounded-lg text-sm font-medium transition-all border border-red-500/30">
                             ${p}
                         </button>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
             </div>
             
             <div id="injury-sub-in" class="mb-4 hidden">
                 <p class="text-gray-400 text-sm mb-3">Select substitute coming in:</p>
                 <div id="injury-in-grid" class="flex flex-wrap gap-2">
-                    ${gameState.players.filter(p => !gameState.onFieldPlayers.includes(p)).map(p => `
+                    ${gameState.players
+                        .filter((p) => !gameState.onFieldPlayers.includes(p))
+                        .map(
+                            (p) => `
                         <button onclick="selectSubPlayer('${p}')" class="injury-in-btn px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-400 rounded-lg text-sm font-medium transition-all border border-emerald-500/30">
                             ${p}
                         </button>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
             </div>
             
@@ -6197,7 +6401,7 @@ function showInjurySubModal() {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     trapFocus(modal, closeInjuryModal);
 
@@ -6209,15 +6413,15 @@ function showInjurySubModal() {
 
 function selectInjuredPlayer(player) {
     gameState.injurySub = player;
-    
+
     // Highlight selected
-    document.querySelectorAll('.injury-out-btn').forEach(btn => {
+    document.querySelectorAll('.injury-out-btn').forEach((btn) => {
         btn.classList.remove('ring-2', 'ring-red-400');
         if (btn.textContent.trim() === player) {
             btn.classList.add('ring-2', 'ring-red-400');
         }
     });
-    
+
     // Show sub-in section
     document.getElementById('injury-sub-in').classList.remove('hidden');
     vibrate(20);
@@ -6228,25 +6432,25 @@ function selectSubPlayer(player) {
         showToast('Select injured player first', 'error');
         return;
     }
-    
+
     const injuredPlayer = gameState.injurySub;
-    
+
     // Make the substitution
     const index = gameState.onFieldPlayers.indexOf(injuredPlayer);
     if (index > -1) {
         gameState.onFieldPlayers[index] = player;
     }
-    
+
     logAction(`🏥 Injury sub: ${injuredPlayer} ➜ ${player}`, 'system');
-    
+
     // Clear selection state
     gameState.injurySub = null;
-    
+
     // Update displays
     updateOnFieldDisplay();
     updateQuickPlayerSelect();
     clearPlayerSelection();
-    
+
     closeInjuryModal();
     saveToStorage();
     vibrate([30, 20, 30]);
@@ -6265,19 +6469,19 @@ let currentSortField = 'points';
 
 function switchLeaderboardTab(tab) {
     currentLeaderboardTab = tab;
-    
+
     // Update tab styles
-    document.querySelectorAll('.leaderboard-tab').forEach(t => {
+    document.querySelectorAll('.leaderboard-tab').forEach((t) => {
         t.classList.remove('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
         t.classList.add('bg-white/5', 'text-gray-400');
     });
-    
+
     const activeTab = document.getElementById(`tab-${tab}`);
     if (activeTab) {
         activeTab.classList.remove('bg-white/5', 'text-gray-400');
         activeTab.classList.add('bg-emerald-500/20', 'text-emerald-400', 'border', 'border-emerald-500/30');
     }
-    
+
     // Show tournament selector when on tournament tab
     if (tab === 'tournament') {
         updateTournamentSelector();
@@ -6286,7 +6490,7 @@ function switchLeaderboardTab(tab) {
         const selectorContainer = document.getElementById('tournament-selector');
         if (selectorContainer) selectorContainer.classList.add('hidden');
     }
-    
+
     updateLeaderboard();
 }
 
@@ -6294,7 +6498,7 @@ function sortLeaderboard(field) {
     currentSortField = field;
 
     // Update sort button styles and aria-pressed
-    document.querySelectorAll('.sort-btn').forEach(btn => {
+    document.querySelectorAll('.sort-btn').forEach((btn) => {
         btn.classList.remove('bg-cyan-500/20', 'text-cyan-400', 'border', 'border-cyan-500/30');
         btn.classList.add('bg-white/5', 'text-gray-400');
         btn.setAttribute('aria-pressed', 'false');
@@ -6313,16 +6517,16 @@ function sortLeaderboard(field) {
 function updateLeaderboard() {
     const container = document.getElementById('leaderboard-content');
     if (!container) return;
-    
+
     let statsData = {};
-    
+
     // Get the right data source based on tab
     if (currentLeaderboardTab === 'game') {
         statsData = gameState.playerStats;
     } else if (currentLeaderboardTab === 'tournament') {
         // Check if viewing a past tournament or current
         if (selectedTournamentId && selectedTournamentId !== 'current') {
-            const pastTournament = pastTournaments.find(t => t.id === selectedTournamentId);
+            const pastTournament = pastTournaments.find((t) => t.id === selectedTournamentId);
             statsData = pastTournament ? pastTournament.players : {};
         } else {
             statsData = tournamentStats.players;
@@ -6332,10 +6536,10 @@ function updateLeaderboard() {
     } else if (currentLeaderboardTab === 'career') {
         statsData = careerStats.players;
     }
-    
+
     // Update tournament selector visibility
     updateTournamentSelector();
-    
+
     // Convert to array and add calculated fields
     const players = Object.entries(statsData).map(([name, stats]) => ({
         name,
@@ -6350,9 +6554,9 @@ function updateLeaderboard() {
         totalYards: (stats.yardsThrown || 0) + (stats.yardsCaught || 0),
         throws: stats.throws || 0,
         catches: stats.catches || 0,
-        gamesPlayed: stats.gamesPlayed || 0
+        gamesPlayed: stats.gamesPlayed || 0,
     }));
-    
+
     // Sort by selected field (descending, except turnovers ascending is better)
     players.sort((a, b) => {
         if (currentSortField === 'turnovers') {
@@ -6360,7 +6564,7 @@ function updateLeaderboard() {
         }
         return b[currentSortField] - a[currentSortField];
     });
-    
+
     // Render leaderboard
     if (players.length === 0) {
         container.innerHTML = `
@@ -6370,16 +6574,17 @@ function updateLeaderboard() {
         `;
         return;
     }
-    
-    container.innerHTML = players.map((player, index) => {
-        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-        const showGames = currentLeaderboardTab === 'career';
-        const isYardSort = ['yardsThrown', 'yardsCaught', 'totalYards'].includes(currentSortField);
-        const isThrowCatchSort = ['throws', 'catches'].includes(currentSortField);
-        const position = getPlayerPosition(player.name);
-        const posColor = getPositionColor(position);
-        
-        return `
+
+    container.innerHTML = players
+        .map((player, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+            const showGames = currentLeaderboardTab === 'career';
+            const isYardSort = ['yardsThrown', 'yardsCaught', 'totalYards'].includes(currentSortField);
+            const isThrowCatchSort = ['throws', 'catches'].includes(currentSortField);
+            const position = getPlayerPosition(player.name);
+            const posColor = getPositionColor(position);
+
+            return `
             <div class="leaderboard-row flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all">
                 <div class="w-8 text-center text-lg">${medal}</div>
                 <div class="flex-1 flex items-center gap-2">
@@ -6387,12 +6592,16 @@ function updateLeaderboard() {
                     ${position ? `<span class="text-xs px-1.5 py-0.5 rounded ${posColor}">${escapeHtml(position)}</span>` : ''}
                 </div>
                 <div class="flex gap-2 text-sm">
-                    ${showGames ? `
+                    ${
+                        showGames
+                            ? `
                     <div class="text-center text-gray-400">
                         <div class="font-semibold">${player.gamesPlayed}</div>
                         <div class="text-xs opacity-60">GP</div>
                     </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                     <div class="text-center ${currentSortField === 'goals' ? 'text-emerald-400 font-bold' : 'text-gray-400'}">
                         <div class="font-semibold">${player.goals}</div>
                         <div class="text-xs opacity-60">G</div>
@@ -6413,7 +6622,9 @@ function updateLeaderboard() {
                         <div class="font-semibold">${player.turnovers}</div>
                         <div class="text-xs opacity-60">T</div>
                     </div>
-                    ${isYardSort ? `
+                    ${
+                        isYardSort
+                            ? `
                     <div class="text-center ${currentSortField === 'yardsThrown' ? 'text-blue-400 font-bold' : 'text-gray-400'}">
                         <div class="font-semibold">${Math.round(player.yardsThrown)}</div>
                         <div class="text-xs opacity-60">YT</div>
@@ -6426,13 +6637,17 @@ function updateLeaderboard() {
                         <div class="font-semibold">${Math.round(player.totalYards)}</div>
                         <div class="text-xs opacity-60">Tot</div>
                     </div>
-                    ` : `
+                    `
+                            : `
                     <div class="text-center text-gray-400">
                         <div class="font-semibold">${Math.round(player.totalYards)}</div>
                         <div class="text-xs opacity-60">Yds</div>
                     </div>
-                    `}
-                    ${isThrowCatchSort ? `
+                    `
+                    }
+                    ${
+                        isThrowCatchSort
+                            ? `
                     <div class="text-center ${currentSortField === 'throws' ? 'text-indigo-400 font-bold' : 'text-gray-400'}">
                         <div class="font-semibold">${player.throws}</div>
                         <div class="text-xs opacity-60">Thr</div>
@@ -6441,7 +6656,9 @@ function updateLeaderboard() {
                         <div class="font-semibold">${player.catches}</div>
                         <div class="text-xs opacity-60">Cat</div>
                     </div>
-                    ` : ''}
+                    `
+                            : ''
+                    }
                     <div class="text-center ${currentSortField === 'points' ? 'text-yellow-400 font-bold' : 'text-gray-400'}">
                         <div class="font-semibold">${player.points}</div>
                         <div class="text-xs opacity-60">Pts</div>
@@ -6449,13 +6666,14 @@ function updateLeaderboard() {
                 </div>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 }
 
 function updateTournamentStatus() {
     const statusEl = document.getElementById('tournament-status');
     if (!statusEl) return;
-    
+
     if (tournamentStats.isActive) {
         statusEl.textContent = `${tournamentStats.name} (${tournamentStats.totalGames} games)`;
         statusEl.className = 'text-purple-400 text-sm font-medium';
@@ -6468,36 +6686,36 @@ function updateTournamentStatus() {
 function updateTournamentSelector() {
     const selectorContainer = document.getElementById('tournament-selector-container');
     if (!selectorContainer) return;
-    
+
     // Only show selector when on tournament tab
     if (currentLeaderboardTab !== 'tournament') {
         selectorContainer.classList.add('hidden');
         return;
     }
-    
+
     selectorContainer.classList.remove('hidden');
-    
+
     // Build options: current tournament + past tournaments
     const hasCurrent = tournamentStats.isActive || Object.keys(tournamentStats.players).length > 0;
     const hasPast = pastTournaments.length > 0;
-    
+
     if (!hasCurrent && !hasPast) {
         selectorContainer.innerHTML = `<div class="text-gray-400 text-sm mb-2">No tournaments yet</div>`;
         return;
     }
-    
+
     let options = '';
-    
+
     if (hasCurrent) {
         const currentName = tournamentStats.isActive ? tournamentStats.name : 'Current Tournament';
         options += `<option value="current" ${!selectedTournamentId || selectedTournamentId === 'current' ? 'selected' : ''}>${currentName}${tournamentStats.isActive ? ' (Active)' : ''}</option>`;
     }
-    
-    pastTournaments.forEach(t => {
+
+    pastTournaments.forEach((t) => {
         const date = new Date(t.startDate).toLocaleDateString();
         options += `<option value="${t.id}" ${selectedTournamentId === t.id ? 'selected' : ''}>${t.name} (${date}) - ${t.wins}W-${t.losses}L</option>`;
     });
-    
+
     selectorContainer.innerHTML = `
         <select id="tournament-select" onchange="selectTournament(this.value)" 
             class="w-full bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 mb-2">
@@ -6516,18 +6734,20 @@ function selectTournament(tournamentId) {
 function showTournamentModal() {
     const existing = document.getElementById('tournament-modal');
     if (existing) existing.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'tournament-modal';
     modal.className = 'fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4';
-    
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-md border border-white/10">
             <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
                 <span class="text-purple-400">🏆</span> Tournament Management
             </h3>
             
-            ${tournamentStats.isActive ? `
+            ${
+                tournamentStats.isActive
+                    ? `
                 <div class="mb-4 p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
                     <div class="text-purple-400 font-semibold mb-2">${tournamentStats.name}</div>
                     <div class="text-sm text-gray-400">
@@ -6539,7 +6759,8 @@ function showTournamentModal() {
                 <button onclick="endTournament()" class="w-full bg-red-500/20 hover:bg-red-500/40 text-red-400 py-3 rounded-xl font-semibold transition-all border border-red-500/30 mb-3">
                     End Tournament
                 </button>
-            ` : `
+            `
+                    : `
                 <div class="mb-4">
                     <label class="text-sm text-gray-400 mb-2 block">Tournament Name</label>
                     <input type="text" id="tournament-name-input" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50" placeholder="e.g., Spring Sectionals 2026">
@@ -6547,7 +6768,8 @@ function showTournamentModal() {
                 <button onclick="startTournament()" class="w-full bg-purple-500 hover:bg-purple-400 text-white py-3 rounded-xl font-semibold transition-all mb-3">
                     Start Tournament
                 </button>
-            `}
+            `
+            }
             
             <div class="border-t border-white/10 pt-4 mt-2">
                 <h4 class="text-sm font-semibold text-gray-300 mb-3">Season Stats</h4>
@@ -6565,7 +6787,7 @@ function showTournamentModal() {
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeTournamentModal();
@@ -6580,7 +6802,7 @@ function closeTournamentModal() {
 function startTournament() {
     const nameInput = document.getElementById('tournament-name-input');
     const name = nameInput?.value.trim() || `Tournament ${new Date().toLocaleDateString()}`;
-    
+
     tournamentStats = {
         name,
         isActive: true,
@@ -6589,21 +6811,21 @@ function startTournament() {
         games: [],
         totalGames: 0,
         wins: 0,
-        losses: 0
+        losses: 0,
     };
-    
+
     saveTournamentStats();
     updateTournamentStatus();
     updateLeaderboard();
     closeTournamentModal();
-    
+
     showToast(`Started: ${name}`);
     logAction(`Tournament started: ${name}`, 'system');
 }
 
 function endTournament() {
     const name = tournamentStats.name;
-    
+
     // Archive tournament with full player stats to pastTournaments
     if (tournamentStats.totalGames > 0) {
         const archivedTournament = {
@@ -6615,11 +6837,11 @@ function endTournament() {
             games: [...tournamentStats.games],
             totalGames: tournamentStats.totalGames,
             wins: tournamentStats.wins,
-            losses: tournamentStats.losses
+            losses: tournamentStats.losses,
         };
         pastTournaments.unshift(archivedTournament);
         savePastTournaments();
-        
+
         // Also add summary to season stats
         seasonStats.games.push({
             type: 'tournament',
@@ -6627,10 +6849,10 @@ function endTournament() {
             games: tournamentStats.totalGames,
             wins: tournamentStats.wins,
             losses: tournamentStats.losses,
-            date: tournamentStats.startDate
+            date: tournamentStats.startDate,
         });
     }
-    
+
     // Reset tournament
     tournamentStats = {
         name: '',
@@ -6640,38 +6862,34 @@ function endTournament() {
         games: [],
         totalGames: 0,
         wins: 0,
-        losses: 0
+        losses: 0,
     };
-    
+
     saveTournamentStats();
     saveSeasonStats();
     updateTournamentStatus();
     updateLeaderboard();
     updateTournamentSelector();
     closeTournamentModal();
-    
+
     showToast(`Tournament ended: ${name}`);
     logAction(`Tournament ended: ${name}`, 'system');
 }
 
 function confirmResetSeasonStats() {
-    showConfirmDialog(
-        'Reset Season Stats?',
-        'This will reset ALL season stats. This cannot be undone.',
-        () => {
-            seasonStats = {
-                players: {},
-                games: [],
-                totalGames: 0,
-                wins: 0,
-                losses: 0
-            };
-            saveSeasonStats();
-            updateLeaderboard();
-            closeTournamentModal();
-            showToast('Season stats reset', 'success');
-        }
-    );
+    showConfirmDialog('Reset Season Stats?', 'This will reset ALL season stats. This cannot be undone.', () => {
+        seasonStats = {
+            players: {},
+            games: [],
+            totalGames: 0,
+            wins: 0,
+            losses: 0,
+        };
+        saveSeasonStats();
+        updateLeaderboard();
+        closeTournamentModal();
+        showToast('Season stats reset', 'success');
+    });
 }
 
 // ==================== GAME HISTORY FUNCTIONS ====================
@@ -6700,10 +6918,10 @@ function endGame() {
     const ourScore = gameState.teamStats.score;
     const theirScore = gameState.teamStats.opponentScore || 0;
     const isWin = ourScore > theirScore;
-    
+
     // Play sound effect
     playSound(isWin ? 'score' : 'turnover');
-    
+
     // Create game record
     const gameRecord = {
         id: Date.now().toString(),
@@ -6716,19 +6934,19 @@ function endGame() {
         playerStats: JSON.parse(JSON.stringify(gameState.playerStats)),
         teamStats: JSON.parse(JSON.stringify(gameState.teamStats)),
         actions: [...gameState.actions],
-        tournament: tournamentStats.isActive ? tournamentStats.name : null
+        tournament: tournamentStats.isActive ? tournamentStats.name : null,
     };
-    
+
     // Add to history
     gameHistory.unshift(gameRecord);
     saveGameHistory();
-    
+
     // Update season stats
     seasonStats.totalGames++;
     if (isWin) seasonStats.wins++;
     else if (ourScore < theirScore) seasonStats.losses++;
     saveSeasonStats();
-    
+
     // Update tournament stats if active
     if (tournamentStats.isActive) {
         tournamentStats.totalGames++;
@@ -6737,15 +6955,25 @@ function endGame() {
         tournamentStats.games.push(gameRecord.id);
         saveTournamentStats();
     }
-    
+
     // Update career stats
     careerStats.totalGames++;
     // Update games played for each player who participated
-    Object.keys(gameRecord.playerStats).forEach(playerName => {
+    Object.keys(gameRecord.playerStats).forEach((playerName) => {
         if (!careerStats.players[playerName]) {
             careerStats.players[playerName] = {
-                goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-                throws: 0, catches: 0, gamesPlayed: 0, seasonsPlayed: 0, firstGame: new Date().toISOString()
+                goals: 0,
+                assists: 0,
+                hockeyAssists: 0,
+                blocks: 0,
+                turnovers: 0,
+                yardsThrown: 0,
+                yardsCaught: 0,
+                throws: 0,
+                catches: 0,
+                gamesPlayed: 0,
+                seasonsPlayed: 0,
+                firstGame: new Date().toISOString(),
             };
         }
         careerStats.players[playerName].gamesPlayed = (careerStats.players[playerName].gamesPlayed || 0) + 1;
@@ -6758,14 +6986,22 @@ function endGame() {
     // Update active team stats
     if (teamsData.currentTeamId && teamsData.teams[teamsData.currentTeamId]) {
         const team = teamsData.teams[teamsData.currentTeamId];
-        
+
         // Update team career stats
         team.careerStats.totalGames = (team.careerStats.totalGames || 0) + 1;
         Object.entries(gameRecord.playerStats).forEach(([playerName, stats]) => {
             if (!team.careerStats.players[playerName]) {
                 team.careerStats.players[playerName] = {
-                    goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-                    throws: 0, catches: 0, gamesPlayed: 0
+                    goals: 0,
+                    assists: 0,
+                    hockeyAssists: 0,
+                    blocks: 0,
+                    turnovers: 0,
+                    yardsThrown: 0,
+                    yardsCaught: 0,
+                    throws: 0,
+                    catches: 0,
+                    gamesPlayed: 0,
                 };
             }
             const p = team.careerStats.players[playerName];
@@ -6778,12 +7014,12 @@ function endGame() {
             p.yardsCaught = (p.yardsCaught || 0) + (stats.yardsCaught || 0);
             p.gamesPlayed = (p.gamesPlayed || 0) + 1;
         });
-        
+
         // Update team season stats
         team.seasonStats.totalGames = (team.seasonStats.totalGames || 0) + 1;
         if (isWin) team.seasonStats.wins = (team.seasonStats.wins || 0) + 1;
         else if (ourScore < theirScore) team.seasonStats.losses = (team.seasonStats.losses || 0) + 1;
-        
+
         // Add game to team history
         team.gameHistory = team.gameHistory || [];
         team.gameHistory.unshift(gameRecord.id);
@@ -6792,7 +7028,7 @@ function endGame() {
     }
 
     // Update matchup if this game was part of a tournament or league
-    const gameSetup = JSON.parse(localStorage.getItem('ultistats_game_setup') || '{}');
+    const gameSetup = _storeGet('ultistats_game_setup', {});
     if (gameSetup.tournamentId && gameSetup.matchupId && gameSetup.matchupType) {
         recordMatchupResult(
             gameSetup.tournamentId,
@@ -6803,13 +7039,7 @@ function endGame() {
             gameRecord.id
         );
     } else if (gameSetup.leagueId && gameSetup.matchupId) {
-        recordRegularSeasonResult(
-            gameSetup.leagueId,
-            gameSetup.matchupId,
-            ourScore,
-            theirScore,
-            gameRecord.id
-        );
+        recordRegularSeasonResult(gameSetup.leagueId, gameSetup.matchupId, ourScore, theirScore, gameRecord.id);
     }
 
     // Release screen wake lock
@@ -6819,22 +7049,36 @@ function endGame() {
     gameState.currentGame.isActive = false;
     gameState.pointInProgress = false;
     // Reset player stats for next game but keep players
-    gameState.players.forEach(player => {
+    gameState.players.forEach((player) => {
         gameState.playerStats[player] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            throws: 0, catches: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
         };
     });
-    gameState.teamStats = { score: 0, opponentScore: 0, turnovers: 0, turnoversGained: 0, totalYardsThrown: 0, totalYardsCaught: 0 };
+    gameState.teamStats = {
+        score: 0,
+        opponentScore: 0,
+        turnovers: 0,
+        turnoversGained: 0,
+        totalYardsThrown: 0,
+        totalYardsCaught: 0,
+    };
     gameState.actions = [];
     gameState.actionHistory = [];
     gameState.onFieldPlayers = [];
     gameState.presentPlayers = []; // Reset attendance for next game
     saveToStorage();
-    
+
     // Clear game setup from localStorage
-    localStorage.removeItem('ultistats_game_setup');
-    
+    _storeRemove('ultistats_game_setup');
+
     // Check if we're on the game page - if so, redirect to dashboard
     if (window.isGamePage === true) {
         showToast(`Game saved: ${gameRecord.ourScore}-${gameRecord.opponentScore} ${gameRecord.result}`);
@@ -6843,7 +7087,7 @@ function endGame() {
         }, 1500);
         return;
     }
-    
+
     // Show home screen (for legacy SPA mode)
     const heroEl = document.getElementById('hero');
     const gameSetupEl = document.getElementById('game-setup');
@@ -6855,7 +7099,7 @@ function endGame() {
     const leaderboardsEl = document.getElementById('leaderboards');
     const statsDashboardEl = document.getElementById('stats-dashboard');
     const recentActionsEl = document.getElementById('recent-actions');
-    
+
     if (heroEl) heroEl.classList.remove('hidden');
     if (gameSetupEl) gameSetupEl.classList.remove('hidden');
     if (gameHistoryEl) gameHistoryEl.classList.remove('hidden');
@@ -6866,10 +7110,10 @@ function endGame() {
     if (leaderboardsEl) leaderboardsEl.classList.add('hidden');
     if (statsDashboardEl) statsDashboardEl.classList.add('hidden');
     if (recentActionsEl) recentActionsEl.classList.add('hidden');
-    
+
     updateGameHistoryDisplay();
     showToast(`Game saved: ${gameRecord.ourScore}-${gameRecord.opponentScore} ${gameRecord.result}`);
-    
+
     // Re-initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -6879,13 +7123,13 @@ function endGame() {
 function updateGameHistoryDisplay() {
     const container = document.getElementById('game-history-list');
     const countEl = document.getElementById('history-count');
-    
+
     if (!container) return;
-    
+
     if (countEl) {
         countEl.textContent = `${gameHistory.length} game${gameHistory.length !== 1 ? 's' : ''} recorded`;
     }
-    
+
     if (gameHistory.length === 0) {
         container.innerHTML = `
             <div class="text-center text-gray-500 py-8">
@@ -6896,14 +7140,18 @@ function updateGameHistoryDisplay() {
         `;
         return;
     }
-    
-    container.innerHTML = gameHistory.map(game => {
-        const resultClass = game.result === 'W' ? 'text-emerald-400 bg-emerald-500/20' : 
-                           game.result === 'L' ? 'text-red-400 bg-red-500/20' : 
-                           'text-gray-400 bg-gray-500/20';
-        const resultText = game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE';
-        
-        return `
+
+    container.innerHTML = gameHistory
+        .map((game) => {
+            const resultClass =
+                game.result === 'W'
+                    ? 'text-emerald-400 bg-emerald-500/20'
+                    : game.result === 'L'
+                      ? 'text-red-400 bg-red-500/20'
+                      : 'text-gray-400 bg-gray-500/20';
+            const resultText = game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE';
+
+            return `
             <div class="game-history-item p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-all cursor-pointer border border-white/5" onclick="showGameDetail('${game.id}')">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -6919,8 +7167,9 @@ function updateGameHistoryDisplay() {
                 </div>
             </div>
         `;
-    }).join('');
-    
+        })
+        .join('');
+
     // Re-initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -6937,21 +7186,22 @@ function formatGameDate(dateStr) {
 }
 
 function showGameDetail(gameId) {
-    const game = gameHistory.find(g => g.id === gameId);
+    const game = gameHistory.find((g) => g.id === gameId);
     if (!game) return;
-    
+
     const existing = document.getElementById('game-detail-modal');
     if (existing) existing.remove();
-    
+
     // Calculate top performers
     const playerEntries = Object.entries(game.playerStats);
     const topScorer = playerEntries.sort((a, b) => (b[1].goals || 0) - (a[1].goals || 0))[0];
     const topAssist = playerEntries.sort((a, b) => (b[1].assists || 0) - (a[1].assists || 0))[0];
-    
+
     const modal = document.createElement('div');
     modal.id = 'game-detail-modal';
-    modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto';
-    
+    modal.className =
+        'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto';
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-2xl border border-white/10 my-8">
             <div class="flex items-center justify-between mb-6">
@@ -6962,35 +7212,52 @@ function showGameDetail(gameId) {
                 <div class="text-right">
                     <div class="text-3xl font-bold text-white">${game.ourScore} - ${game.opponentScore}</div>
                     <div class="px-3 py-1 rounded-lg text-sm font-bold inline-block ${
-                        game.result === 'W' ? 'text-emerald-400 bg-emerald-500/20' : 
-                        game.result === 'L' ? 'text-red-400 bg-red-500/20' : 'text-gray-400 bg-gray-500/20'
+                        game.result === 'W'
+                            ? 'text-emerald-400 bg-emerald-500/20'
+                            : game.result === 'L'
+                              ? 'text-red-400 bg-red-500/20'
+                              : 'text-gray-400 bg-gray-500/20'
                     }">${game.result === 'W' ? 'WIN' : game.result === 'L' ? 'LOSS' : 'TIE'}</div>
                 </div>
             </div>
             
-            ${topScorer || topAssist ? `
+            ${
+                topScorer || topAssist
+                    ? `
             <div class="grid grid-cols-2 gap-3 mb-6">
-                ${topScorer ? `
+                ${
+                    topScorer
+                        ? `
                 <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
                     <div class="text-xs text-emerald-400 mb-1">Top Scorer</div>
                     <div class="font-semibold text-white">${escapeHtml(topScorer[0])}</div>
                     <div class="text-sm text-gray-400">${topScorer[1].goals || 0} goals</div>
                 </div>
-                ` : ''}
-                ${topAssist ? `
+                `
+                        : ''
+                }
+                ${
+                    topAssist
+                        ? `
                 <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">
                     <div class="text-xs text-cyan-400 mb-1">Top Assists</div>
                     <div class="font-semibold text-white">${escapeHtml(topAssist[0])}</div>
                     <div class="text-sm text-gray-400">${topAssist[1].assists || 0} assists</div>
                 </div>
-                ` : ''}
+                `
+                        : ''
+                }
             </div>
-            ` : ''}
+            `
+                    : ''
+            }
             
             <div class="mb-6">
                 <h4 class="text-sm font-semibold text-gray-300 mb-3">Player Stats</h4>
                 <div class="space-y-2 max-h-64 overflow-y-auto">
-                    ${playerEntries.map(([name, stats]) => `
+                    ${playerEntries
+                        .map(
+                            ([name, stats]) => `
                         <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
                             <span class="font-medium text-white">${escapeHtml(name)}</span>
                             <div class="flex gap-3 text-sm text-gray-400">
@@ -7000,7 +7267,9 @@ function showGameDetail(gameId) {
                                 <span title="Turnovers">${stats.turnovers || 0}T</span>
                             </div>
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
             </div>
             
@@ -7035,7 +7304,7 @@ function showGameDetail(gameId) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeGameDetailModal();
@@ -7048,17 +7317,13 @@ function closeGameDetailModal() {
 }
 
 function deleteGame(gameId) {
-    showConfirmDialog(
-        'Delete Game?',
-        'Delete this game from history? This cannot be undone.',
-        () => {
-            gameHistory = gameHistory.filter(g => g.id !== gameId);
-            saveGameHistory();
-            updateGameHistoryDisplay();
-            closeGameDetailModal();
-            showToast('Game deleted', 'success');
-        }
-    );
+    showConfirmDialog('Delete Game?', 'Delete this game from history? This cannot be undone.', () => {
+        gameHistory = gameHistory.filter((g) => g.id !== gameId);
+        saveGameHistory();
+        updateGameHistoryDisplay();
+        closeGameDetailModal();
+        showToast('Game deleted', 'success');
+    });
 }
 
 // ==================== DATA EXPORT FUNCTIONS ====================
@@ -7079,10 +7344,10 @@ function exportPlayerStats(playerName) {
     const seasonData = seasonStats.players[playerName] || {};
     const careerData = careerStats.players[playerName] || {};
     const position = getPlayerPosition(playerName);
-    
+
     // Get all games this player participated in
-    const playerGames = gameHistory.filter(g => g.playerStats[playerName]);
-    
+    const playerGames = gameHistory.filter((g) => g.playerStats[playerName]);
+
     const csv = [
         ['Player Stats Export', playerName],
         ['Position', position || 'Not Set'],
@@ -7112,10 +7377,21 @@ function exportPlayerStats(playerName) {
         ['Yards Caught', Math.round(seasonData.yardsCaught || 0)],
         [''],
         ['=== GAME HISTORY ==='],
-        ['Date', 'Opponent', 'Result', 'Score', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Yards Thrown', 'Yards Caught']
+        [
+            'Date',
+            'Opponent',
+            'Result',
+            'Score',
+            'Goals',
+            'Assists',
+            'Blocks',
+            'Turnovers',
+            'Yards Thrown',
+            'Yards Caught',
+        ],
     ];
-    
-    playerGames.forEach(game => {
+
+    playerGames.forEach((game) => {
         const stats = game.playerStats[playerName];
         csv.push([
             game.date,
@@ -7127,19 +7403,19 @@ function exportPlayerStats(playerName) {
             stats.blocks || 0,
             stats.turnovers || 0,
             Math.round(stats.yardsThrown || 0),
-            Math.round(stats.yardsCaught || 0)
+            Math.round(stats.yardsCaught || 0),
         ]);
     });
-    
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, `${playerName.replace(/\s+/g, '_')}_stats.csv`);
     showToast(`Exported ${playerName}'s stats`);
 }
 
 function exportGame(gameId) {
-    const game = gameHistory.find(g => g.id === gameId);
+    const game = gameHistory.find((g) => g.id === gameId);
     if (!game) return;
-    
+
     const csv = [
         ['Game Export'],
         ['Date', game.date],
@@ -7154,9 +7430,9 @@ function exportGame(gameId) {
         ['Total Yards', Math.round(game.teamStats.totalYardsThrown || 0)],
         [''],
         ['=== PLAYER STATS ==='],
-        ['Player', 'Position', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Yards Thrown', 'Yards Caught']
+        ['Player', 'Position', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Yards Thrown', 'Yards Caught'],
     ];
-    
+
     Object.entries(game.playerStats).forEach(([player, stats]) => {
         const pos = getPlayerPosition(player);
         csv.push([
@@ -7167,12 +7443,12 @@ function exportGame(gameId) {
             stats.blocks || 0,
             stats.turnovers || 0,
             Math.round(stats.yardsThrown || 0),
-            Math.round(stats.yardsCaught || 0)
+            Math.round(stats.yardsCaught || 0),
         ]);
     });
-    
+
     const filename = `game_${game.ourTeam}_vs_${game.opponentTeam}_${game.date}.csv`.replace(/\s+/g, '_');
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, filename);
     showToast('Game exported');
 }
@@ -7182,7 +7458,7 @@ function exportTournament() {
         showToast('No tournament data to export', 'error');
         return;
     }
-    
+
     const csv = [
         ['Tournament Export'],
         ['Name', tournamentStats.name || 'Tournament'],
@@ -7191,11 +7467,11 @@ function exportTournament() {
         ['Record', `${tournamentStats.wins}W - ${tournamentStats.losses}L`],
         [''],
         ['=== PLAYER STATS ==='],
-        ['Player', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Points']
+        ['Player', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Points'],
     ];
-    
+
     Object.entries(tournamentStats.players)
-        .sort((a, b) => ((b[1].goals || 0) + (b[1].assists || 0)) - ((a[1].goals || 0) + (a[1].assists || 0)))
+        .sort((a, b) => (b[1].goals || 0) + (b[1].assists || 0) - ((a[1].goals || 0) + (a[1].assists || 0)))
         .forEach(([name, stats]) => {
             csv.push([
                 name,
@@ -7203,24 +7479,24 @@ function exportTournament() {
                 stats.assists || 0,
                 stats.blocks || 0,
                 stats.turnovers || 0,
-                (stats.goals || 0) + (stats.assists || 0)
+                (stats.goals || 0) + (stats.assists || 0),
             ]);
         });
-    
+
     // Add games from this tournament
     csv.push(['']);
     csv.push(['=== GAMES ===']);
     csv.push(['Date', 'Opponent', 'Result', 'Score']);
-    
-    tournamentStats.games.forEach(gameId => {
-        const game = gameHistory.find(g => g.id === gameId);
+
+    tournamentStats.games.forEach((gameId) => {
+        const game = gameHistory.find((g) => g.id === gameId);
         if (game) {
             csv.push([game.date, game.opponentTeam, game.result, `${game.ourScore}-${game.opponentScore}`]);
         }
     });
-    
+
     const filename = `tournament_${(tournamentStats.name || 'export').replace(/\s+/g, '_')}.csv`;
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, filename);
     showToast('Tournament exported');
 }
@@ -7231,22 +7507,25 @@ function exportSeason() {
         ['Generated', new Date().toLocaleString()],
         ['Total Games', seasonStats.totalGames],
         ['Record', `${seasonStats.wins}W - ${seasonStats.losses}L`],
-        ['Win %', seasonStats.totalGames > 0 ? Math.round((seasonStats.wins / seasonStats.totalGames) * 100) + '%' : 'N/A'],
+        [
+            'Win %',
+            seasonStats.totalGames > 0 ? Math.round((seasonStats.wins / seasonStats.totalGames) * 100) + '%' : 'N/A',
+        ],
         [''],
         ['=== PLAYER SEASON TOTALS ==='],
-        ['Player', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Points', 'Games']
+        ['Player', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Points', 'Games'],
     ];
-    
+
     // Count games per player
     const gamesPerPlayer = {};
-    gameHistory.forEach(game => {
-        Object.keys(game.playerStats).forEach(name => {
+    gameHistory.forEach((game) => {
+        Object.keys(game.playerStats).forEach((name) => {
             gamesPerPlayer[name] = (gamesPerPlayer[name] || 0) + 1;
         });
     });
-    
+
     Object.entries(seasonStats.players)
-        .sort((a, b) => ((b[1].goals || 0) + (b[1].assists || 0)) - ((a[1].goals || 0) + (a[1].assists || 0)))
+        .sort((a, b) => (b[1].goals || 0) + (b[1].assists || 0) - ((a[1].goals || 0) + (a[1].assists || 0)))
         .forEach(([name, stats]) => {
             csv.push([
                 name,
@@ -7255,25 +7534,25 @@ function exportSeason() {
                 stats.blocks || 0,
                 stats.turnovers || 0,
                 (stats.goals || 0) + (stats.assists || 0),
-                gamesPerPlayer[name] || 0
+                gamesPerPlayer[name] || 0,
             ]);
         });
-    
+
     csv.push(['']);
     csv.push(['=== ALL GAMES ===']);
     csv.push(['Date', 'Opponent', 'Result', 'Score', 'Tournament']);
-    
-    gameHistory.forEach(game => {
+
+    gameHistory.forEach((game) => {
         csv.push([
             game.date,
             game.opponentTeam,
             game.result,
             `${game.ourScore}-${game.opponentScore}`,
-            game.tournament || ''
+            game.tournament || '',
         ]);
     });
-    
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, `season_stats_${new Date().toISOString().split('T')[0]}.csv`);
     showToast('Season stats exported');
 }
@@ -7286,11 +7565,26 @@ function exportCareer() {
         ['Total Games', careerStats.totalGames],
         [''],
         ['=== CAREER TOTALS ==='],
-        ['Player', 'Games', 'Goals', 'Assists', 'Hockey Assists', 'Blocks', 'Turnovers', 'Points', 'Yards Thrown', 'Yards Caught', 'Total Yards', 'G/Game', 'A/Game', 'First Game']
+        [
+            'Player',
+            'Games',
+            'Goals',
+            'Assists',
+            'Hockey Assists',
+            'Blocks',
+            'Turnovers',
+            'Points',
+            'Yards Thrown',
+            'Yards Caught',
+            'Total Yards',
+            'G/Game',
+            'A/Game',
+            'First Game',
+        ],
     ];
-    
+
     Object.entries(careerStats.players)
-        .sort((a, b) => ((b[1].goals || 0) + (b[1].assists || 0)) - ((a[1].goals || 0) + (a[1].assists || 0)))
+        .sort((a, b) => (b[1].goals || 0) + (b[1].assists || 0) - ((a[1].goals || 0) + (a[1].assists || 0)))
         .forEach(([name, stats]) => {
             const games = stats.gamesPlayed || 1;
             const yardsThrown = stats.yardsThrown || 0;
@@ -7309,11 +7603,11 @@ function exportCareer() {
                 Math.round(yardsThrown + yardsCaught),
                 ((stats.goals || 0) / games).toFixed(2),
                 ((stats.assists || 0) / games).toFixed(2),
-                stats.firstGame ? new Date(stats.firstGame).toLocaleDateString() : 'N/A'
+                stats.firstGame ? new Date(stats.firstGame).toLocaleDateString() : 'N/A',
             ]);
         });
-    
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, `career_stats_${new Date().toISOString().split('T')[0]}.csv`);
     showToast('Career stats exported');
 }
@@ -7326,13 +7620,15 @@ function exportAllData() {
         seasonStats: seasonStats,
         tournamentStats: tournamentStats,
         gameHistory: gameHistory,
-        currentGame: gameState.currentGame.isActive ? {
-            game: gameState.currentGame,
-            playerStats: gameState.playerStats,
-            teamStats: gameState.teamStats
-        } : null
+        currentGame: gameState.currentGame.isActive
+            ? {
+                  game: gameState.currentGame,
+                  playerStats: gameState.playerStats,
+                  teamStats: gameState.teamStats,
+              }
+            : null,
     };
-    
+
     const jsonContent = JSON.stringify(allData, null, 2);
     downloadFile(jsonContent, `ultistats_backup_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
     showToast('Full backup exported');
@@ -7341,11 +7637,11 @@ function exportAllData() {
 function showExportModal() {
     const existing = document.getElementById('export-modal');
     if (existing) existing.remove();
-    
+
     const modal = document.createElement('div');
     modal.id = 'export-modal';
     modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-    
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-md border border-white/10">
             <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -7399,7 +7695,7 @@ function showExportModal() {
             </button>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeExportModal();
@@ -7410,9 +7706,9 @@ function showExportModal() {
 function showPlayerExportList() {
     const container = document.querySelector('#export-modal > div');
     if (!container) return;
-    
+
     const players = Object.keys(seasonStats.players);
-    
+
     container.innerHTML = `
         <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
             <span>👤</span> Select Player to Export
@@ -7420,15 +7716,17 @@ function showPlayerExportList() {
         
         <div class="space-y-2 max-h-80 overflow-y-auto mb-4">
             ${players.length === 0 ? '<p class="text-gray-400 text-center py-4">No players with stats</p>' : ''}
-            ${players.map(name => {
-                const stats = seasonStats.players[name];
-                return `
+            ${players
+                .map((name) => {
+                    const stats = seasonStats.players[name];
+                    return `
                     <button onclick="exportPlayerStats('${name}'); closeExportModal();" class="w-full flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/10 text-left transition-all">
                         <span class="font-medium text-white">${name}</span>
                         <span class="text-sm text-gray-400">${(stats.goals || 0) + (stats.assists || 0)} pts</span>
                     </button>
                 `;
-            }).join('')}
+                })
+                .join('')}
         </div>
         
         <button onclick="showExportModal()" class="w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-semibold transition-all">
@@ -7438,7 +7736,10 @@ function showPlayerExportList() {
 }
 
 function closeExportModal() {
-    if (window._exportFocusCleanup) { window._exportFocusCleanup(); window._exportFocusCleanup = null; }
+    if (window._exportFocusCleanup) {
+        window._exportFocusCleanup();
+        window._exportFocusCleanup = null;
+    }
     const modal = document.getElementById('export-modal');
     if (modal) modal.remove();
 }
@@ -7452,38 +7753,54 @@ function updateDashboardTournaments() {
     const tournaments = Object.values(tournamentsData.tournaments);
 
     if (tournaments.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">No tournaments yet. Import one from USAU or create your own.</p>';
+        container.innerHTML =
+            '<p class="text-gray-500 text-sm py-4 text-center">No tournaments yet. Import one from USAU or create your own.</p>';
         return;
     }
 
     const formatLabels = {
         'pool-play': 'Pool Play',
-        'bracket': 'Bracket',
-        'pool-to-bracket': 'Pool → Bracket'
+        bracket: 'Bracket',
+        'pool-to-bracket': 'Pool → Bracket',
     };
 
     // Sort by most recent first
     const sorted = tournaments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    container.innerHTML = sorted.slice(0, 3).map(tournament => {
-        const teamCount = getEntityTeamCount(tournament.id);
-        const completedMatchups = [...(tournament.poolMatchups || []), ...(tournament.bracketMatchups || [])].filter(m => m.status === 'completed').length;
-        const totalMatchups = (tournament.poolMatchups || []).length + (tournament.bracketMatchups || []).length;
-        const sharedBadge = tournament.sharedTournamentId ? '<span class="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full ml-2">Shared</span>' : '';
-        const leagueBadge = tournament.leagueId ? '<span class="text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full ml-2">In League</span>' : '';
+    container.innerHTML = sorted
+        .slice(0, 3)
+        .map((tournament) => {
+            const teamCount = getEntityTeamCount(tournament.id);
+            const completedMatchups = [
+                ...(tournament.poolMatchups || []),
+                ...(tournament.bracketMatchups || []),
+            ].filter((m) => m.status === 'completed').length;
+            const totalMatchups = (tournament.poolMatchups || []).length + (tournament.bracketMatchups || []).length;
+            const sharedBadge = tournament.sharedTournamentId
+                ? '<span class="text-xs bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded-full ml-2">Shared</span>'
+                : '';
+            const leagueBadge = tournament.leagueId
+                ? '<span class="text-xs bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded-full ml-2">In League</span>'
+                : '';
 
-        let dateStr = '';
-        if (tournament.startDate) {
-            const start = new Date(tournament.startDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            if (tournament.endDate && tournament.endDate !== tournament.startDate) {
-                const end = new Date(tournament.endDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                dateStr = ` | ${start} - ${end}`;
-            } else {
-                dateStr = ` | ${start}`;
+            let dateStr = '';
+            if (tournament.startDate) {
+                const start = new Date(tournament.startDate + 'T00:00:00').toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                });
+                if (tournament.endDate && tournament.endDate !== tournament.startDate) {
+                    const end = new Date(tournament.endDate + 'T00:00:00').toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                    });
+                    dateStr = ` | ${start} - ${end}`;
+                } else {
+                    dateStr = ` | ${start}`;
+                }
             }
-        }
 
-        return `
+            return `
             <a href="tournament.html?id=${tournament.id}" class="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
                 <div>
                     <h3 class="font-medium text-white">${escapeHtml(tournament.name)}${sharedBadge}${leagueBadge}</h3>
@@ -7495,7 +7812,8 @@ function updateDashboardTournaments() {
                 </div>
             </a>
         `;
-    }).join('');
+        })
+        .join('');
 
     if (tournaments.length > 3) {
         container.innerHTML += `
@@ -7513,17 +7831,22 @@ function updateDashboardLeagues() {
     const leagues = Object.values(leaguesData.leagues);
 
     if (leagues.length === 0) {
-        container.innerHTML = '<p class="text-gray-500 text-sm py-4 text-center">No leagues yet. Create one to organize your season.</p>';
+        container.innerHTML =
+            '<p class="text-gray-500 text-sm py-4 text-center">No leagues yet. Create one to organize your season.</p>';
         return;
     }
 
-    container.innerHTML = leagues.slice(0, 3).map(league => {
-        const teamCount = (league.teamIds || []).length;
-        const tournamentCount = (league.tournamentIds || []).length;
-        const completedMatchups = (league.regularSeasonMatchups || []).filter(m => m.status === 'completed').length;
-        const totalMatchups = (league.regularSeasonMatchups || []).length;
+    container.innerHTML = leagues
+        .slice(0, 3)
+        .map((league) => {
+            const teamCount = (league.teamIds || []).length;
+            const tournamentCount = (league.tournamentIds || []).length;
+            const completedMatchups = (league.regularSeasonMatchups || []).filter(
+                (m) => m.status === 'completed'
+            ).length;
+            const totalMatchups = (league.regularSeasonMatchups || []).length;
 
-        return `
+            return `
             <a href="league.html" class="flex items-center justify-between p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
                 <div>
                     <h3 class="font-medium text-white">${escapeHtml(league.name)}</h3>
@@ -7535,7 +7858,8 @@ function updateDashboardLeagues() {
                 </div>
             </a>
         `;
-    }).join('');
+        })
+        .join('');
 
     if (leagues.length > 3) {
         container.innerHTML += `
@@ -7570,36 +7894,40 @@ async function updateSharedTournaments() {
         section.classList.remove('hidden');
 
         // Fetch linked teams for each tournament to show connected coaches
-        const tournamentsWithLinks = await Promise.all(tournaments.map(async (tournament) => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/shared-tournaments/${tournament.id}`, {
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    return { ...tournament, linkedTeams: data.linkedTeams || [] };
+        const tournamentsWithLinks = await Promise.all(
+            tournaments.map(async (tournament) => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/shared-tournaments/${tournament.id}`, {
+                        credentials: 'include',
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        return { ...tournament, linkedTeams: data.linkedTeams || [] };
+                    }
+                } catch (e) {
+                    console.error('Error fetching linked teams:', e);
                 }
-            } catch (e) {
-                console.error('Error fetching linked teams:', e);
-            }
-            return { ...tournament, linkedTeams: [] };
-        }));
+                return { ...tournament, linkedTeams: [] };
+            })
+        );
 
-        container.innerHTML = tournamentsWithLinks.map(tournament => {
-            const poolCount = tournament.pools ? Object.keys(tournament.pools).length : 0;
-            const teamCount = tournament.teams ? tournament.teams.length : 0;
-            const linkedCoachCount = tournament.linkedTeams?.length || 0;
-            const lastUpdated = tournament.last_updated
-                ? new Date(tournament.last_updated).toLocaleDateString()
-                : 'Never';
+        container.innerHTML = tournamentsWithLinks
+            .map((tournament) => {
+                const poolCount = tournament.pools ? Object.keys(tournament.pools).length : 0;
+                const teamCount = tournament.teams ? tournament.teams.length : 0;
+                const linkedCoachCount = tournament.linkedTeams?.length || 0;
+                const lastUpdated = tournament.last_updated
+                    ? new Date(tournament.last_updated).toLocaleDateString()
+                    : 'Never';
 
-            // Build linked coaches preview (show first 2)
-            const linkedTeamsPreview = (tournament.linkedTeams || []).slice(0, 3).map(link =>
-                `<span class="text-emerald-400">${escapeHtml(link.team_name)}</span>`
-            ).join(', ');
-            const moreCount = linkedCoachCount > 3 ? linkedCoachCount - 3 : 0;
+                // Build linked coaches preview (show first 2)
+                const linkedTeamsPreview = (tournament.linkedTeams || [])
+                    .slice(0, 3)
+                    .map((link) => `<span class="text-emerald-400">${escapeHtml(link.team_name)}</span>`)
+                    .join(', ');
+                const moreCount = linkedCoachCount > 3 ? linkedCoachCount - 3 : 0;
 
-            return `
+                return `
                 <div class="p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-all">
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
@@ -7623,7 +7951,9 @@ async function updateSharedTournaments() {
                             </button>
                         </div>
                     </div>
-                    ${linkedCoachCount > 0 ? `
+                    ${
+                        linkedCoachCount > 0
+                            ? `
                     <div class="mt-3 pt-3 border-t border-white/10">
                         <button onclick="showLinkedCoaches('${tournament.id}')" class="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-all w-full">
                             <i data-lucide="users" class="w-3.5 h-3.5 text-emerald-400"></i>
@@ -7631,22 +7961,24 @@ async function updateSharedTournaments() {
                             <i data-lucide="chevron-right" class="w-3.5 h-3.5 ml-auto"></i>
                         </button>
                     </div>
-                    ` : `
+                    `
+                            : `
                     <div class="mt-3 pt-3 border-t border-white/10">
                         <p class="flex items-center gap-2 text-xs text-gray-500">
                             <i data-lucide="user-x" class="w-3.5 h-3.5"></i>
                             No other coaches connected yet
                         </p>
                     </div>
-                    `}
+                    `
+                    }
                 </div>
             `;
-        }).join('');
+            })
+            .join('');
 
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-
     } catch (error) {
         console.error('Error loading shared tournaments:', error);
         section.classList.add('hidden');
@@ -7699,7 +8031,7 @@ async function showLinkedCoaches(tournamentId) {
 
     try {
         const response = await fetch(`${API_BASE_URL}/api/shared-tournaments/${tournamentId}`, {
-            credentials: 'include'
+            credentials: 'include',
         });
 
         if (!response.ok) {
@@ -7712,7 +8044,7 @@ async function showLinkedCoaches(tournamentId) {
 
         // Group linked teams by pool
         const teamsByPool = {};
-        linkedTeams.forEach(link => {
+        linkedTeams.forEach((link) => {
             const pool = link.pool_name || 'Unknown Pool';
             if (!teamsByPool[pool]) teamsByPool[pool] = [];
             teamsByPool[pool].push(link);
@@ -7722,14 +8054,17 @@ async function showLinkedCoaches(tournamentId) {
         const totalCoaches = linkedTeams.reduce((sum, link) => sum + (link.coaches?.length || 1), 0);
 
         // Create modal content
-        const poolSections = Object.entries(teamsByPool).map(([poolName, teams]) => `
+        const poolSections = Object.entries(teamsByPool)
+            .map(
+                ([poolName, teams]) => `
             <div class="mb-4">
                 <h4 class="text-sm font-medium text-gray-400 mb-2">${escapeHtml(poolName)}</h4>
                 <div class="space-y-3">
-                    ${teams.map(link => {
-                        const coaches = link.coaches || [{ user_name: link.user_name, role: 'coach' }];
-                        const coachCount = coaches.length;
-                        return `
+                    ${teams
+                        .map((link) => {
+                            const coaches = link.coaches || [{ user_name: link.user_name, role: 'coach' }];
+                            const coachCount = coaches.length;
+                            return `
                         <div class="p-3 bg-white/5 rounded-lg border border-white/10">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -7749,7 +8084,9 @@ async function showLinkedCoaches(tournamentId) {
                             </div>
                             <div class="mt-3 pt-3 border-t border-white/5">
                                 <div class="flex flex-wrap gap-2">
-                                    ${coaches.map(coach => `
+                                    ${coaches
+                                        .map(
+                                            (coach) => `
                                         <div class="flex items-center gap-2 px-2 py-1 bg-white/5 rounded-lg">
                                             <div class="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
                                                 <span class="text-white text-xs font-medium">${escapeHtml((coach.user_name || 'U').charAt(0))}</span>
@@ -7757,14 +8094,20 @@ async function showLinkedCoaches(tournamentId) {
                                             <span class="text-xs text-white">${escapeHtml(coach.user_name || 'Unknown')}</span>
                                             ${coach.role === 'owner' ? '<span class="text-xs text-yellow-400">★</span>' : ''}
                                         </div>
-                                    `).join('')}
+                                    `
+                                        )
+                                        .join('')}
                                 </div>
                             </div>
                         </div>
-                    `}).join('')}
+                    `;
+                        })
+                        .join('')}
                 </div>
             </div>
-        `).join('');
+        `
+            )
+            .join('');
 
         // Show modal
         const modalHtml = `
@@ -7806,7 +8149,6 @@ async function showLinkedCoaches(tournamentId) {
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         }
-
     } catch (error) {
         console.error('Error showing linked coaches:', error);
         showToast('Failed to load coaches', 'error');
@@ -7818,10 +8160,10 @@ async function showLinkedCoaches(tournamentId) {
 function updateTeamSelector() {
     const container = document.getElementById('team-list');
     if (!container) return;
-    
+
     // Use API-fetched userTeams if available, otherwise fall back to local teamsData
     const teams = userTeams.length > 0 ? userTeams : Object.values(teamsData.teams);
-    
+
     if (teams.length === 0) {
         container.innerHTML = `
             <div class="col-span-full text-center text-gray-500 py-8">
@@ -7830,14 +8172,17 @@ function updateTeamSelector() {
         `;
         return;
     }
-    
-    container.innerHTML = teams.map(team => {
-        const isActive = currentTeam && team.id === currentTeam.id;
-        const playerCount = team.roster ? team.roster.length : 0;
-        const record = team.seasonStats ? `${team.seasonStats.wins || 0}W-${team.seasonStats.losses || 0}L` : '0W-0L';
-        const gamesPlayed = team.gameHistory ? team.gameHistory.length : 0;
-        
-        return `
+
+    container.innerHTML = teams
+        .map((team) => {
+            const isActive = currentTeam && team.id === currentTeam.id;
+            const playerCount = team.roster ? team.roster.length : 0;
+            const record = team.seasonStats
+                ? `${team.seasonStats.wins || 0}W-${team.seasonStats.losses || 0}L`
+                : '0W-0L';
+            const gamesPlayed = team.gameHistory ? team.gameHistory.length : 0;
+
+            return `
             <div class="team-card p-4 rounded-xl ${isActive ? 'bg-blue-500/20 border-2 border-blue-500/50' : 'bg-white/5 border border-white/10'} hover:bg-white/10 transition-all cursor-pointer" onclick="viewTeamStats('${team.id}')">
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="font-bold text-white">${escapeHtml(team.name)}</h3>
@@ -7859,8 +8204,9 @@ function updateTeamSelector() {
                 </div>
             </div>
         `;
-    }).join('');
-    
+        })
+        .join('');
+
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
@@ -7869,14 +8215,14 @@ function updateTeamSelector() {
 function showTeamModal(editTeamId = null) {
     const existing = document.getElementById('team-modal');
     if (existing) existing.remove();
-    
+
     const team = editTeamId ? teamsData.teams[editTeamId] : null;
     const isEdit = !!team;
-    
+
     const modal = document.createElement('div');
     modal.id = 'team-modal';
     modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-    
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-md border border-white/10">
             <h3 class="text-xl font-bold text-white mb-4">${isEdit ? 'Edit Team' : 'Create New Team'}</h3>
@@ -7898,7 +8244,7 @@ function showTeamModal(editTeamId = null) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
 
     modal.addEventListener('click', (e) => {
@@ -7908,7 +8254,10 @@ function showTeamModal(editTeamId = null) {
 }
 
 function closeTeamModal() {
-    if (window._teamFocusCleanup) { window._teamFocusCleanup(); window._teamFocusCleanup = null; }
+    if (window._teamFocusCleanup) {
+        window._teamFocusCleanup();
+        window._teamFocusCleanup = null;
+    }
     const modal = document.getElementById('team-modal');
     if (modal) modal.remove();
 }
@@ -7968,19 +8317,21 @@ function saveTeamEdit(teamId) {
 function viewTeamStats(teamId) {
     const team = teamsData.teams[teamId];
     if (!team) return;
-    
+
     const existing = document.getElementById('team-stats-modal');
     if (existing) existing.remove();
-    
+
     const stats = team.careerStats || { players: {} };
     const seasonStats = team.seasonStats || { wins: 0, losses: 0, totalGames: 0 };
-    const playerEntries = Object.entries(stats.players)
-        .sort((a, b) => ((b[1].goals || 0) + (b[1].assists || 0)) - ((a[1].goals || 0) + (a[1].assists || 0)));
-    
+    const playerEntries = Object.entries(stats.players).sort(
+        (a, b) => (b[1].goals || 0) + (b[1].assists || 0) - ((a[1].goals || 0) + (a[1].assists || 0))
+    );
+
     const modal = document.createElement('div');
     modal.id = 'team-stats-modal';
-    modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto';
-    
+    modal.className =
+        'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto';
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-2xl border border-white/10 my-8">
             <div class="flex items-center justify-between mb-6">
@@ -7996,19 +8347,19 @@ function viewTeamStats(teamId) {
             
             <div class="grid grid-cols-4 gap-3 mb-6">
                 <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
-                    <div class="text-2xl font-bold text-emerald-400">${playerEntries.reduce((sum, [,s]) => sum + (s.goals || 0), 0)}</div>
+                    <div class="text-2xl font-bold text-emerald-400">${playerEntries.reduce((sum, [, s]) => sum + (s.goals || 0), 0)}</div>
                     <div class="text-xs text-gray-400">Goals</div>
                 </div>
                 <div class="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center">
-                    <div class="text-2xl font-bold text-cyan-400">${playerEntries.reduce((sum, [,s]) => sum + (s.assists || 0), 0)}</div>
+                    <div class="text-2xl font-bold text-cyan-400">${playerEntries.reduce((sum, [, s]) => sum + (s.assists || 0), 0)}</div>
                     <div class="text-xs text-gray-400">Assists</div>
                 </div>
                 <div class="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-center">
-                    <div class="text-2xl font-bold text-purple-400">${playerEntries.reduce((sum, [,s]) => sum + (s.blocks || 0), 0)}</div>
+                    <div class="text-2xl font-bold text-purple-400">${playerEntries.reduce((sum, [, s]) => sum + (s.blocks || 0), 0)}</div>
                     <div class="text-xs text-gray-400">Blocks</div>
                 </div>
                 <div class="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-center">
-                    <div class="text-2xl font-bold text-blue-400">${Math.round(playerEntries.reduce((sum, [,s]) => sum + (s.yardsThrown || 0) + (s.yardsCaught || 0), 0))}</div>
+                    <div class="text-2xl font-bold text-blue-400">${Math.round(playerEntries.reduce((sum, [, s]) => sum + (s.yardsThrown || 0) + (s.yardsCaught || 0), 0))}</div>
                     <div class="text-xs text-gray-400">Yards</div>
                 </div>
             </div>
@@ -8017,7 +8368,9 @@ function viewTeamStats(teamId) {
                 <h4 class="text-sm font-semibold text-gray-300 mb-3">Player Stats (${playerEntries.length} players)</h4>
                 <div class="space-y-2 max-h-64 overflow-y-auto">
                     ${playerEntries.length === 0 ? '<p class="text-gray-500 text-center py-4">No player stats yet</p>' : ''}
-                    ${playerEntries.map(([name, s], idx) => `
+                    ${playerEntries
+                        .map(
+                            ([name, s], idx) => `
                         <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
                             <div class="flex items-center gap-2">
                                 <span class="text-gray-500 w-6">${idx + 1}.</span>
@@ -8031,7 +8384,9 @@ function viewTeamStats(teamId) {
                                 <span class="text-red-400">${s.turnovers || 0}T</span>
                             </div>
                         </div>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
             </div>
             
@@ -8051,7 +8406,7 @@ function viewTeamStats(teamId) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeTeamStatsModal();
@@ -8076,10 +8431,10 @@ function setActiveTeam(teamId) {
 function exportTeamStats(teamId) {
     const team = teamsData.teams[teamId];
     if (!team) return;
-    
+
     const stats = team.careerStats || { players: {} };
     const seasonStats = team.seasonStats || {};
-    
+
     const csv = [
         ['Team Stats Export'],
         ['Team Name', team.name],
@@ -8088,11 +8443,22 @@ function exportTeamStats(teamId) {
         ['Record', `${seasonStats.wins || 0}W - ${seasonStats.losses || 0}L`],
         [''],
         ['=== PLAYER CAREER STATS ==='],
-        ['Player', 'Goals', 'Assists', 'Hockey Assists', 'Blocks', 'Turnovers', 'Points', 'Yards Thrown', 'Yards Caught', 'Total Yards']
+        [
+            'Player',
+            'Goals',
+            'Assists',
+            'Hockey Assists',
+            'Blocks',
+            'Turnovers',
+            'Points',
+            'Yards Thrown',
+            'Yards Caught',
+            'Total Yards',
+        ],
     ];
-    
+
     Object.entries(stats.players)
-        .sort((a, b) => ((b[1].goals || 0) + (b[1].assists || 0)) - ((a[1].goals || 0) + (a[1].assists || 0)))
+        .sort((a, b) => (b[1].goals || 0) + (b[1].assists || 0) - ((a[1].goals || 0) + (a[1].assists || 0)))
         .forEach(([name, s]) => {
             csv.push([
                 name,
@@ -8104,11 +8470,11 @@ function exportTeamStats(teamId) {
                 (s.goals || 0) + (s.assists || 0),
                 Math.round(s.yardsThrown || 0),
                 Math.round(s.yardsCaught || 0),
-                Math.round((s.yardsThrown || 0) + (s.yardsCaught || 0))
+                Math.round((s.yardsThrown || 0) + (s.yardsCaught || 0)),
             ]);
         });
-    
-    const csvContent = csv.map(row => row.join(',')).join('\n');
+
+    const csvContent = csv.map((row) => row.join(',')).join('\n');
     downloadFile(csvContent, `${team.name.replace(/\s+/g, '_')}_stats.csv`);
     showToast(`Exported ${team.name} stats`);
 }
@@ -8118,34 +8484,56 @@ function updateAggregateStats(playerName, statType, value = 1) {
     // Ensure player exists in season stats
     if (!seasonStats.players[playerName]) {
         seasonStats.players[playerName] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            throws: 0, catches: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
         };
     }
     seasonStats.players[playerName][statType] = (seasonStats.players[playerName][statType] || 0) + value;
-    
+
     // Update tournament stats if active
     if (tournamentStats.isActive) {
         if (!tournamentStats.players[playerName]) {
             tournamentStats.players[playerName] = {
-                goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-                throws: 0, catches: 0
+                goals: 0,
+                assists: 0,
+                hockeyAssists: 0,
+                blocks: 0,
+                turnovers: 0,
+                yardsThrown: 0,
+                yardsCaught: 0,
+                throws: 0,
+                catches: 0,
             };
         }
         tournamentStats.players[playerName][statType] = (tournamentStats.players[playerName][statType] || 0) + value;
         saveTournamentStats();
     }
-    
+
     // Update career stats (never resets)
     if (!careerStats.players[playerName]) {
         careerStats.players[playerName] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            gamesPlayed: 0, seasonsPlayed: 0, firstGame: new Date().toISOString()
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            gamesPlayed: 0,
+            seasonsPlayed: 0,
+            firstGame: new Date().toISOString(),
         };
     }
     careerStats.players[playerName][statType] = (careerStats.players[playerName][statType] || 0) + value;
     saveCareerStats();
-    
+
     saveSeasonStats();
 }
 
@@ -8156,7 +8544,7 @@ function drawField() {
 
     // Create gradients
     const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
-    
+
     // Field gradient
     const fieldGradient = document.createElementNS('http://www.w3.org/2000/svg', 'linearGradient');
     fieldGradient.setAttribute('id', 'fieldGradient');
@@ -8164,15 +8552,15 @@ function drawField() {
     fieldGradient.setAttribute('y1', '0%');
     fieldGradient.setAttribute('x2', '0%');
     fieldGradient.setAttribute('y2', '100%');
-    
+
     const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
     stop1.setAttribute('offset', '0%');
     stop1.setAttribute('style', 'stop-color:#22c55e;stop-opacity:1');
-    
+
     const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
     stop2.setAttribute('offset', '100%');
     stop2.setAttribute('style', 'stop-color:#16a34a;stop-opacity:1');
-    
+
     fieldGradient.appendChild(stop1);
     fieldGradient.appendChild(stop2);
     defs.appendChild(fieldGradient);
@@ -8247,9 +8635,15 @@ function drawField() {
     svg.appendChild(leftBrickMark);
 
     const rightBrickMark = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    rightBrickMark.setAttribute('x1', FIELD_DIMENSIONS.totalLength - FIELD_DIMENSIONS.endZoneDepth - FIELD_DIMENSIONS.brickMarkDistance);
+    rightBrickMark.setAttribute(
+        'x1',
+        FIELD_DIMENSIONS.totalLength - FIELD_DIMENSIONS.endZoneDepth - FIELD_DIMENSIONS.brickMarkDistance
+    );
     rightBrickMark.setAttribute('y1', 0);
-    rightBrickMark.setAttribute('x2', FIELD_DIMENSIONS.totalLength - FIELD_DIMENSIONS.endZoneDepth - FIELD_DIMENSIONS.brickMarkDistance);
+    rightBrickMark.setAttribute(
+        'x2',
+        FIELD_DIMENSIONS.totalLength - FIELD_DIMENSIONS.endZoneDepth - FIELD_DIMENSIONS.brickMarkDistance
+    );
     rightBrickMark.setAttribute('y2', FIELD_DIMENSIONS.width);
     rightBrickMark.setAttribute('class', 'brick-mark');
     svg.appendChild(rightBrickMark);
@@ -8286,24 +8680,29 @@ function updateGameSetupUI() {
     const teamBadgeInitials = document.getElementById('team-badge-initials');
     const teamBadgeName = document.getElementById('team-badge-name');
     const gameSetupTeamName = document.getElementById('game-setup-team-name');
-    
+
     if (currentTeam && ourTeamInput) {
         ourTeamInput.value = currentTeam.name;
         ourTeamInput.classList.remove('readonly');
-        
+
         // Show team badge
         if (teamBadge) {
             teamBadge.classList.remove('hidden');
-            const initials = currentTeam.name.split(' ').map(w => w[0]).join('').toUpperCase().substring(0, 2);
+            const initials = currentTeam.name
+                .split(' ')
+                .map((w) => w[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
             if (teamBadgeInitials) teamBadgeInitials.textContent = initials;
             if (teamBadgeName) teamBadgeName.textContent = currentTeam.name;
         }
-        
+
         if (gameSetupTeamName) {
             gameSetupTeamName.textContent = `Playing as ${currentTeam.name}`;
         }
     }
-    
+
     // Update roster preview
     updateRosterPreview();
 }
@@ -8312,45 +8711,53 @@ function updateRosterPreview() {
     const container = document.getElementById('roster-preview');
     const countBadge = document.getElementById('roster-count-badge');
     if (!container) return;
-    
+
     const players = savedRoster.length > 0 ? savedRoster : gameState.players;
-    
+
     if (players.length === 0) {
-        container.innerHTML = '<span class="text-gray-500 text-sm">No players added yet. Add players after starting the game.</span>';
+        container.innerHTML =
+            '<span class="text-gray-500 text-sm">No players added yet. Add players after starting the game.</span>';
         if (countBadge) countBadge.textContent = '0 players';
         return;
     }
-    
+
     if (countBadge) countBadge.textContent = `${players.length} players`;
-    
+
     // Show first 10 players with avatars
     const displayPlayers = players.slice(0, 10);
     const remaining = players.length - 10;
-    
-    container.innerHTML = displayPlayers.map(player => {
-        const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
-        const initials = getPlayerInitials(player);
-        const avatarColor = avatar.color || getRandomAvatarColor(player);
 
-        // Get player position from registry
-        const playerObj = getPlayerByName(player);
-        const position = playerObj ? playerObj.position : null;
-        let positionBadge = '';
-        if (position) {
-            const posClass = position === 'Handler' ? 'bg-blue-500/30 text-blue-400' :
-                            position === 'Cutter' ? 'bg-green-500/30 text-green-400' :
-                            'bg-purple-500/30 text-purple-400';
-            positionBadge = `<span class="text-[9px] px-1 rounded ${posClass}">${position[0]}</span>`;
-        }
+    container.innerHTML =
+        displayPlayers
+            .map((player) => {
+                const avatar = playerAvatars[player] || { type: 'initials', color: getRandomAvatarColor(player) };
+                const initials = getPlayerInitials(player);
+                const avatarColor = avatar.color || getRandomAvatarColor(player);
 
-        return `
+                // Get player position from registry
+                const playerObj = getPlayerByName(player);
+                const position = playerObj ? playerObj.position : null;
+                let positionBadge = '';
+                if (position) {
+                    const posClass =
+                        position === 'Handler'
+                            ? 'bg-blue-500/30 text-blue-400'
+                            : position === 'Cutter'
+                              ? 'bg-green-500/30 text-green-400'
+                              : 'bg-purple-500/30 text-purple-400';
+                    positionBadge = `<span class="text-[9px] px-1 rounded ${posClass}">${position[0]}</span>`;
+                }
+
+                return `
             <div class="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-lg" title="${escapeHtml(player)}${position ? ' (' + position + ')' : ''}">
                 <div class="w-5 h-5 ${avatarColor} rounded-full flex items-center justify-center text-white font-bold text-[10px]">${escapeHtml(initials)}</div>
                 <span class="text-xs text-gray-300">${escapeHtml(player.split(' ')[0])}</span>
                 ${positionBadge}
             </div>
         `;
-    }).join('') + (remaining > 0 ? `<span class="text-xs text-gray-500 px-2 py-1">+${remaining} more</span>` : '');
+            })
+            .join('') +
+        (remaining > 0 ? `<span class="text-xs text-gray-500 px-2 py-1">+${remaining} more</span>` : '');
 }
 
 // ==================== TOURNAMENT-AWARE GAME SETUP ====================
@@ -8387,25 +8794,25 @@ function getNextMatchupForTeam(entityId, myTeamId) {
     if (!entity) return null;
 
     // Check pool matchups first (they come before bracket)
-    for (const matchup of (entity.poolMatchups || [])) {
+    for (const matchup of entity.poolMatchups || []) {
         if (matchup.status !== 'scheduled') continue;
         if (matchup.homeTeamId === myTeamId || matchup.awayTeamId === myTeamId) {
             const opponentId = matchup.homeTeamId === myTeamId ? matchup.awayTeamId : matchup.homeTeamId;
             const opponentTeam = teamsData.teams[opponentId];
-            const pool = entity.pools?.find(p => p.id === matchup.poolId);
+            const pool = entity.pools?.find((p) => p.id === matchup.poolId);
             return {
                 matchup,
                 matchupType: 'pool',
                 opponentId,
                 opponentName: opponentTeam?.name || 'TBD',
                 poolName: pool?.name || null,
-                round: matchup.round
+                round: matchup.round,
             };
         }
     }
 
     // Then check bracket matchups
-    for (const matchup of (entity.bracketMatchups || [])) {
+    for (const matchup of entity.bracketMatchups || []) {
         if (matchup.status !== 'scheduled') continue;
         if (matchup.homeTeamId === myTeamId || matchup.awayTeamId === myTeamId) {
             const opponentId = matchup.homeTeamId === myTeamId ? matchup.awayTeamId : matchup.homeTeamId;
@@ -8416,7 +8823,7 @@ function getNextMatchupForTeam(entityId, myTeamId) {
                 opponentId,
                 opponentName: opponentTeam?.name || 'TBD',
                 poolName: null,
-                round: matchup.round
+                round: matchup.round,
             };
         }
     }
@@ -8442,7 +8849,7 @@ function getActiveEntitiesForMyTeam() {
             entityType: 'tournament',
             myTeamId: myId,
             nextMatchup: next,
-            format: tournament.format
+            format: tournament.format,
         });
     }
 
@@ -8457,7 +8864,7 @@ function getActiveEntitiesForMyTeam() {
             entityType: 'league',
             myTeamId: myId,
             nextMatchup: next,
-            format: league.format
+            format: league.format,
         });
     }
 
@@ -8498,12 +8905,17 @@ function populateTournamentSelector() {
         return;
     }
 
-    select.innerHTML = '<option value="">Select tournament...</option>' +
-        entities.map(e => {
-            const badge = e.entityType === 'tournament' ? 'T' : 'L';
-            const nextLabel = e.nextMatchup ? ` — next: ${escapeHtml(e.nextMatchup.opponentName)}` : ' — no games left';
-            return `<option value="${escapeHtml(e.entityId)}">[${badge}] ${escapeHtml(e.entityName)}${nextLabel}</option>`;
-        }).join('');
+    select.innerHTML =
+        '<option value="">Select tournament...</option>' +
+        entities
+            .map((e) => {
+                const badge = e.entityType === 'tournament' ? 'T' : 'L';
+                const nextLabel = e.nextMatchup
+                    ? ` — next: ${escapeHtml(e.nextMatchup.opponentName)}`
+                    : ' — no games left';
+                return `<option value="${escapeHtml(e.entityId)}">[${badge}] ${escapeHtml(e.entityName)}${nextLabel}</option>`;
+            })
+            .join('');
 }
 
 /**
@@ -8553,9 +8965,10 @@ function showProjectedOpponent(nextInfo, entityId) {
 
     if (projection) {
         projection.classList.remove('hidden');
-        const matchTypeLabel = nextInfo.matchupType === 'pool'
-            ? `${nextInfo.poolName || 'Pool'} — Round ${nextInfo.round}`
-            : `Bracket — Round ${nextInfo.round}`;
+        const matchTypeLabel =
+            nextInfo.matchupType === 'pool'
+                ? `${nextInfo.poolName || 'Pool'} — Round ${nextInfo.round}`
+                : `Bracket — Round ${nextInfo.round}`;
 
         projectionDetails.innerHTML = `
             <div class="flex items-center gap-3">
@@ -8577,7 +8990,7 @@ function showProjectedOpponent(nextInfo, entityId) {
         entityId,
         matchupId: nextInfo.matchup.id,
         matchupType: nextInfo.matchupType,
-        opponentName: nextInfo.opponentName
+        opponentName: nextInfo.opponentName,
     };
 }
 
@@ -8642,7 +9055,7 @@ function initGameSetupValidation() {
 function autoDetectTournamentContext() {
     const entities = getActiveEntitiesForMyTeam();
     // If exactly one entity with an upcoming matchup, auto-select tournament mode
-    const withGames = entities.filter(e => e.nextMatchup);
+    const withGames = entities.filter((e) => e.nextMatchup);
     if (withGames.length >= 1) {
         const gameTypeSelect = document.getElementById('game-type');
         const tournamentContext = document.getElementById('tournament-context');
@@ -8666,7 +9079,8 @@ function startGame() {
     const ourTeam = document.getElementById('our-team')?.value || (currentTeam ? currentTeam.name : '');
     const opponentTeam = document.getElementById('opponent-team')?.value;
     const date = document.getElementById('game-date')?.value;
-    const sheetId = document.getElementById('sheet-id')?.value || document.getElementById('spreadsheet-id')?.value || '';
+    const sheetId =
+        document.getElementById('sheet-id')?.value || document.getElementById('spreadsheet-id')?.value || '';
     const gameType = document.getElementById('game-type')?.value || 'regular';
 
     if (!ourTeam || !opponentTeam || !date) {
@@ -8685,7 +9099,7 @@ function startGame() {
         teamId: currentTeam ? currentTeam.id : null,
         players: gameState.players,
         isActive: true,
-        startedAt: new Date().toISOString()
+        startedAt: new Date().toISOString(),
     };
 
     // Include tournament/matchup context if projected
@@ -8694,12 +9108,12 @@ function startGame() {
         const entity = getEntityById(pm.entityId);
         const isTournament = !!tournamentsData.tournaments[pm.entityId];
         gameSetup.tournamentId = isTournament ? pm.entityId : null;
-        gameSetup.leagueId = isTournament ? (entity?.leagueId || null) : pm.entityId;
+        gameSetup.leagueId = isTournament ? entity?.leagueId || null : pm.entityId;
         gameSetup.matchupId = pm.matchupId;
         gameSetup.matchupType = pm.matchupType;
     }
 
-    localStorage.setItem('ultistats_game_setup', JSON.stringify(gameSetup));
+    _storeSet('ultistats_game_setup', gameSetup);
 
     hapticFeedback('success');
     playSound('tap');
@@ -8709,36 +9123,28 @@ function startGame() {
 }
 
 function initializeGameFromSetup() {
-    const gameSetupStr = localStorage.getItem('ultistats_game_setup');
-    if (!gameSetupStr) {
+    const gameSetup = _storeGet('ultistats_game_setup');
+    if (!gameSetup) {
         console.error('No game setup found in localStorage');
         return false;
     }
-    
-    let gameSetup;
-    try {
-        gameSetup = JSON.parse(gameSetupStr);
-    } catch (e) {
-        console.error('Failed to parse game setup:', e);
-        return false;
-    }
-    
+
     gameState.currentGame = {
         ourTeam: gameSetup.ourTeam,
         opponentTeam: gameSetup.opponentTeam,
         date: gameSetup.date,
         sheetId: gameSetup.sheetId,
         gameType: gameSetup.gameType,
-        isActive: true
+        isActive: true,
     };
-    
+
     // Try multiple sources for players in order of priority:
     // 1. Players from game setup
     // 2. Players from currentTeam roster (already loaded by loadAuthState)
     // 3. Players from savedRoster (loaded by loadRoster)
-    
+
     let players = [];
-    
+
     if (gameSetup.players && gameSetup.players.length > 0) {
         players = [...gameSetup.players];
     } else if (currentTeam && currentTeam.roster && currentTeam.roster.length > 0) {
@@ -8746,9 +9152,9 @@ function initializeGameFromSetup() {
     } else if (savedRoster && savedRoster.length > 0) {
         players = [...savedRoster];
     }
-    
+
     gameState.players = players;
-    
+
     // Update header display (desktop + mobile spans)
     const ourTeamEl = document.getElementById('game-our-team');
     const opponentEl = document.getElementById('game-opponent');
@@ -8758,16 +9164,16 @@ function initializeGameFromSetup() {
     const opponentMobile = document.getElementById('game-opponent-mobile');
     if (ourTeamMobile) ourTeamMobile.textContent = gameSetup.ourTeam;
     if (opponentMobile) opponentMobile.textContent = gameSetup.opponentTeam;
-    
+
     // Initialize attendance with all players present by default
     if (gameState.players.length > 0) {
         gameState.presentPlayers = [...gameState.players];
     }
-    
+
     updateAttendanceGrid();
-    
+
     // Initialize player stats
-    gameState.players.forEach(player => {
+    gameState.players.forEach((player) => {
         if (!gameState.playerStats[player]) {
             gameState.playerStats[player] = {
                 goals: 0,
@@ -8775,7 +9181,7 @@ function initializeGameFromSetup() {
                 blocks: 0,
                 turnovers: 0,
                 yardsThrown: 0,
-                yardsCaught: 0
+                yardsCaught: 0,
             };
         }
     });
@@ -8799,12 +9205,12 @@ function handleCSVImport(event) {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         const content = e.target.result;
         const players = parseCSV(content);
-        
+
         let addedCount = 0;
-        players.forEach(playerName => {
+        players.forEach((playerName) => {
             if (playerName && !gameState.players.includes(playerName)) {
                 gameState.players.push(playerName);
                 gameState.playerStats[playerName] = {
@@ -8813,28 +9219,44 @@ function handleCSVImport(event) {
                     blocks: 0,
                     turnovers: 0,
                     yardsThrown: 0,
-                    yardsCaught: 0
+                    yardsCaught: 0,
                 };
-                
+
                 // Save to persistent roster
                 if (!savedRoster.includes(playerName)) {
                     savedRoster.push(playerName);
                 }
-                
+
                 // Initialize in season stats
                 if (!seasonStats.players[playerName]) {
                     seasonStats.players[playerName] = {
-                        goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-                        throws: 0, catches: 0
+                        goals: 0,
+                        assists: 0,
+                        hockeyAssists: 0,
+                        blocks: 0,
+                        turnovers: 0,
+                        yardsThrown: 0,
+                        yardsCaught: 0,
+                        throws: 0,
+                        catches: 0,
                     };
                 }
-                
+
                 // Initialize in career stats
                 if (!careerStats.players[playerName]) {
                     careerStats.players[playerName] = {
-                        goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-                        gamesPlayed: 0, seasonsPlayed: 0, firstGame: new Date().toISOString(),
-                        throws: 0, catches: 0
+                        goals: 0,
+                        assists: 0,
+                        hockeyAssists: 0,
+                        blocks: 0,
+                        turnovers: 0,
+                        yardsThrown: 0,
+                        yardsCaught: 0,
+                        gamesPlayed: 0,
+                        seasonsPlayed: 0,
+                        firstGame: new Date().toISOString(),
+                        throws: 0,
+                        catches: 0,
                     };
                 }
 
@@ -8851,14 +9273,14 @@ function handleCSVImport(event) {
         updateQuickPlayerSelect();
         updateLineSelectionGrid();
         updateStatsDisplay();
-        
+
         if (addedCount > 0) {
             logAction(`Imported ${addedCount} players from CSV`, 'system');
             showToast(`Successfully imported ${addedCount} players!`);
         } else {
             showToast('No new players found in CSV file.');
         }
-        
+
         // Reset file input
         event.target.value = '';
     };
@@ -8868,42 +9290,42 @@ function handleCSVImport(event) {
 function parseCSV(content) {
     const lines = content.split(/\r?\n/);
     const players = [];
-    
+
     // Check if first line is a header
     const firstLine = lines[0].trim().toLowerCase();
     const hasHeader = firstLine.includes('name') || firstLine.includes('player');
     const startIndex = hasHeader ? 1 : 0;
-    
+
     // Try to detect delimiter
-    const delimiter = content.includes(',') ? ',' : (content.includes('\t') ? '\t' : ',');
-    
+    const delimiter = content.includes(',') ? ',' : content.includes('\t') ? '\t' : ',';
+
     // Find the name column index if there's a header
     let nameColumnIndex = 0;
     if (hasHeader) {
-        const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase());
-        const nameIndex = headers.findIndex(h => h === 'name' || h === 'player' || h === 'player name');
+        const headers = lines[0].split(delimiter).map((h) => h.trim().toLowerCase());
+        const nameIndex = headers.findIndex((h) => h === 'name' || h === 'player' || h === 'player name');
         if (nameIndex !== -1) {
             nameColumnIndex = nameIndex;
         }
     }
-    
+
     for (let i = startIndex; i < lines.length; i++) {
         const line = lines[i].trim();
         if (!line) continue;
-        
+
         const columns = line.split(delimiter);
         let playerName = columns[nameColumnIndex]?.trim();
-        
+
         // Remove quotes if present
         if (playerName) {
             playerName = playerName.replace(/^["']|["']$/g, '').trim();
         }
-        
+
         if (playerName && playerName.length > 0) {
             players.push(playerName);
         }
     }
-    
+
     return players;
 }
 
@@ -8933,7 +9355,7 @@ function addPlayer() {
         blocks: 0,
         turnovers: 0,
         yardsThrown: 0,
-        yardsCaught: 0
+        yardsCaught: 0,
     };
 
     // Save to persistent roster
@@ -8941,21 +9363,36 @@ function addPlayer() {
         savedRoster.push(playerName);
         saveRoster();
     }
-    
+
     // Initialize in season stats if not exists
     if (!seasonStats.players[playerName]) {
         seasonStats.players[playerName] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            throws: 0, catches: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
         };
         saveSeasonStats();
     }
-    
+
     // Initialize in career stats if not exists
     if (!careerStats.players[playerName]) {
         careerStats.players[playerName] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            gamesPlayed: 0, seasonsPlayed: 0, firstGame: new Date().toISOString()
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            gamesPlayed: 0,
+            seasonsPlayed: 0,
+            firstGame: new Date().toISOString(),
         };
         saveCareerStats();
     }
@@ -8967,7 +9404,7 @@ function addPlayer() {
     updateLineSelectionGrid();
     updateStatsDisplay();
     saveToStorage();
-    
+
     hapticFeedback('success');
     showToast(`Added ${playerName} (#${player.number})`);
 }
@@ -8977,7 +9414,7 @@ function updatePlayerList() {
     if (!playerList) return;
     playerList.innerHTML = '';
 
-    gameState.players.forEach(player => {
+    gameState.players.forEach((player) => {
         const stats = gameState.playerStats[player];
         const position = getPlayerPosition(player);
         const positionColor = getPositionColor(position);
@@ -9021,25 +9458,29 @@ function updatePlayerList() {
 }
 
 function getPositionColor(position) {
-    switch(position) {
-        case 'Handler': return 'bg-blue-500/30 text-blue-400';
-        case 'Cutter': return 'bg-orange-500/30 text-orange-400';
-        case 'Hybrid': return 'bg-purple-500/30 text-purple-400';
-        default: return 'bg-teal-500/30 text-teal-400';
+    switch (position) {
+        case 'Handler':
+            return 'bg-blue-500/30 text-blue-400';
+        case 'Cutter':
+            return 'bg-orange-500/30 text-orange-400';
+        case 'Hybrid':
+            return 'bg-purple-500/30 text-purple-400';
+        default:
+            return 'bg-teal-500/30 text-teal-400';
     }
 }
 
 function showPositionModal(playerName) {
     const existing = document.getElementById('position-modal');
     if (existing) existing.remove();
-    
+
     const currentPosition = getPlayerPosition(playerName);
     const allPositions = getAllPositions();
-    
+
     const modal = document.createElement('div');
     modal.id = 'position-modal';
     modal.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4';
-    
+
     modal.innerHTML = `
         <div class="bg-slate-800 rounded-2xl p-6 w-[calc(100%-2rem)] sm:max-w-md border border-white/10">
             <h3 class="text-xl font-bold text-white mb-2">Set Position</h3>
@@ -9047,12 +9488,16 @@ function showPositionModal(playerName) {
             
             <div class="space-y-3 mb-4">
                 <div class="grid grid-cols-3 gap-2">
-                    ${allPositions.map(pos => `
+                    ${allPositions
+                        .map(
+                            (pos) => `
                         <button onclick="selectPosition('${playerName.replace(/'/g, "\\'")}', '${pos}')" 
                             class="px-3 py-2 rounded-xl text-sm font-medium transition-all ${currentPosition === pos ? 'ring-2 ring-white ' + getPositionColor(pos) : 'bg-white/10 text-gray-300 hover:bg-white/20'}">
                             ${pos}
                         </button>
-                    `).join('')}
+                    `
+                        )
+                        .join('')}
                 </div>
                 
                 <div class="border-t border-white/10 pt-3">
@@ -9078,7 +9523,7 @@ function showPositionModal(playerName) {
             </div>
         </div>
     `;
-    
+
     document.body.appendChild(modal);
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closePositionModal();
@@ -9105,12 +9550,12 @@ function selectPosition(playerName, position) {
 function addAndSelectCustomPosition(playerName) {
     const input = document.getElementById('custom-position-input');
     const position = input?.value.trim();
-    
+
     if (!position) {
         showToast('Please enter a position name', 'error');
         return;
     }
-    
+
     addCustomPosition(position);
     setPlayerPosition(playerName, position);
     closePositionModal();
@@ -9124,19 +9569,20 @@ function addAndSelectCustomPosition(playerName) {
 function updateAttendanceGrid() {
     const container = document.getElementById('attendance-grid');
     if (!container) return;
-    
+
     container.innerHTML = '';
-    
+
     if (gameState.players.length === 0) {
-        container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-4">No players loaded. Return to dashboard to set up the game.</div>';
+        container.innerHTML =
+            '<div class="col-span-full text-center text-gray-400 py-4">No players loaded. Return to dashboard to set up the game.</div>';
         return;
     }
-    
-    gameState.players.forEach(player => {
+
+    gameState.players.forEach((player) => {
         const isPresent = gameState.presentPlayers.includes(player);
         const position = getPlayerPosition(player);
-        const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
-        
+        const posAbbrev = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
+
         const btn = document.createElement('button');
         btn.className = `attendance-btn p-3 rounded-xl text-sm font-medium transition-all border ${
             isPresent
@@ -9156,9 +9602,9 @@ function updateAttendanceGrid() {
         btn.addEventListener('click', () => toggleAttendance(player));
         container.appendChild(btn);
     });
-    
+
     updateAttendanceCount();
-    
+
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
@@ -9245,7 +9691,7 @@ function updatePlayerDropdowns() {
     throwerSelect.innerHTML = '<option value="">Select Thrower</option>';
     receiverSelect.innerHTML = '<option value="">Select Receiver</option>';
 
-    gameState.players.forEach(player => {
+    gameState.players.forEach((player) => {
         throwerSelect.innerHTML += `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`;
         receiverSelect.innerHTML += `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`;
     });
@@ -9254,8 +9700,9 @@ function updatePlayerDropdowns() {
     receiverSelect.value = currentReceiver;
 }
 
-// Track whether field touch was handled to suppress the subsequent click
-let _fieldTouchHandled = false;
+// ==================== POINTER EVENT HANDLERS ====================
+// Unified mouse/touch/pen handling via Pointer Events Level 3
+const _activePointers = new Map(); // pointerId → {x, y, timeStamp}
 
 // Quick-throw popup: skip "What happened?" and show receiver list directly
 function showQuickCatchPopup(screenX, screenY, fieldX, fieldY) {
@@ -9264,12 +9711,13 @@ function showQuickCatchPopup(screenX, screenY, fieldX, fieldY) {
 
     const popup = document.createElement('div');
     popup.id = 'field-player-popup';
-    popup.className = 'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
+    popup.className =
+        'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
     popup.style.left = `${screenX}px`;
     popup.style.top = `${screenY}px`;
     popup.style.transform = 'translate(-50%, -100%)';
 
-    const otherPlayers = gameState.onFieldPlayers.filter(p => p !== gameState.currentThrower);
+    const otherPlayers = gameState.onFieldPlayers.filter((p) => p !== gameState.currentThrower);
     if (otherPlayers.length === 0) {
         showToast('No other players on field');
         return;
@@ -9281,18 +9729,20 @@ function showQuickCatchPopup(screenX, screenY, fieldX, fieldY) {
             <span>${escapeHtml(gameState.currentThrower)} \u2192</span>
             <button onclick="event.stopPropagation(); showFieldPlayerPopup(${screenX}, ${screenY}, ${fieldX}, ${fieldY})" class="text-gray-500 hover:text-white text-[10px] px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10">\u22ef more</button>
         </div>
-        ${sorted.map((player, i) => {
-            const freq = getConnectionScore(gameState.currentThrower, player);
-            const hot = freq > 2 ? '<span class="text-amber-400 text-[10px] ml-auto">\u2605</span>' : '';
-            const highlight = i === 0 && freq > 0 ? ' bg-emerald-500/10 border border-emerald-500/20' : '';
-            return `
+        ${sorted
+            .map((player, i) => {
+                const freq = getConnectionScore(gameState.currentThrower, player);
+                const hot = freq > 2 ? '<span class="text-amber-400 text-[10px] ml-auto">\u2605</span>' : '';
+                const highlight = i === 0 && freq > 0 ? ' bg-emerald-500/10 border border-emerald-500/20' : '';
+                return `
                 <button onclick="event.stopPropagation(); selectFieldReceiver('${escapeHtml(player).replace(/'/g, "\\'")}', ${fieldX}, ${fieldY})"
                     class="w-full text-left px-3 py-3 rounded-lg hover:bg-emerald-500/20 text-white text-sm font-medium transition-all flex items-center gap-2${highlight}">
                     <span class="text-lg">\ud83e\udd4f</span>
                     <span>${escapeHtml(player)}</span>
                     ${hot}
                 </button>`;
-        }).join('')}
+            })
+            .join('')}
         <button onclick="closeFieldPlayerPopup()" class="w-full text-center px-3 py-2 mt-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 text-xs transition-all border-t border-white/10">
             Cancel
         </button>
@@ -9305,64 +9755,50 @@ function showQuickCatchPopup(screenX, screenY, fieldX, fieldY) {
     }, 100);
 }
 
-// ==================== SWIPE-TO-UNDO GESTURE ====================
-// Two-finger horizontal swipe on the field triggers undo
-let _swipeStartX = 0;
-let _swipeStartY = 0;
-let _swipeStartTouches = 0;
-
-function handleFieldTouchStart(event) {
-    _swipeStartTouches = event.touches.length;
-    if (event.touches.length === 2) {
-        // Record midpoint of two fingers
-        _swipeStartX = (event.touches[0].clientX + event.touches[1].clientX) / 2;
-        _swipeStartY = (event.touches[0].clientY + event.touches[1].clientY) / 2;
-    }
+function handleFieldPointerDown(event) {
+    // Capture the pointer so pointerup fires even if finger moves off element
+    event.target.setPointerCapture(event.pointerId);
+    _activePointers.set(event.pointerId, { x: event.clientX, y: event.clientY, timeStamp: event.timeStamp });
 }
 
-function handleFieldTouch(event) {
-    // Two-finger swipe detection: check before single-tap processing
-    if (_swipeStartTouches === 2 && event.changedTouches.length > 0) {
-        const endX = event.changedTouches[0].clientX;
-        const endY = event.changedTouches[0].clientY;
-        const dx = endX - _swipeStartX;
-        const dy = endY - _swipeStartY;
+function handleFieldPointerUp(event) {
+    const start = _activePointers.get(event.pointerId);
+    _activePointers.delete(event.pointerId);
 
-        // Horizontal swipe > 80px threshold, vertical < half of horizontal
+    // Two-pointer swipe detection (swipe-to-undo)
+    if (_activePointers.size === 1 && start) {
+        // Second finger lifted while first still tracked
+        const otherStart = _activePointers.values().next().value;
+        const midStartX = (start.x + otherStart.x) / 2;
+        const midStartY = (start.y + otherStart.y) / 2;
+        const dx = event.clientX - midStartX;
+        const dy = event.clientY - midStartY;
+
         if (Math.abs(dx) > 80 && Math.abs(dy) < Math.abs(dx) / 2) {
-            event.preventDefault();
-            _swipeStartTouches = 0;
+            _activePointers.clear();
             hapticFeedback('swipeUndo');
             undoLastAction();
             return;
         }
-        _swipeStartTouches = 0;
     }
 
+    // Only process single-pointer taps (no active pointers remaining)
+    if (_activePointers.size > 0) return;
+
     if (!gameState.currentGame.isActive) return;
     if (!gameState.pointInProgress) return;
-    if (!event.changedTouches || event.changedTouches.length === 0) return;
-    // Only process single-finger taps (not multi-touch gestures)
-    if (event.touches.length > 0) return;
+    if (!start) return;
 
-    const touch = event.changedTouches[0];
-    event.preventDefault(); // Prevent the emulated click event
+    // Ignore if pointer moved too far (drag, not tap)
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) > 20 || Math.abs(dy) > 20) return;
 
-    _fieldTouchHandled = true;
-    setTimeout(() => { _fieldTouchHandled = false; }, 400);
-
-    // Build a synthetic coordinate object compatible with getContentAreaCoordinates
-    const syntheticEvent = { clientX: touch.clientX, clientY: touch.clientY };
-    processFieldInteraction(syntheticEvent);
+    processFieldInteraction(event);
 }
 
-function handleFieldClick(event) {
-    // Skip if this click was already handled by touchend
-    if (_fieldTouchHandled) return;
-
-    if (!gameState.currentGame.isActive) return;
-    if (!gameState.pointInProgress) return;
-    processFieldInteraction(event);
+function handleFieldPointerCancel(event) {
+    _activePointers.delete(event.pointerId);
 }
 
 function processFieldInteraction(event) {
@@ -9453,14 +9889,15 @@ function showDefensePopup(screenX, screenY, fieldX, fieldY) {
     // Remove existing popup
     const existing = document.getElementById('field-player-popup');
     if (existing) existing.remove();
-    
+
     const popup = document.createElement('div');
     popup.id = 'field-player-popup';
-    popup.className = 'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
+    popup.className =
+        'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
     popup.style.left = `${screenX}px`;
     popup.style.top = `${screenY}px`;
     popup.style.transform = 'translate(-50%, -100%)';
-    
+
     // Defense options - opponent has disc
     popup.innerHTML = `
         <div class="text-xs text-amber-400 px-2 py-1 border-b border-white/10 mb-1">⚔️ Defense - What happened?</div>
@@ -9480,10 +9917,10 @@ function showDefensePopup(screenX, screenY, fieldX, fieldY) {
             Cancel
         </button>
     `;
-    
+
     document.body.appendChild(popup);
     adjustPopupPosition(popup, screenX, screenY);
-    
+
     // Close on outside click
     setTimeout(() => {
         document.addEventListener('click', closeFieldPlayerPopupOnOutside, { once: true });
@@ -9492,11 +9929,11 @@ function showDefensePopup(screenX, screenY, fieldX, fieldY) {
 
 function recordDefenseTurnover(fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     // We gained possession from opponent turnover
     gameState.teamStats.turnoversGained++;
     resetPossessionThrows();
-    
+
     // Show popup to select who picks up the disc
     showPickupPlayerPopup(fieldX, fieldY);
 }
@@ -9504,48 +9941,51 @@ function recordDefenseTurnover(fieldX, fieldY) {
 function showPickupPlayerPopup(fieldX, fieldY) {
     const popup = document.createElement('div');
     popup.id = 'field-player-popup';
-    popup.className = 'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
+    popup.className =
+        'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
     popup.style.left = '50%';
     popup.style.top = '50%';
     popup.style.transform = 'translate(-50%, -50%)';
-    
+
     popup.innerHTML = `
         <div class="text-xs text-gray-400 px-2 py-1 border-b border-white/10 mb-1">Who picks up the disc?</div>
-        ${gameState.onFieldPlayers.map(player => {
-            const position = getPlayerPosition(player);
-            const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
-            const posColor = getPositionColor(position);
-            return `
+        ${gameState.onFieldPlayers
+            .map((player) => {
+                const position = getPlayerPosition(player);
+                const posAbbrev = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
+                const posColor = getPositionColor(position);
+                return `
                 <button onclick="setDiscPickup('${escapeHtml(player).replace(/'/g, "\\'")}', ${fieldX}, ${fieldY})"
                     class="w-full text-left px-3 py-2 rounded-lg hover:bg-emerald-500/20 text-white text-sm font-medium transition-all flex items-center gap-2">
                     ${position ? `<span class="text-xs px-1.5 py-0.5 rounded ${posColor}">${escapeHtml(posAbbrev)}</span>` : ''}
                     <span>${escapeHtml(player)}</span>
                 </button>
             `;
-        }).join('')}
+            })
+            .join('')}
         <button onclick="closeFieldPlayerPopup()" class="w-full text-center px-3 py-2 mt-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 text-xs transition-all border-t border-white/10">
             Cancel
         </button>
     `;
-    
+
     document.body.appendChild(popup);
 }
 
 function setDiscPickup(playerName, fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     // Set player as thrower with disc at location
     gameState.discPosition = { x: fieldX, y: fieldY };
     gameState.currentThrower = playerName;
     gameState.selectedThrower = playerName;
     gameState.previousThrower = null;
     gameState.lastCompletedThrower = null;
-    
+
     updateDiscMarker(fieldX, fieldY, playerName);
     updateSelectionStatus();
     updateQuickPlayerSelect();
     updateThrowCountDisplay();
-    
+
     logAction(`✅ D-TURN! ${playerName} picks up`, 'turnover-gained');
     showToast(`${playerName} has the disc!`);
     vibrate([30, 20, 30]);
@@ -9553,21 +9993,21 @@ function setDiscPickup(playerName, fieldX, fieldY) {
 
 function recordOpponentScore() {
     closeFieldPlayerPopup();
-    
+
     // Save state for undo
     saveActionState('opponent-score', {});
-    
+
     // Opponent scored
     gameState.teamStats.opponentScore++;
-    
+
     logAction(`😞 Opponent scored`, 'opponent-score');
     showToast('Opponent scored. Next point.');
-    
+
     updateStatsDisplay();
     saveToStorage();
 
     // Mark this point as "scored-against" in analysis tracking
-    const oppPoint = _pointHistory.find(p => p.pointNum === gameState.pointNumber);
+    const oppPoint = _pointHistory.find((p) => p.pointNum === gameState.pointNumber);
     if (oppPoint) oppPoint.result = 'scored-against';
     refreshAnalysis();
 }
@@ -9576,14 +10016,15 @@ function showFieldPlayerPopup(screenX, screenY, fieldX, fieldY) {
     // Remove existing popup
     const existing = document.getElementById('field-player-popup');
     if (existing) existing.remove();
-    
+
     const popup = document.createElement('div');
     popup.id = 'field-player-popup';
-    popup.className = 'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
+    popup.className =
+        'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
     popup.style.left = `${screenX}px`;
     popup.style.top = `${screenY}px`;
     popup.style.transform = 'translate(-50%, -100%)';
-    
+
     // Show event type selection first
     popup.innerHTML = `
         <div class="text-xs text-gray-400 px-2 py-1 border-b border-white/10 mb-1">What happened?</div>
@@ -9603,10 +10044,10 @@ function showFieldPlayerPopup(screenX, screenY, fieldX, fieldY) {
             Cancel
         </button>
     `;
-    
+
     document.body.appendChild(popup);
     adjustPopupPosition(popup, screenX, screenY);
-    
+
     // Close on outside click
     setTimeout(() => {
         document.addEventListener('click', closeFieldPlayerPopupOnOutside, { once: true });
@@ -9616,32 +10057,35 @@ function showFieldPlayerPopup(screenX, screenY, fieldX, fieldY) {
 function showCatchPlayerList(screenX, screenY, fieldX, fieldY) {
     const popup = document.getElementById('field-player-popup');
     if (!popup) return;
-    
+
     // Get other on-field players (exclude current thrower)
-    const otherPlayers = gameState.onFieldPlayers.filter(p => p !== gameState.currentThrower);
-    
+    const otherPlayers = gameState.onFieldPlayers.filter((p) => p !== gameState.currentThrower);
+
     if (otherPlayers.length === 0) {
         showToast('No other players on field');
         closeFieldPlayerPopup();
         return;
     }
-    
+
     // Header showing current thrower
-    const header = gameState.currentThrower 
+    const header = gameState.currentThrower
         ? `<div class="text-xs text-gray-400 px-2 py-1 border-b border-white/10 mb-1">${escapeHtml(gameState.currentThrower)} throws to:</div>`
         : `<div class="text-xs text-gray-400 px-2 py-1 border-b border-white/10 mb-1">Select receiver:</div>`;
-    
+
     // Sort receivers by connection frequency with current thrower
     const sorted = sortByConnection(gameState.currentThrower, otherPlayers);
 
-    popup.innerHTML = header + sorted.map((player, i) => {
-        const position = getPlayerPosition(player);
-        const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
-        const posColor = getPositionColor(position);
-        const freq = getConnectionScore(gameState.currentThrower, player);
-        const hot = freq > 2 ? '<span class="text-amber-400 text-[10px] ml-auto">\u2605</span>' : '';
-        const highlight = i === 0 && freq > 0 ? ' bg-emerald-500/10' : '';
-        return `
+    popup.innerHTML =
+        header +
+        sorted
+            .map((player, i) => {
+                const position = getPlayerPosition(player);
+                const posAbbrev = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
+                const posColor = getPositionColor(position);
+                const freq = getConnectionScore(gameState.currentThrower, player);
+                const hot = freq > 2 ? '<span class="text-amber-400 text-[10px] ml-auto">\u2605</span>' : '';
+                const highlight = i === 0 && freq > 0 ? ' bg-emerald-500/10' : '';
+                return `
             <button onclick="event.stopPropagation(); selectFieldReceiver('${escapeHtml(player).replace(/'/g, "\\'")}', ${fieldX}, ${fieldY})"
                 class="w-full text-left px-3 py-2 rounded-lg hover:bg-white/10 text-white text-sm font-medium transition-all flex items-center gap-2${highlight}">
                 ${position ? `<span class="text-xs px-1.5 py-0.5 rounded ${posColor}">${escapeHtml(posAbbrev)}</span>` : ''}
@@ -9649,8 +10093,9 @@ function showCatchPlayerList(screenX, screenY, fieldX, fieldY) {
                 ${hot}
             </button>
         `;
-    }).join('');
-    
+            })
+            .join('');
+
     // Add back/cancel button
     popup.innerHTML += `
         <button onclick="event.stopPropagation(); showFieldPlayerPopup(${screenX}, ${screenY}, ${fieldX}, ${fieldY})" class="w-full text-center px-3 py-2 mt-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 text-xs transition-all border-t border-white/10">
@@ -9661,7 +10106,7 @@ function showCatchPlayerList(screenX, screenY, fieldX, fieldY) {
 
 function recordFieldBlock(fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     // Show player selection for who got the block
     showBlockPlayerPopup(fieldX, fieldY);
 }
@@ -9669,61 +10114,64 @@ function recordFieldBlock(fieldX, fieldY) {
 function showBlockPlayerPopup(fieldX, fieldY) {
     const popup = document.createElement('div');
     popup.id = 'field-player-popup';
-    popup.className = 'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
+    popup.className =
+        'fixed z-50 bg-slate-800 rounded-xl border border-white/20 shadow-2xl p-2 min-w-[160px] max-w-[calc(100vw-20px)]';
     popup.style.left = '50%';
     popup.style.top = '50%';
     popup.style.transform = 'translate(-50%, -50%)';
-    
+
     popup.innerHTML = `
         <div class="text-xs text-gray-400 px-2 py-1 border-b border-white/10 mb-1">Who got the block?</div>
-        ${gameState.onFieldPlayers.map(player => {
-            const position = getPlayerPosition(player);
-            const posAbbrev = position === 'Hybrid' ? 'HY' : (position ? position.substring(0, 1).toUpperCase() : '');
-            const posColor = getPositionColor(position);
-            return `
+        ${gameState.onFieldPlayers
+            .map((player) => {
+                const position = getPlayerPosition(player);
+                const posAbbrev = position === 'Hybrid' ? 'HY' : position ? position.substring(0, 1).toUpperCase() : '';
+                const posColor = getPositionColor(position);
+                return `
                 <button onclick="confirmBlock('${escapeHtml(player).replace(/'/g, "\\'")}', ${fieldX}, ${fieldY})"
                     class="w-full text-left px-3 py-2 rounded-lg hover:bg-purple-500/20 text-white text-sm font-medium transition-all flex items-center gap-2">
                     ${position ? `<span class="text-xs px-1.5 py-0.5 rounded ${posColor}">${escapeHtml(posAbbrev)}</span>` : ''}
                     <span>${escapeHtml(player)}</span>
                 </button>
             `;
-        }).join('')}
+            })
+            .join('')}
         <button onclick="closeFieldPlayerPopup()" class="w-full text-center px-3 py-2 mt-1 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 text-xs transition-all border-t border-white/10">
             Cancel
         </button>
     `;
-    
+
     document.body.appendChild(popup);
 }
 
 function confirmBlock(playerName, fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     // Save state for undo
     saveActionState('block', { player: playerName, fieldX, fieldY });
-    
+
     // Record the block
     gameState.playerStats[playerName].blocks = (gameState.playerStats[playerName].blocks || 0) + 1;
     updateAggregateStats(playerName, 'blocks');
     gameState.teamStats.turnoversGained++;
-    
+
     // Reset possession - we gained it
     resetPossessionThrows();
-    
+
     // Update disc position to block location, player who blocked now has disc
     gameState.discPosition = { x: fieldX, y: fieldY };
     gameState.previousThrower = null;
     gameState.lastCompletedThrower = null;
     gameState.currentThrower = playerName;
     gameState.selectedThrower = playerName;
-    
+
     updateDiscMarker(fieldX, fieldY, playerName);
     updateSelectionStatus();
     updateQuickPlayerSelect();
     updateThrowCountDisplay();
     updateStatsDisplay();
     updatePlayerList();
-    
+
     logAction(`🛡️ BLOCK by ${playerName}!`, 'block');
     showToast(`Block by ${playerName}! Your possession.`);
     hapticFeedback('block');
@@ -9733,37 +10181,37 @@ function confirmBlock(playerName, fieldX, fieldY) {
 
 function recordFieldTurnover(fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     // Record turnover for our team
     gameState.teamStats.turnovers++;
-    
+
     // Assign to current thrower if we have one
     if (gameState.currentThrower && gameState.playerStats[gameState.currentThrower]) {
-        gameState.playerStats[gameState.currentThrower].turnovers = 
+        gameState.playerStats[gameState.currentThrower].turnovers =
             (gameState.playerStats[gameState.currentThrower].turnovers || 0) + 1;
         updateAggregateStats(gameState.currentThrower, 'turnovers');
     }
-    
+
     // Reset possession
     resetPossessionThrows();
-    
+
     // Clear disc state - opponent has it now
     gameState.discPosition = null;
     gameState.currentThrower = null;
     gameState.selectedThrower = null;
     gameState.previousThrower = null;
     gameState.lastCompletedThrower = null;
-    
+
     // Remove disc marker
     const marker = document.getElementById('disc-marker');
     if (marker) marker.remove();
-    
+
     updateSelectionStatus();
     updateQuickPlayerSelect();
     updateThrowCountDisplay();
     updateStatsDisplay();
     updatePlayerList();
-    
+
     logAction(`❌ TURNOVER - Opponent's disc`, 'turnover');
     showToast('Turnover! Opponent possession.');
     hapticFeedback('turnover');
@@ -9818,14 +10266,14 @@ function closeFieldPlayerPopupOnOutside(event) {
 
 function selectFieldReceiver(receiver, fieldX, fieldY) {
     closeFieldPlayerPopup();
-    
+
     const thrower = gameState.currentThrower;
     const startPos = gameState.discPosition || { x: 50, y: 20 }; // Default to center if no position
     const endPos = { x: fieldX, y: fieldY };
-    
+
     // Calculate distance
     const distance = calculateDistance(startPos, endPos);
-    
+
     // Check if catch is in the endzone (GOAL!) - check Y coordinate (vertical position)
     const endzone = isInEndzone(fieldY);
     if (endzone === 'their') {
@@ -9833,27 +10281,27 @@ function selectFieldReceiver(receiver, fieldX, fieldY) {
         recordEndzoneScore(thrower, receiver, distance, startPos, endPos);
         return;
     }
-    
+
     if (thrower) {
         // Record the throw
         recordThrow(thrower, receiver, distance, startPos, endPos);
     }
-    
+
     // Update disc position and current thrower
     gameState.discPosition = endPos;
     gameState.previousThrower = gameState.lastCompletedThrower;
     gameState.lastCompletedThrower = thrower;
     gameState.currentThrower = receiver;
-    
+
     // Update disc marker on field
     updateDiscMarker(fieldX, fieldY, receiver);
-    
+
     // Update quick select to show current thrower
     gameState.selectedThrower = receiver;
     gameState.selectedReceiver = null;
     updateSelectionStatus();
     updateQuickPlayerSelect();
-    
+
     vibrate(30);
 }
 
@@ -9872,7 +10320,7 @@ function recordEndzoneScore(thrower, receiver, distance, startPos, endPos) {
         updateAggregateStats(thrower, 'assists');
         updateAggregateStats(thrower, 'yardsThrown', distance);
     }
-    
+
     // Record receiver stats (goal + catch)
     gameState.playerStats[receiver].catches = (gameState.playerStats[receiver].catches || 0) + 1;
     gameState.playerStats[receiver].goals = (gameState.playerStats[receiver].goals || 0) + 1;
@@ -9880,51 +10328,51 @@ function recordEndzoneScore(thrower, receiver, distance, startPos, endPos) {
     updateAggregateStats(receiver, 'catches');
     updateAggregateStats(receiver, 'goals');
     updateAggregateStats(receiver, 'yardsCaught', distance);
-    
+
     // Hockey assist
     if (gameState.lastCompletedThrower && gameState.lastCompletedThrower !== thrower) {
-        gameState.playerStats[gameState.lastCompletedThrower].hockeyAssists = 
+        gameState.playerStats[gameState.lastCompletedThrower].hockeyAssists =
             (gameState.playerStats[gameState.lastCompletedThrower].hockeyAssists || 0) + 1;
         updateAggregateStats(gameState.lastCompletedThrower, 'hockeyAssists');
     }
-    
+
     // Update point and possession throw counts
     gameState.pointThrows = (gameState.pointThrows || 0) + 1;
     gameState.possessionThrows = (gameState.possessionThrows || 0) + 1;
-    
+
     // Store point throws for this point
     gameState.totalPointThrows.push(gameState.pointThrows);
-    
+
     // Update team score
     gameState.teamStats.score++;
     gameState.teamStats.totalYardsThrown += distance;
     gameState.teamStats.totalYardsCaught += distance;
-    
+
     // Add visual elements
     addThrowLine(startPos, endPos);
     addClickPoint(endPos.x, endPos.y, 'score');
-    
+
     // Update disc marker briefly at score location
     updateDiscMarker(endPos.x, endPos.y, receiver);
-    
+
     // Log and notify
     const throwerName = thrower || 'Unknown';
     logAction(`🎉 GOAL! ${throwerName} → ${receiver} (${distance} yards)`, 'score');
     showToast(`🎉 GOAL! ${receiver} scores!`);
     hapticFeedback('endzoneScore');
     playSound('score');
-    
+
     updateStatsDisplay();
     updatePlayerList();
     saveToStorage();
-    
+
     // End the point and go to next point setup
     endPointAfterScore();
 }
 
 function endPointAfterScore() {
     // Mark this point as "scored" in analysis tracking
-    const scoredPoint = _pointHistory.find(p => p.pointNum === gameState.pointNumber);
+    const scoredPoint = _pointHistory.find((p) => p.pointNum === gameState.pointNumber);
     if (scoredPoint) scoredPoint.result = 'scored';
     refreshAnalysis();
 
@@ -9933,7 +10381,7 @@ function endPointAfterScore() {
     // Increment point counter
     gameState.pointNumber = (gameState.pointNumber || 1) + 1;
     updatePointCounter();
-    
+
     // Clear disc state
     gameState.discPosition = null;
     gameState.currentThrower = null;
@@ -9941,27 +10389,27 @@ function endPointAfterScore() {
     gameState.selectedReceiver = null;
     gameState.previousThrower = null;
     gameState.lastCompletedThrower = null;
-    
+
     // Hide disc marker (don't remove - it's defined in HTML)
     const marker = document.getElementById('disc-marker');
     if (marker) marker.classList.add('hidden');
-    
+
     // Clear field visual elements (throw lines, click points)
     clearFieldVisuals();
-    
+
     // Fade out field, fade in line selection for next point
-    safeElement('field-section', el => el.classList.add('section-hidden'));
+    safeElement('field-section', (el) => el.classList.add('section-hidden'));
     setTimeout(() => {
-        safeElement('line-selection', el => el.classList.remove('section-hidden'));
+        safeElement('line-selection', (el) => el.classList.remove('section-hidden'));
     }, 260);
-    
+
     // Reset on-field players for next point selection
     gameState.onFieldPlayers = [];
     updateLineSelectionGrid();
     updateOnFieldDisplay();
-    
+
     logAction(`Point ${gameState.pointNumber - 1} complete - select line for next point`, 'system');
-    
+
     // Show brief point summary
     showPointSummary();
 }
@@ -9971,10 +10419,11 @@ function showPointSummary() {
     const throws = gameState.pointThrows || 0;
     const score = gameState.teamStats.score;
     const oppScore = gameState.teamStats.opponentScore || 0;
-    
+
     // Create summary toast
     const summaryEl = document.createElement('div');
-    summaryEl.className = 'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl z-50 text-center animate-pulse';
+    summaryEl.className =
+        'fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-800/95 backdrop-blur-xl p-6 rounded-2xl border border-white/20 shadow-2xl z-50 text-center animate-pulse';
     summaryEl.innerHTML = `
         <div class="text-2xl font-bold text-emerald-400 mb-2">Point ${pointNum} Complete!</div>
         <div class="flex items-center justify-center gap-6 mb-4">
@@ -9990,16 +10439,16 @@ function showPointSummary() {
         </div>
         <div class="text-sm text-gray-400">${throws} throw${throws !== 1 ? 's' : ''} this point</div>
     `;
-    
+
     document.body.appendChild(summaryEl);
-    
+
     // Auto-dismiss after 2 seconds
     setTimeout(() => {
         summaryEl.style.opacity = '0';
         summaryEl.style.transition = 'opacity 0.3s';
         setTimeout(() => summaryEl.remove(), 300);
     }, 2000);
-    
+
     // Reset point throws for next point
     gameState.pointThrows = 0;
 }
@@ -10007,31 +10456,33 @@ function showPointSummary() {
 function clearFieldVisuals() {
     const container = document.getElementById('field-container');
     if (!container) return;
-    
+
     // Only remove dynamically-added elements (throw lines and click points)
     // These have specific classes we add: 'throw-line', 'click-point', 'throw-arc'
     const throwLines = container.querySelectorAll('.throw-line, .click-point, .throw-arc');
-    throwLines.forEach(el => el.remove());
+    throwLines.forEach((el) => el.remove());
 }
 
 function updateDiscMarker(x, y, playerName) {
     const marker = document.getElementById('disc-marker');
     const label = document.getElementById('disc-player-label');
-    
+
     if (!marker) return;
-    
+
     // Position the disc marker using percentage-based left/top
     marker.style.left = `${x}%`;
     marker.style.top = `${y}%`;
     marker.classList.remove('hidden');
-    
+
     // Visual feedback - brief scale animation
     const discCircle = marker.querySelector('div');
     if (discCircle) {
         discCircle.style.transform = 'scale(1.3)';
-        setTimeout(() => { discCircle.style.transform = 'scale(1)'; }, 150);
+        setTimeout(() => {
+            discCircle.style.transform = 'scale(1)';
+        }, 150);
     }
-    
+
     // Update player label
     if (label) {
         label.textContent = playerName ? playerName.split(' ')[0] : '';
@@ -10056,17 +10507,17 @@ function updateThrowCountDisplay() {
     const pointEl = document.getElementById('point-throws-count');
     const possessionEl = document.getElementById('possession-throws-count');
     const throwerEl = document.getElementById('current-thrower-display');
-    
+
     if (pointEl) pointEl.textContent = gameState.pointThrows || 0;
     if (possessionEl) possessionEl.textContent = gameState.possessionThrows || 0;
     if (throwerEl && gameState.currentThrower) {
         const pos = getPlayerPosition(gameState.currentThrower);
-        const posAbbrev = pos === 'Hybrid' ? 'HY' : (pos ? pos.substring(0, 1).toUpperCase() : '');
+        const posAbbrev = pos === 'Hybrid' ? 'HY' : pos ? pos.substring(0, 1).toUpperCase() : '';
         throwerEl.innerHTML = `<span class="text-gray-500">Disc:</span> <span class="font-bold text-white">${posAbbrev ? escapeHtml(posAbbrev) + ' ' : ''}${escapeHtml(gameState.currentThrower)}</span>`;
     } else if (throwerEl) {
         throwerEl.innerHTML = '';
     }
-    
+
     // Update possession indicator
     updatePossessionIndicator();
 }
@@ -10074,9 +10525,9 @@ function updateThrowCountDisplay() {
 function updatePossessionIndicator() {
     const indicator = document.getElementById('possession-indicator');
     if (!indicator) return;
-    
+
     const hasDisc = gameState.currentThrower !== null;
-    
+
     if (hasDisc) {
         indicator.innerHTML = `
             <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
@@ -10143,10 +10594,10 @@ function recordThrow(thrower, receiver, distance, startPoint, endPoint) {
     updateStatsDisplay();
     updatePlayerList();
     saveToStorage();
-    
+
     // Auto-advance: receiver becomes the new thrower (for quick select)
     autoAdvanceThrower();
-    
+
     // Also update dropdowns: receiver becomes thrower for next throw
     const throwerSelect = document.getElementById('thrower');
     const receiverSelect = document.getElementById('receiver');
@@ -10171,7 +10622,7 @@ function recordTurnover(x, y, team) {
         gameState.teamStats.turnoversGained++;
         logAction(`Turnover gained from opponent`, 'turnover-gained');
     }
-    
+
     // Reset possession throw counter on any turnover
     resetPossessionThrows();
 
@@ -10241,12 +10692,12 @@ function findNearestPlayer(x, y) {
 function addClickPoint(x, y, type) {
     const container = document.getElementById('field-container');
     if (!container) return;
-    
+
     const point = document.createElement('div');
     point.className = 'click-point absolute w-2 h-2 rounded-full pointer-events-none -translate-x-1/2 -translate-y-1/2';
     point.style.left = `${x}%`;
     point.style.top = `${y}%`;
-    
+
     if (type === 'score') {
         point.classList.add('bg-emerald-500');
     } else if (type === 'throw-end') {
@@ -10254,44 +10705,44 @@ function addClickPoint(x, y, type) {
     } else {
         point.classList.add('bg-white/50');
     }
-    
+
     container.appendChild(point);
 }
 
 function addThrowLine(startPoint, endPoint) {
     const container = document.getElementById('field-container');
     if (!container) return;
-    
+
     // Get actual container dimensions to account for aspect ratio
     const containerWidth = container.offsetWidth;
     const containerHeight = container.offsetHeight;
-    
+
     // Convert percentage to pixels for proper angle calculation
     const startX = (startPoint.x / 100) * containerWidth;
     const startY = (startPoint.y / 100) * containerHeight;
     const endX = (endPoint.x / 100) * containerWidth;
     const endY = (endPoint.y / 100) * containerHeight;
-    
+
     // Calculate in pixels
     const dx = endX - startX;
     const dy = endY - startY;
     const lengthPx = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
-    
+
     const line = document.createElement('div');
     line.className = 'throw-line absolute h-0.5 bg-white/30 pointer-events-none origin-left';
     line.style.left = `${startPoint.x}%`;
     line.style.top = `${startPoint.y}%`;
     line.style.width = `${lengthPx}px`;
     line.style.transform = `rotate(${angle}deg)`;
-    
+
     container.appendChild(line);
 }
 
 function addTurnoverMarker(x, y, team) {
     const container = document.getElementById('turnover-markers');
     if (!container) return;
-    
+
     const marker = document.createElement('div');
     marker.className = `turnover-marker turnover-${team}`;
     // x and y are already percentage coordinates (0-100)
@@ -10324,21 +10775,21 @@ function updateStatsDisplay() {
     const teamTurnoversEl = document.getElementById('team-turnovers');
     const totalYardsThrownEl = document.getElementById('total-yards-thrown');
     const totalYardsCaughtEl = document.getElementById('total-yards-caught');
-    
+
     if (teamScoreEl) teamScoreEl.textContent = gameState.teamStats.score;
     if (teamTurnoversEl) teamTurnoversEl.textContent = gameState.teamStats.turnovers;
     if (totalYardsThrownEl) totalYardsThrownEl.textContent = gameState.teamStats.totalYardsThrown;
     if (totalYardsCaughtEl) totalYardsCaughtEl.textContent = gameState.teamStats.totalYardsCaught;
-    
+
     // Update field score display
     const ourScoreDisplay = document.getElementById('our-score-display');
     const opponentScoreDisplay = document.getElementById('opponent-score-display');
     const ourTeamLabel = document.getElementById('our-team-label');
     const opponentTeamLabel = document.getElementById('opponent-team-label');
-    
+
     if (ourScoreDisplay) ourScoreDisplay.textContent = gameState.teamStats.score;
     if (opponentScoreDisplay) opponentScoreDisplay.textContent = gameState.teamStats.opponentScore || 0;
-    
+
     // Use team name from auth or game setup
     if (ourTeamLabel) {
         ourTeamLabel.textContent = currentTeam?.name || gameState.currentGame?.ourTeam || 'US';
@@ -10352,7 +10803,7 @@ function updateStatsDisplay() {
     if (!tbody) return;
     tbody.innerHTML = '';
 
-    gameState.players.forEach(player => {
+    gameState.players.forEach((player) => {
         const stats = gameState.playerStats[player];
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -10407,11 +10858,11 @@ function updatePointCounter() {
 
 function logAction(description, type) {
     const actionLog = document.getElementById('action-log') || document.getElementById('actions-list');
-    
+
     if (actionLog) {
         const actionItem = document.createElement('div');
         actionItem.className = `action-item action-log-item ${type}`;
-        
+
         const timestamp = new Date().toLocaleTimeString();
         actionItem.innerHTML = `
             <div class="flex justify-between items-center">
@@ -10419,9 +10870,9 @@ function logAction(description, type) {
                 <span class="text-xs text-gray-400">${timestamp}</span>
             </div>
         `;
-        
+
         actionLog.insertBefore(actionItem, actionLog.firstChild);
-        
+
         // Keep only last 20 actions
         while (actionLog.children.length > 20) {
             actionLog.removeChild(actionLog.lastChild);
@@ -10433,16 +10884,18 @@ function logAction(description, type) {
         timestamp: new Date().toISOString(),
         description,
         type,
-        gameState: JSON.parse(JSON.stringify(gameState))
+        gameState: JSON.parse(JSON.stringify(gameState)),
     });
 
     // Queue to IndexedDB sync queue for offline resilience
     if (syncQueue && gameState.currentGame.isActive && type !== 'system') {
-        syncQueue.enqueue({
-            type: 'gameAction',
-            gameId: gameState.currentGame.id,
-            action: { timestamp: new Date().toISOString(), description, type }
-        }).catch(() => {});
+        syncQueue
+            .enqueue({
+                type: 'gameAction',
+                gameId: gameState.currentGame.id,
+                action: { timestamp: new Date().toISOString(), description, type },
+            })
+            .catch(() => {});
     }
 }
 
@@ -10450,7 +10903,7 @@ function exportGameData() {
     const game = gameState.currentGame;
     const stats = gameState.teamStats;
     const playerStats = gameState.playerStats;
-    
+
     // Build CSV content
     let csv = 'Ultimate Stats Export\n';
     csv += `Game: ${game.ourTeam} vs ${game.opponentTeam}\n`;
@@ -10458,15 +10911,15 @@ function exportGameData() {
     csv += `Final Score: ${stats.score} - ${stats.opponentScore || 0}\n`;
     csv += `Total Points: ${gameState.pointNumber - 1}\n`;
     csv += `Game Time: ${formatTime(gameState.gameTimerSeconds)}\n\n`;
-    
+
     // Player stats header
     csv += 'Player,Goals,Assists,Blocks,Turnovers,Yards Thrown,Yards Caught\n';
-    
+
     // Player stats rows
     Object.entries(playerStats).forEach(([player, pStats]) => {
         csv += `${player},${pStats.goals || 0},${pStats.assists || 0},${pStats.blocks || 0},${pStats.turnovers || 0},${pStats.yardsThrown || 0},${pStats.yardsCaught || 0}\n`;
     });
-    
+
     // Create and trigger download
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -10477,7 +10930,7 @@ function exportGameData() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     showToast('Game data exported!', 'success');
     logAction('Game data exported to CSV', 'system');
 }
@@ -10497,7 +10950,7 @@ function gisLoaded() {
     tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: CLIENT_ID,
         scope: SCOPES,
-        callback: ''
+        callback: '',
     });
     gisInited = true;
     maybeEnableButtons();
@@ -10521,7 +10974,7 @@ function maybeEnableButtons() {
 function handleAuthClick() {
     tokenClient.callback = async (resp) => {
         if (resp.error !== undefined) {
-            throw (resp);
+            throw resp;
         }
         document.getElementById('signout_button').style.visibility = 'visible';
         document.getElementById('authorize_button').innerText = 'Refresh';
@@ -10529,9 +10982,9 @@ function handleAuthClick() {
     };
 
     if (gapi.client.getToken() === null) {
-        tokenClient.requestAccessToken({prompt: 'consent'});
+        tokenClient.requestAccessToken({ prompt: 'consent' });
     } else {
-        tokenClient.requestAccessToken({prompt: ''});
+        tokenClient.requestAccessToken({ prompt: '' });
     }
 }
 
@@ -10556,7 +11009,7 @@ async function syncToGoogleSheets() {
         await createGameDataSheet();
         await syncPlayerStats();
         await syncTeamStats();
-        
+
         logAction('Data synced to Google Sheets', 'system');
     } catch (error) {
         console.error('Error syncing to Google Sheets:', error);
@@ -10566,32 +11019,41 @@ async function syncToGoogleSheets() {
 
 async function createGameDataSheet() {
     const sheetId = gameState.currentGame.sheetId;
-    
+
     // Create game info sheet
     const gameInfoRange = 'Game Info!A1:D4';
     const gameInfoValues = [
         ['Game Information', '', '', ''],
         ['Date', gameState.currentGame.date, 'Our Team', gameState.currentGame.ourTeam],
         ['Opponent', gameState.currentGame.opponentTeam, 'Final Score', `${gameState.teamStats.score} - ?`],
-        ['Total Actions', gameState.actions.length, 'Sync Time', new Date().toLocaleString()]
+        ['Total Actions', gameState.actions.length, 'Sync Time', new Date().toLocaleString()],
     ];
 
     await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: sheetId,
         range: gameInfoRange,
         valueInputOption: 'USER_ENTERED',
-        resource: { values: gameInfoValues }
+        resource: { values: gameInfoValues },
     });
 }
 
 async function syncPlayerStats() {
     const sheetId = gameState.currentGame.sheetId;
     const playerStatsRange = 'Player Stats!A1:H' + (gameState.players.length + 1);
-    
-    const headers = ['Player', 'Goals', 'Assists', 'Blocks', 'Turnovers', 'Yards Thrown', 'Yards Caught', 'Total Points'];
+
+    const headers = [
+        'Player',
+        'Goals',
+        'Assists',
+        'Blocks',
+        'Turnovers',
+        'Yards Thrown',
+        'Yards Caught',
+        'Total Points',
+    ];
     const values = [headers];
-    
-    gameState.players.forEach(player => {
+
+    gameState.players.forEach((player) => {
         const stats = gameState.playerStats[player];
         const totalPoints = stats.goals + stats.assists + stats.blocks;
         values.push([
@@ -10602,7 +11064,7 @@ async function syncPlayerStats() {
             stats.turnovers,
             stats.yardsThrown,
             stats.yardsCaught,
-            totalPoints
+            totalPoints,
         ]);
     });
 
@@ -10610,27 +11072,27 @@ async function syncPlayerStats() {
         spreadsheetId: sheetId,
         range: playerStatsRange,
         valueInputOption: 'USER_ENTERED',
-        resource: { values }
+        resource: { values },
     });
 }
 
 async function syncTeamStats() {
     const sheetId = gameState.currentGame.sheetId;
     const teamStatsRange = 'Team Stats!A1:B5';
-    
+
     const values = [
         ['Team Statistic', 'Value'],
         ['Team Score', gameState.teamStats.score],
         ['Team Turnovers', gameState.teamStats.turnovers],
         ['Total Yards Thrown', gameState.teamStats.totalYardsThrown],
-        ['Total Yards Caught', gameState.teamStats.totalYardsCaught]
+        ['Total Yards Caught', gameState.teamStats.totalYardsCaught],
     ];
 
     await gapi.client.sheets.spreadsheets.values.update({
         spreadsheetId: sheetId,
         range: teamStatsRange,
         valueInputOption: 'USER_ENTERED',
-        resource: { values }
+        resource: { values },
     });
 }
 
@@ -10648,7 +11110,7 @@ setInterval(() => {
 
 async function syncToAPI() {
     if (!gameState.currentGame.isActive) return;
-    
+
     try {
         const syncData = {
             game: {
@@ -10658,24 +11120,24 @@ async function syncToAPI() {
                 date: gameState.currentGame.date,
                 ourScore: gameState.teamStats.score,
                 opponentScore: 0,
-                status: 'in_progress'
+                status: 'in_progress',
             },
             players: gameState.players,
             playerStats: gameState.playerStats,
             teamStats: gameState.teamStats,
-            actions: gameState.actions.map(a => ({
+            actions: gameState.actions.map((a) => ({
                 ...a,
-                id: a.id || uuidv4()
-            }))
+                id: a.id || uuidv4(),
+            })),
         };
-        
+
         const response = await fetch(`${API_BASE_URL}/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': getCsrfToken() },
             credentials: 'include',
-            body: JSON.stringify(syncData)
+            body: JSON.stringify(syncData),
         });
-        
+
         if (response.ok) {
             console.log('✅ Synced to API');
         } else {
@@ -10694,9 +11156,9 @@ function generateGameId() {
 }
 
 function uuidv4() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 }
@@ -10729,11 +11191,11 @@ function generateSampleData() {
         { name: 'Peyton Harris', position: 'Cutter' },
         { name: 'Logan Clark', position: 'Hybrid' },
         { name: 'Charlie Lewis', position: 'Handler' },
-        { name: 'Dakota Robinson', position: 'Cutter' }
+        { name: 'Dakota Robinson', position: 'Cutter' },
     ];
-    
-    const myPlayers = myPlayersWithPositions.map(p => p.name);
-    
+
+    const myPlayers = myPlayersWithPositions.map((p) => p.name);
+
     // Register players with unique IDs and numbers
     myPlayersWithPositions.forEach((p, index) => {
         if (!getPlayerByName(p.name)) {
@@ -10744,50 +11206,162 @@ function generateSampleData() {
         setPlayerPosition(p.name, p.position);
     });
     savePlayerRegistry();
-    
+
     // Opponent teams with players
     const opponentTeams = {
-        'Thunder Hawks': ['Mike Storm', 'Jake Thunder', 'Chris Hawk', 'Sam Flash', 'Ben Volt', 'Kyle Blaze', 'Matt Wind'],
-        'Coastal Waves': ['Dylan Shore', 'Ryan Tide', 'Cole Beach', 'Evan Surf', 'Luke Current', 'Max Reef', 'Zach Pearl'],
-        'Mountain Lions': ['Leo Peak', 'Milo Ridge', 'Oscar Stone', 'Felix Cliff', 'Hugo Summit', 'Axel Rock', 'Ivan Crest'],
-        'Urban Legends': ['Nate Metro', 'Theo City', 'Gabe Street', 'Eli Block', 'Noah Plaza', 'Liam Tower', 'Owen Bridge'],
-        'Forest Spirits': ['Ash Grove', 'Birch Leaf', 'Cedar Wood', 'Elm Root', 'Fern Moss', 'Glen Brook', 'Heath Meadow'],
-        'Desert Storm': ['Dune Rider', 'Sand Walker', 'Cactus Jack', 'Mesa Verde', 'Canyon Red', 'Dust Devil', 'Oasis Blue'],
-        'Northern Lights': ['Frost King', 'Snow Peak', 'Ice Berg', 'Cold Front', 'Winter Storm', 'Polar Bear', 'Arctic Fox'],
-        'Pacific Rim': ['Ocean Deep', 'Wave Crest', 'Island Hopper', 'Bay Runner', 'Coast Guard', 'Sea Breeze', 'Tide Pool'],
-        'Valley Vipers': ['Snake Eyes', 'Venom Strike', 'Scale Master', 'Fang Quick', 'Coil Spring', 'Rattle King', 'Pit Boss'],
-        'Sky Raiders': ['Cloud Nine', 'Air Strike', 'Jet Stream', 'Wind Rider', 'Storm Chaser', 'Thunder Bolt', 'Lightning Rod'],
-        'River Runners': ['Stream Fast', 'Rapids Rush', 'Delta Force', 'Current Flow', 'Waterfall', 'Creek Side', 'Spring Fresh'],
-        'Fire Phoenix': ['Flame On', 'Blaze Trail', 'Ember Glow', 'Spark Plug', 'Inferno Heat', 'Ash Rise', 'Burn Bright']
+        'Thunder Hawks': [
+            'Mike Storm',
+            'Jake Thunder',
+            'Chris Hawk',
+            'Sam Flash',
+            'Ben Volt',
+            'Kyle Blaze',
+            'Matt Wind',
+        ],
+        'Coastal Waves': [
+            'Dylan Shore',
+            'Ryan Tide',
+            'Cole Beach',
+            'Evan Surf',
+            'Luke Current',
+            'Max Reef',
+            'Zach Pearl',
+        ],
+        'Mountain Lions': [
+            'Leo Peak',
+            'Milo Ridge',
+            'Oscar Stone',
+            'Felix Cliff',
+            'Hugo Summit',
+            'Axel Rock',
+            'Ivan Crest',
+        ],
+        'Urban Legends': [
+            'Nate Metro',
+            'Theo City',
+            'Gabe Street',
+            'Eli Block',
+            'Noah Plaza',
+            'Liam Tower',
+            'Owen Bridge',
+        ],
+        'Forest Spirits': [
+            'Ash Grove',
+            'Birch Leaf',
+            'Cedar Wood',
+            'Elm Root',
+            'Fern Moss',
+            'Glen Brook',
+            'Heath Meadow',
+        ],
+        'Desert Storm': [
+            'Dune Rider',
+            'Sand Walker',
+            'Cactus Jack',
+            'Mesa Verde',
+            'Canyon Red',
+            'Dust Devil',
+            'Oasis Blue',
+        ],
+        'Northern Lights': [
+            'Frost King',
+            'Snow Peak',
+            'Ice Berg',
+            'Cold Front',
+            'Winter Storm',
+            'Polar Bear',
+            'Arctic Fox',
+        ],
+        'Pacific Rim': [
+            'Ocean Deep',
+            'Wave Crest',
+            'Island Hopper',
+            'Bay Runner',
+            'Coast Guard',
+            'Sea Breeze',
+            'Tide Pool',
+        ],
+        'Valley Vipers': [
+            'Snake Eyes',
+            'Venom Strike',
+            'Scale Master',
+            'Fang Quick',
+            'Coil Spring',
+            'Rattle King',
+            'Pit Boss',
+        ],
+        'Sky Raiders': [
+            'Cloud Nine',
+            'Air Strike',
+            'Jet Stream',
+            'Wind Rider',
+            'Storm Chaser',
+            'Thunder Bolt',
+            'Lightning Rod',
+        ],
+        'River Runners': [
+            'Stream Fast',
+            'Rapids Rush',
+            'Delta Force',
+            'Current Flow',
+            'Waterfall',
+            'Creek Side',
+            'Spring Fresh',
+        ],
+        'Fire Phoenix': [
+            'Flame On',
+            'Blaze Trail',
+            'Ember Glow',
+            'Spark Plug',
+            'Inferno Heat',
+            'Ash Rise',
+            'Burn Bright',
+        ],
     };
-    
+
     const opponentNames = Object.keys(opponentTeams);
-    
+
     // Create main team
     const mainTeam = createEmptyTeam('Disc Dynasty');
     mainTeam.roster = [...myPlayers];
-    
+
     // Initialize player stats
-    myPlayers.forEach(player => {
+    myPlayers.forEach((player) => {
         mainTeam.careerStats.players[player] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
-            yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
+            gamesPlayed: 0,
         };
     });
-    
+
     // Create opponent teams
-    opponentNames.forEach(name => {
+    opponentNames.forEach((name) => {
         const oppTeam = createEmptyTeam(name);
         oppTeam.roster = opponentTeams[name];
-        opponentTeams[name].forEach(player => {
+        opponentTeams[name].forEach((player) => {
             oppTeam.careerStats.players[player] = {
-                goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
-                yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+                goals: 0,
+                assists: 0,
+                hockeyAssists: 0,
+                blocks: 0,
+                turnovers: 0,
+                yardsThrown: 0,
+                yardsCaught: 0,
+                throws: 0,
+                catches: 0,
+                gamesPlayed: 0,
             };
         });
         teamsData.teams[oppTeam.id] = oppTeam;
     });
-    
+
     // Tournament 1: Spring Showdown (6 games)
     const tournament1Games = [
         { opponent: 'Thunder Hawks', ourScore: 15, theirScore: 12 },
@@ -10795,9 +11369,9 @@ function generateSampleData() {
         { opponent: 'Mountain Lions', ourScore: 15, theirScore: 10 },
         { opponent: 'Urban Legends', ourScore: 15, theirScore: 14 },
         { opponent: 'Forest Spirits', ourScore: 11, theirScore: 15 },
-        { opponent: 'Desert Storm', ourScore: 15, theirScore: 8 }
+        { opponent: 'Desert Storm', ourScore: 15, theirScore: 8 },
     ];
-    
+
     // Tournament 2: Fall Classic (6 games)
     const tournament2Games = [
         { opponent: 'Northern Lights', ourScore: 15, theirScore: 13 },
@@ -10805,19 +11379,19 @@ function generateSampleData() {
         { opponent: 'Valley Vipers', ourScore: 15, theirScore: 11 },
         { opponent: 'Sky Raiders', ourScore: 15, theirScore: 9 },
         { opponent: 'River Runners', ourScore: 12, theirScore: 15 },
-        { opponent: 'Fire Phoenix', ourScore: 15, theirScore: 13 }
+        { opponent: 'Fire Phoenix', ourScore: 15, theirScore: 13 },
     ];
-    
+
     const allGames = [...tournament1Games, ...tournament2Games];
     let gameIdCounter = Date.now();
-    
+
     // Generate games with realistic stats
     allGames.forEach((game, gameIndex) => {
         const isWin = game.ourScore > game.theirScore;
         const tournament = gameIndex < 6 ? 'Spring Showdown' : 'Fall Classic';
         const gameDate = new Date();
         gameDate.setDate(gameDate.getDate() - (12 - gameIndex) * 7); // Spread games over weeks
-        
+
         // Select 7 players for this game (rotating lineup)
         const startIdx = (gameIndex * 3) % myPlayers.length;
         const activePlayers = [];
@@ -10828,23 +11402,23 @@ function generateSampleData() {
             }
             if (activePlayers.length >= 14) break;
         }
-        
+
         // Generate player stats for this game
         const playerStats = {};
         let goalsRemaining = game.ourScore;
         let assistsRemaining = game.ourScore;
         let hockeyAssistsRemaining = Math.floor(game.ourScore * 0.7);
-        
-        activePlayers.forEach(player => {
+
+        activePlayers.forEach((player) => {
             const goals = Math.min(goalsRemaining, Math.floor(Math.random() * 4));
             goalsRemaining -= goals;
-            
+
             const assists = Math.min(assistsRemaining, Math.floor(Math.random() * 4));
             assistsRemaining -= assists;
-            
+
             const ha = Math.min(hockeyAssistsRemaining, Math.floor(Math.random() * 3));
             hockeyAssistsRemaining -= ha;
-            
+
             playerStats[player] = {
                 goals: goals,
                 assists: assists,
@@ -10852,9 +11426,9 @@ function generateSampleData() {
                 blocks: Math.floor(Math.random() * 3),
                 turnovers: Math.floor(Math.random() * 2),
                 yardsThrown: Math.floor(Math.random() * 150) + 50,
-                yardsCaught: Math.floor(Math.random() * 120) + 30
+                yardsCaught: Math.floor(Math.random() * 120) + 30,
             };
-            
+
             // Update team career stats
             const p = mainTeam.careerStats.players[player];
             p.goals += playerStats[player].goals;
@@ -10866,7 +11440,7 @@ function generateSampleData() {
             p.yardsCaught += playerStats[player].yardsCaught;
             p.gamesPlayed++;
         });
-        
+
         // Distribute remaining goals/assists
         if (goalsRemaining > 0 || assistsRemaining > 0) {
             const randomPlayer = activePlayers[Math.floor(Math.random() * activePlayers.length)];
@@ -10875,10 +11449,10 @@ function generateSampleData() {
             mainTeam.careerStats.players[randomPlayer].goals += goalsRemaining;
             mainTeam.careerStats.players[randomPlayer].assists += assistsRemaining;
         }
-        
+
         // Create game record
         const gameRecord = {
-            id: 'game-' + (gameIdCounter++),
+            id: 'game-' + gameIdCounter++,
             date: gameDate.toISOString(),
             ourTeam: 'Disc Dynasty',
             opponent: game.opponent,
@@ -10887,30 +11461,30 @@ function generateSampleData() {
             opponentScore: game.theirScore,
             isWin: isWin,
             playerStats: playerStats,
-            actions: []
+            actions: [],
         };
-        
+
         // Add to game history
         gameHistory.unshift(gameRecord);
         mainTeam.gameHistory.push(gameRecord.id);
-        
+
         // Update team season stats
         mainTeam.seasonStats.totalGames++;
         mainTeam.careerStats.totalGames++;
         if (isWin) mainTeam.seasonStats.wins++;
         else mainTeam.seasonStats.losses++;
     });
-    
+
     // Add main team to teams data
     teamsData.teams[mainTeam.id] = mainTeam;
     teamsData.currentTeamId = mainTeam.id;
-    
+
     // Also populate global career stats
-    myPlayers.forEach(player => {
+    myPlayers.forEach((player) => {
         careerStats.players[player] = { ...mainTeam.careerStats.players[player] };
     });
     careerStats.totalGames = 12;
-    
+
     // Create past tournaments from the game data
     const springTournament = {
         id: 'tournament-spring-showdown',
@@ -10921,9 +11495,9 @@ function generateSampleData() {
         games: [],
         totalGames: 6,
         wins: 4,
-        losses: 2
+        losses: 2,
     };
-    
+
     const fallTournament = {
         id: 'tournament-fall-classic',
         name: 'Fall Classic',
@@ -10933,11 +11507,11 @@ function generateSampleData() {
         games: [],
         totalGames: 6,
         wins: 4,
-        losses: 2
+        losses: 2,
     };
-    
+
     // Distribute player stats between tournaments
-    myPlayers.forEach(player => {
+    myPlayers.forEach((player) => {
         const career = mainTeam.careerStats.players[player];
         springTournament.players[player] = {
             goals: Math.floor(career.goals * 0.5),
@@ -10946,7 +11520,7 @@ function generateSampleData() {
             blocks: Math.floor(career.blocks * 0.5),
             turnovers: Math.floor(career.turnovers * 0.5),
             yardsThrown: Math.floor(career.yardsThrown * 0.5),
-            yardsCaught: Math.floor(career.yardsCaught * 0.5)
+            yardsCaught: Math.floor(career.yardsCaught * 0.5),
         };
         fallTournament.players[player] = {
             goals: career.goals - springTournament.players[player].goals,
@@ -10955,35 +11529,42 @@ function generateSampleData() {
             blocks: career.blocks - springTournament.players[player].blocks,
             turnovers: career.turnovers - springTournament.players[player].turnovers,
             yardsThrown: career.yardsThrown - springTournament.players[player].yardsThrown,
-            yardsCaught: career.yardsCaught - springTournament.players[player].yardsCaught
+            yardsCaught: career.yardsCaught - springTournament.players[player].yardsCaught,
         };
     });
-    
+
     pastTournaments = [fallTournament, springTournament];
     savePastTournaments();
-    
+
     // Save everything
     saveTeamsData();
     saveGameHistory();
     saveCareerStats();
-    
+
     // Update roster
     savedRoster = [...myPlayers];
     gameState.players = [...myPlayers];
-    myPlayers.forEach(player => {
+    myPlayers.forEach((player) => {
         gameState.playerStats[player] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0, yardsThrown: 0, yardsCaught: 0,
-            throws: 0, catches: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
         };
     });
     saveRoster();
-    
+
     // Update UI
     updateTeamSelector();
     updateGameHistoryDisplay();
     updatePlayerList();
     updateLeaderboard();
-    
+
     showToast('Sample data generated: 21 players, 12 games, 13 teams!');
     console.log('Sample data generated successfully!');
 }
@@ -10991,1018 +11572,91 @@ function generateSampleData() {
 // Call from console: generateSampleData()
 
 // ==================== LIVE STAT ANALYSIS ====================
-// Real-time pairings, line performance, and player impact analysis
+// Delegated to src/js/engine/analytics-render.js module.
+// Functions are exposed on window.__analyticsRender and also directly on window
+// for onclick="" handlers. Original compute functions serve as sync fallbacks.
 
-function countScoringConnections(thrower, receiver) {
-    let count = 0;
-    for (const action of gameState.actions) {
-        if (action.type === 'score' && action.description) {
-            if (action.description.includes(thrower) && action.description.includes(receiver) && action.description.includes('\u2192')) {
-                count++;
-            }
-        }
-    }
-    return count;
+function countScoringConnections(t, r) {
+    return window.__analyticsRender ? window.__analyticsRender.countScoringConnections(t, r) : 0;
 }
-
 function computePairingStats() {
-    const pairs = [];
-    for (const thrower in _throwConnections) {
-        for (const receiver in _throwConnections[thrower]) {
-            pairs.push({
-                thrower,
-                receiver,
-                completions: _throwConnections[thrower][receiver],
-                scores: countScoringConnections(thrower, receiver)
-            });
-        }
-    }
-    return pairs.sort((a, b) => b.completions - a.completions).slice(0, 10);
+    return window.__analyticsRender ? window.__analyticsRender.computePairingStats() : [];
 }
-
 function computeLineStats() {
-    const lineMap = {};
-    for (const point of _pointHistory) {
-        const key = [...point.line].sort().join('|');
-        if (!lineMap[key]) {
-            lineMap[key] = { players: [...point.line], played: 0, scored: 0, scoredAgainst: 0, oPlayed: 0, oScored: 0, dPlayed: 0, dScored: 0 };
-        }
-        const l = lineMap[key];
-        l.played++;
-        if (point.result === 'scored') l.scored++;
-        if (point.result === 'scored-against') l.scoredAgainst++;
-        // O/D split
-        if (point.startType === 'offense') {
-            l.oPlayed++;
-            if (point.result === 'scored') l.oScored++;
-        } else {
-            l.dPlayed++;
-            if (point.result === 'scored') l.dScored++;
-        }
-    }
-    return Object.values(lineMap).sort((a, b) =>
-        (b.scored - b.scoredAgainst) - (a.scored - a.scoredAgainst)
-    );
+    return window.__analyticsRender ? window.__analyticsRender.computeLineStats() : [];
 }
-
 function computePlayerImpact() {
-    const impact = {};
-    const oPoints = {};
-    const dPoints = {};
-    for (const point of _pointHistory) {
-        const isOff = point.startType === 'offense';
-        for (const player of point.line) {
-            if (!impact[player]) impact[player] = { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
-            if (!oPoints[player]) oPoints[player] = { played: 0, scored: 0, allowed: 0 };
-            if (!dPoints[player]) dPoints[player] = { played: 0, scored: 0, allowed: 0 };
-            impact[player].pointsPlayed++;
-            if (point.result === 'scored') impact[player].pointsScored++;
-            if (point.result === 'scored-against') impact[player].pointsAgainst++;
-            // O/D split for current game
-            const bucket = isOff ? oPoints[player] : dPoints[player];
-            bucket.played++;
-            if (point.result === 'scored') bucket.scored++;
-            if (point.result === 'scored-against') bucket.allowed++;
-        }
-    }
-    const pageRank = computePageRank();
-    return Object.entries(impact).map(([name, data]) => {
-        const stats = gameState.playerStats[name] || {};
-        const pp = Math.max(1, data.pointsPlayed);
-        const oData = oPoints[name] || { played: 0, scored: 0, allowed: 0 };
-        const dData = dPoints[name] || { played: 0, scored: 0, allowed: 0 };
-        const holdRate = oData.played > 0 ? oData.scored / oData.played : null;
-        const breakRate = dData.played > 0 ? dData.scored / dData.played : null;
-        return {
-            name,
-            ...data,
-            plusMinus: data.pointsScored - data.pointsAgainst,
-            offRating: ((stats.goals || 0) + (stats.assists || 0) + (stats.hockeyAssists || 0)) / pp,
-            defRating: (stats.blocks || 0) / pp,
-            completionPct: (stats.catches || 0) / Math.max(1, (stats.catches || 0) + (stats.turnovers || 0)) * 100,
-            per: computePlayerPER(name),
-            hubScore: pageRank[name] || 0,
-            holdRate,
-            breakRate,
-            oPointsPlayed: oData.played,
-            dPointsPlayed: dData.played
-        };
-    }).sort((a, b) => b.plusMinus - a.plusMinus || b.offRating - a.offRating);
+    return window.__analyticsRender ? window.__analyticsRender.computePlayerImpact() : [];
 }
-
-function posAbbrev(name) {
-    const pos = getPlayerPosition(name);
-    if (!pos) return '';
-    if (pos === 'Handler') return 'H';
-    if (pos === 'Hybrid') return 'HY';
-    if (pos === 'Cutter') return 'C';
-    return pos.substring(0, 2).toUpperCase();
-}
-
-function renderPairingsTab() {
-    const container = document.getElementById('analysis-content');
-    if (!container) return;
-    const pairs = computePairingStats();
-    if (pairs.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Complete some throws to see pairings</div>';
-        return;
-    }
-    const maxComp = pairs[0].completions;
-    // Compute throw values for current game pairings
-    const tvData = {};
-    for (const key in _throwValues) {
-        const tv = _throwValues[key];
-        if (tv.count > 0) tvData[key] = Math.round(tv.totalYards / tv.count);
-    }
-    container.innerHTML = pairs.map(p => {
-        const pct = Math.round((p.completions / maxComp) * 100);
-        const scoreTag = p.scores > 0
-            ? `<span class="text-emerald-400 font-semibold ml-1">${p.scores}G</span>`
-            : '';
-        const tvKey = p.thrower + '|' + p.receiver;
-        const avgTV = tvData[tvKey];
-        const tvTag = avgTV !== undefined
-            ? `<span class="${avgTV > 0 ? 'text-cyan-400' : avgTV < 0 ? 'text-red-400' : 'text-gray-500'} text-[10px] ml-1" title="Avg yards gained per throw">${avgTV > 0 ? '+' : ''}${avgTV}y</span>`
-            : '';
-        return `<div class="analysis-pair-row flex items-center gap-2 py-1.5 border-b border-white/5">
-            <div class="flex-shrink-0 w-28 sm:w-40 truncate">
-                <span class="text-gray-500 text-[10px]">${posAbbrev(p.thrower)}</span>
-                <span class="text-white font-medium">${escapeHtml(p.thrower.split(' ')[0])}</span>
-                <span class="text-gray-500 mx-0.5">&rarr;</span>
-                <span class="text-gray-500 text-[10px]">${posAbbrev(p.receiver)}</span>
-                <span class="text-white font-medium">${escapeHtml(p.receiver.split(' ')[0])}</span>
-            </div>
-            <div class="flex-1 min-w-0">
-                <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
-            </div>
-            <div class="flex-shrink-0 text-gray-400 whitespace-nowrap">
-                ${p.completions}${scoreTag}${tvTag}
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function renderLinesTab() {
-    const container = document.getElementById('analysis-content');
-    if (!container) return;
-    const lines = computeLineStats();
-    if (lines.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Play some points to see line stats</div>';
-        return;
-    }
-    container.innerHTML = lines.map(l => {
-        const diff = l.scored - l.scoredAgainst;
-        const diffClass = diff > 0 ? 'plus-minus-pos' : diff < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
-        const diffStr = diff > 0 ? `+${diff}` : `${diff}`;
-        const initials = l.players.map(n => {
-            const parts = n.split(' ');
-            const abbr = posAbbrev(n);
-            const ini = parts.length > 1 ? parts[0][0] + parts[1][0] : parts[0].substring(0, 2);
-            return abbr ? abbr + '\u00A0' + ini : ini;
-        }).join(', ');
-        // O/D split: hold rate and break rate
-        const holdRate = l.oPlayed > 0 ? Math.round(l.oScored / l.oPlayed * 100) : null;
-        const breakRate = l.dPlayed > 0 ? Math.round(l.dScored / l.dPlayed * 100) : null;
-        const holdTag = holdRate !== null ? `<span class="text-amber-400 text-[10px]" title="Hold rate">${holdRate}% hold</span>` : '';
-        const breakTag = breakRate !== null ? `<span class="${breakRate >= 40 ? 'text-emerald-400 font-semibold' : 'text-red-400'} text-[10px]" title="Break rate">${breakRate}% break</span>` : '';
-        return `<div class="py-2 border-b border-white/5">
-            <div class="flex items-center justify-between mb-1">
-                <div class="flex items-center gap-2">
-                    <span class="${diffClass} font-bold text-sm">${diffStr}</span>
-                    <span class="text-gray-400">${l.played} pt${l.played !== 1 ? 's' : ''}</span>
-                </div>
-                <div class="flex items-center gap-2 text-gray-400">
-                    <span class="text-emerald-400">${l.scored} scored</span>
-                    <span class="text-gray-600">/</span>
-                    <span class="text-red-400">${l.scoredAgainst} allowed</span>
-                </div>
-            </div>
-            <div class="flex items-center justify-between">
-                <div class="text-gray-500 text-[10px] truncate flex-1" title="${l.players.map(n => escapeHtml(n)).join(', ')}">${initials}</div>
-                <div class="flex items-center gap-2 ml-2">${holdTag}${breakTag}</div>
-            </div>
-        </div>`;
-    }).join('');
-}
-
-function renderImpactTab() {
-    const container = document.getElementById('analysis-content');
-    if (!container) return;
-    const players = computePlayerImpact();
-    if (players.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Play some points to see player impact</div>';
-        return;
-    }
-    container.innerHTML = `
-        <div class="flex items-center gap-1 text-[10px] text-gray-600 uppercase tracking-wider pb-1 border-b border-white/5 mb-1">
-            <span class="w-20 sm:w-28">Player</span>
-            <span class="w-8 text-center">+/-</span>
-            <span class="w-8 text-center">OFF</span>
-            <span class="w-8 text-center">DEF</span>
-            <span class="w-8 text-center">CMP</span>
-            <span class="w-8 text-center hidden sm:block" title="Player Efficiency Rating">PER</span>
-            <span class="w-8 text-center hidden sm:block" title="Hub Score (PageRank)">HUB</span>
-            <span class="flex-1 text-center">O/D</span>
-        </div>
-    ` + players.map(p => {
-        const diffClass = p.plusMinus > 0 ? 'plus-minus-pos' : p.plusMinus < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
-        const diffStr = p.plusMinus > 0 ? `+${p.plusMinus}` : `${p.plusMinus}`;
-        const firstName = p.name.split(' ')[0];
-        const pos = posAbbrev(p.name);
-        const posTag = pos ? `<span class="text-gray-500 text-[10px] mr-0.5">${pos}</span>` : '';
-        const holdStr = p.holdRate !== null ? `${Math.round(p.holdRate * 100)}%` : '-';
-        const breakStr = p.breakRate !== null ? `${Math.round(p.breakRate * 100)}%` : '-';
-        const breakHighlight = p.breakRate !== null && p.breakRate >= 0.4 ? 'text-emerald-400 font-semibold' : 'text-red-400';
-        return `<div class="flex items-center gap-1 py-1.5 border-b border-white/5">
-            <span class="w-20 sm:w-28 text-white font-medium truncate">${posTag}${escapeHtml(firstName)}</span>
-            <span class="w-8 text-center font-bold ${diffClass}">${diffStr}</span>
-            <span class="w-8 text-center text-amber-400">${p.offRating.toFixed(1)}</span>
-            <span class="w-8 text-center text-purple-400">${p.defRating.toFixed(1)}</span>
-            <span class="w-8 text-center text-cyan-400">${Math.round(p.completionPct)}%</span>
-            <span class="w-8 text-center text-orange-400 hidden sm:block">${p.per > 0 ? p.per : '-'}</span>
-            <span class="w-8 text-center text-pink-400 hidden sm:block">${p.hubScore > 0 ? p.hubScore : '-'}</span>
-            <span class="flex-1 text-center text-[10px]"><span class="text-amber-400">${holdStr}</span><span class="text-gray-600">/</span><span class="${breakHighlight}">${breakStr}</span></span>
-        </div>`;
-    }).join('');
-}
-
-function toggleStatsAnalysis() {
-    const section = document.getElementById('stats-analysis');
-    if (!section) return;
-    const isHidden = section.classList.contains('section-hidden');
-    if (isHidden) {
-        section.classList.remove('section-hidden');
-        refreshAnalysis();
-    } else {
-        section.classList.add('section-hidden');
-    }
-}
-
-function switchAnalysisTab(tab) {
-    _activeAnalysisTab = tab;
-    const tabs = document.querySelectorAll('#analysis-tabs .analysis-tab');
-    tabs.forEach(t => {
-        t.classList.toggle('active', (t.dataset.tab || '') === tab);
-    });
-    refreshAnalysis();
-}
-
-function refreshAnalysis() {
-    const section = document.getElementById('stats-analysis');
-    if (!section || section.classList.contains('section-hidden')) return;
-    switch (_activeAnalysisTab) {
-        case 'pairings': renderPairingsTab(); break;
-        case 'lines': renderLinesTab(); break;
-        case 'impact': renderImpactTab(); break;
-        case 'chemistry': renderChemistryTab(); break;
-    }
-}
-
-// ==================== CROSS-GAME CHEMISTRY ANALYTICS ====================
-
-function aggregateChemistryData() {
-    const gameTimestamp = Date.now();
-
-    // Aggregate throw connections from the current game (with throw value)
-    for (const thrower in _throwConnections) {
-        for (const receiver in _throwConnections[thrower]) {
-            const key = thrower + '|' + receiver;
-            if (!chemistryData.pairings[key]) {
-                chemistryData.pairings[key] = { completions: 0, goals: 0, games: 0, throwValue: 0 };
-            }
-            const p = chemistryData.pairings[key];
-            p.completions += _throwConnections[thrower][receiver];
-            p.goals += countScoringConnections(thrower, receiver);
-            p.games++;
-            // Aggregate throw value (directional yardage)
-            const tvKey = thrower + '|' + receiver;
-            if (_throwValues[tvKey]) {
-                p.throwValue = (p.throwValue || 0) + _throwValues[tvKey].totalYards;
-            }
-        }
-    }
-
-    // Aggregate line history from point tracking
-    for (const point of _pointHistory) {
-        if (!point.result) continue;
-        const key = [...point.line].sort().join('|');
-        if (!chemistryData.lineHistory[key]) {
-            chemistryData.lineHistory[key] = { players: [...point.line].sort(), played: 0, scored: 0, scoredAgainst: 0, games: new Set() };
-        }
-        const entry = chemistryData.lineHistory[key];
-        entry.played++;
-        if (point.result === 'scored') entry.scored++;
-        if (point.result === 'scored-against') entry.scoredAgainst++;
-        if (entry.games instanceof Set) entry.games.add(chemistryData.gamesAnalyzed);
-        else { entry.games = new Set([chemistryData.gamesAnalyzed]); }
-
-        // Aggregate player pairs with O/D split
-        const isOffense = point.startType === 'offense';
-        for (let i = 0; i < point.line.length; i++) {
-            for (let j = i + 1; j < point.line.length; j++) {
-                const pairKey = [point.line[i], point.line[j]].sort().join('|');
-                if (!chemistryData.playerPairs[pairKey]) {
-                    chemistryData.playerPairs[pairKey] = {
-                        pointsTogether: 0, scoredTogether: 0, allowedTogether: 0, connectionCount: 0, games: 0,
-                        offPointsTogether: 0, offScored: 0, offAllowed: 0,
-                        defPointsTogether: 0, defScored: 0, defAllowed: 0
-                    };
-                }
-                const pair = chemistryData.playerPairs[pairKey];
-                pair.pointsTogether++;
-                if (point.result === 'scored') pair.scoredTogether++;
-                if (point.result === 'scored-against') pair.allowedTogether++;
-                // O/D split tracking
-                if (isOffense) {
-                    pair.offPointsTogether = (pair.offPointsTogether || 0) + 1;
-                    if (point.result === 'scored') pair.offScored = (pair.offScored || 0) + 1;
-                    if (point.result === 'scored-against') pair.offAllowed = (pair.offAllowed || 0) + 1;
-                } else {
-                    pair.defPointsTogether = (pair.defPointsTogether || 0) + 1;
-                    if (point.result === 'scored') pair.defScored = (pair.defScored || 0) + 1;
-                    if (point.result === 'scored-against') pair.defAllowed = (pair.defAllowed || 0) + 1;
-                }
-            }
-        }
-    }
-
-    // Count throw connections between player pairs
-    for (const thrower in _throwConnections) {
-        for (const receiver in _throwConnections[thrower]) {
-            const pairKey = [thrower, receiver].sort().join('|');
-            if (chemistryData.playerPairs[pairKey]) {
-                chemistryData.playerPairs[pairKey].connectionCount += _throwConnections[thrower][receiver];
-            }
-        }
-    }
-
-    // Convert Sets to counts for serialization
-    for (const key in chemistryData.lineHistory) {
-        const entry = chemistryData.lineHistory[key];
-        if (entry.games instanceof Set) entry.games = entry.games.size;
-    }
-
-    chemistryData.gamesAnalyzed++;
-    if (!chemistryData.gameTimestamps) chemistryData.gameTimestamps = [];
-    chemistryData.gameTimestamps.push(gameTimestamp);
-    // Reset throw values for next game
-    _throwValues = {};
-    saveChemistryData();
-}
-
-function computeCrossGamePairings(limit = 10) {
-    const pairs = [];
-    for (const key in chemistryData.pairings) {
-        const [thrower, receiver] = key.split('|');
-        const data = chemistryData.pairings[key];
-        const avgThrowValue = data.throwValue ? Math.round(data.throwValue / Math.max(1, data.completions)) : 0;
-        pairs.push({ thrower, receiver, ...data, avgThrowValue });
-    }
-    return pairs.sort((a, b) => b.completions - a.completions).slice(0, limit);
-}
-
-function computeCrossGameLines(limit = 8) {
-    const lines = [];
-    for (const key in chemistryData.lineHistory) {
-        const data = chemistryData.lineHistory[key];
-        const diff = data.scored - data.scoredAgainst;
-        lines.push({ players: data.players || key.split('|'), ...data, plusMinus: diff });
-    }
-    return lines.sort((a, b) => b.plusMinus - a.plusMinus || b.scored - a.scored).slice(0, limit);
-}
-
-function computePlayerChemistry(limit = 15) {
-    const pairs = [];
-    for (const key in chemistryData.playerPairs) {
-        const [p1, p2] = key.split('|');
-        const data = chemistryData.playerPairs[key];
-        if (data.pointsTogether < 2) continue;
-        const chemScore = computeChemScore(data);
-        const offChem = computeChemScoreForSide(data, 'off');
-        const defChem = computeChemScoreForSide(data, 'def');
-        const winRate = data.scoredTogether / Math.max(1, data.pointsTogether);
-        pairs.push({ player1: p1, player2: p2, ...data, winRate, chemistryScore: Math.round(chemScore), offChemistry: Math.round(offChem), defChemistry: Math.round(defChem) });
-    }
-    return pairs.sort((a, b) => b.chemistryScore - a.chemistryScore).slice(0, limit);
-}
-
-// Compute overall chemistry score (0-100) with throw value weighting
 function computeChemScore(data) {
-    const winRate = data.scoredTogether / Math.max(1, data.pointsTogether);
-    const pointDiffRate = (data.scoredTogether - data.allowedTogether) / Math.max(1, data.pointsTogether);
-    const connectionFreq = Math.min(data.connectionCount || 0, 20) / 20;
-    // Break rate bonus: D-line scores worth 2x (breaks are harder and more impactful)
-    const defWinRate = (data.defScored || 0) / Math.max(1, data.defPointsTogether || 0);
-    const breakBonus = defWinRate * Math.min(data.defPointsTogether || 0, 10) / 10;
-    return (winRate * 40) + (pointDiffRate * 25) + (connectionFreq * 15) + (breakBonus * 20);
+    return window.__analyticsRender ? window.__analyticsRender.computeChemScore(data) : 0;
 }
-
-// Compute chemistry for offense or defense side specifically
 function computeChemScoreForSide(data, side) {
-    const pts = side === 'off' ? (data.offPointsTogether || 0) : (data.defPointsTogether || 0);
-    if (pts < 1) return 0;
-    const scored = side === 'off' ? (data.offScored || 0) : (data.defScored || 0);
-    const allowed = side === 'off' ? (data.offAllowed || 0) : (data.defAllowed || 0);
-    const winRate = scored / Math.max(1, pts);
-    const pointDiffRate = (scored - allowed) / Math.max(1, pts);
-    return (winRate * 55) + (pointDiffRate * 35) + (Math.min(data.connectionCount || 0, 15) / 15 * 10);
+    return window.__analyticsRender ? window.__analyticsRender.computeChemScoreForSide(data, side) : 0;
 }
-
-// Recency weight: exponential decay, half-life of ~7 games
-function getRecencyWeight(gameIndex) {
-    const totalGames = chemistryData.gamesAnalyzed || 1;
-    const gamesAgo = totalGames - 1 - gameIndex;
-    const LAMBDA = 0.1; // decay rate: half-life ≈ ln(2)/0.1 ≈ 7 games
-    return Math.exp(-LAMBDA * gamesAgo);
-}
-
-function getChemistryScore(player1, player2, side) {
-    const key = [player1, player2].sort().join('|');
-    const data = chemistryData.playerPairs[key];
-    if (!data || data.pointsTogether < 1) return 0;
-    if (side === 'off') return computeChemScoreForSide(data, 'off');
-    if (side === 'def') return computeChemScoreForSide(data, 'def');
-    return computeChemScore(data);
-}
-
-// Compute PER (Player Efficiency Rating) adapted for ultimate frisbee
 function computePlayerPER(playerName) {
-    const career = careerStats.players?.[playerName];
-    if (!career || !career.gamesPlayed) return 0;
-    const gp = career.gamesPlayed;
-    // Weighted box score: goals(3) + assists(3) + hockeyAssists(1.5) + blocks(3) - turnovers(2) + completion_factor
-    const completionPct = (career.catches || 0) / Math.max(1, (career.catches || 0) + (career.turnovers || 0));
-    const rawPER = (
-        (career.goals || 0) * 3 +
-        (career.assists || 0) * 3 +
-        (career.hockeyAssists || 0) * 1.5 +
-        (career.blocks || 0) * 3 -
-        (career.turnovers || 0) * 2 +
-        completionPct * gp * 0.5
-    );
-    // Return aggregate PER (correlates better with +/- than per-game)
-    return Math.round(rawPER * 10) / 10;
+    return window.__analyticsRender ? window.__analyticsRender.computePlayerPER(playerName) : 0;
 }
-
-// Simple PageRank on throw connection graph
-function computePageRank(iterations = 20, damping = 0.85) {
-    const nodes = new Set();
-    const edges = {}; // node → [{target, weight}]
-    const inDegree = {};
-
-    // Build graph from throw connections
-    for (const thrower in _throwConnections) {
-        nodes.add(thrower);
-        if (!edges[thrower]) edges[thrower] = [];
-        for (const receiver in _throwConnections[thrower]) {
-            nodes.add(receiver);
-            edges[thrower].push({ target: receiver, weight: _throwConnections[thrower][receiver] });
-            inDegree[receiver] = (inDegree[receiver] || 0) + _throwConnections[thrower][receiver];
-        }
-    }
-
-    // Also include cross-game pairings for richer graph
-    for (const key in chemistryData.pairings) {
-        const [thrower, receiver] = key.split('|');
-        nodes.add(thrower);
-        nodes.add(receiver);
-        if (!edges[thrower]) edges[thrower] = [];
-        // Only add if not already tracked in current game
-        if (!_throwConnections[thrower]?.[receiver]) {
-            edges[thrower].push({ target: receiver, weight: chemistryData.pairings[key].completions });
-            inDegree[receiver] = (inDegree[receiver] || 0) + chemistryData.pairings[key].completions;
-        }
-    }
-
-    const nodeList = [...nodes];
-    const n = nodeList.length;
-    if (n === 0) return {};
-
-    // Initialize ranks
-    let rank = {};
-    nodeList.forEach(node => rank[node] = 1 / n);
-
-    // Power iteration
-    for (let iter = 0; iter < iterations; iter++) {
-        const newRank = {};
-        nodeList.forEach(node => newRank[node] = (1 - damping) / n);
-
-        for (const source of nodeList) {
-            const outEdges = edges[source] || [];
-            const totalWeight = outEdges.reduce((s, e) => s + e.weight, 0);
-            if (totalWeight === 0) {
-                // Dangling node: distribute equally
-                nodeList.forEach(node => newRank[node] += damping * rank[source] / n);
-            } else {
-                for (const edge of outEdges) {
-                    newRank[edge.target] += damping * rank[source] * (edge.weight / totalWeight);
-                }
-            }
-        }
-        rank = newRank;
-    }
-
-    // Normalize to 0-100 scale
-    const maxRank = Math.max(...Object.values(rank), 0.0001);
-    const result = {};
-    for (const node of nodeList) {
-        result[node] = Math.round((rank[node] / maxRank) * 100);
-    }
-    return result;
+function computePageRank(iterations, damping) {
+    return window.__analyticsRender ? window.__analyticsRender.computePageRank(iterations, damping) : {};
 }
-
+function computePlayerChemistry(limit) {
+    return window.__analyticsRender ? window.__analyticsRender.computePlayerChemistry(limit) : [];
+}
+function computeCrossGamePairings(limit) {
+    return window.__analyticsRender ? window.__analyticsRender.computeCrossGamePairings(limit) : [];
+}
+function computeCrossGameLines(limit) {
+    return window.__analyticsRender ? window.__analyticsRender.computeCrossGameLines(limit) : [];
+}
+function getChemistryScore(p1, p2, side) {
+    return window.__analyticsRender ? window.__analyticsRender.getChemistryScore(p1, p2, side) : 0;
+}
+function getRecencyWeight(idx) {
+    return window.__analyticsRender ? window.__analyticsRender.getRecencyWeight(idx) : 1;
+}
+function posAbbrev(name) {
+    return window.__analyticsRender ? window.__analyticsRender.posAbbrev(name) : '';
+}
+function aggregateChemistryData() {
+    if (window.__analyticsRender) window.__analyticsRender.aggregateChemistryData();
+}
+async function renderPairingsTab() {
+    if (window.__analyticsRender) await window.__analyticsRender.renderPairingsTab();
+}
+async function renderLinesTab() {
+    if (window.__analyticsRender) await window.__analyticsRender.renderLinesTab();
+}
+async function renderImpactTab() {
+    if (window.__analyticsRender) await window.__analyticsRender.renderImpactTab();
+}
+async function renderChemistryTab() {
+    if (window.__analyticsRender) await window.__analyticsRender.renderChemistryTab();
+}
+function toggleStatsAnalysis() {
+    if (window.__analyticsRender) window.__analyticsRender.toggleStatsAnalysis();
+}
+function switchAnalysisTab(tab) {
+    if (window.__analyticsRender) window.__analyticsRender.switchAnalysisTab(tab);
+}
+async function refreshAnalysis() {
+    if (window.__analyticsRender) await window.__analyticsRender.refreshAnalysis();
+}
 function updateChemistryRecommendations() {
-    const strip = document.getElementById('chemistry-recommendations');
-    if (!strip) return;
-
-    const selected = gameState.onFieldPlayers;
-    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
-
-    // Only show when 1-6 players selected and chemistry data exists
-    if (!hasChemData || selected.length === 0 || selected.length >= 7) {
-        strip.classList.add('hidden');
-        return;
-    }
-
-    // Find top 3 recommended bench players by chemistry with selected
-    const bench = getPresentPlayers().filter(p => !selected.includes(p));
-    const scored = bench.map(player => {
-        let totalChem = 0;
-        for (const sel of selected) {
-            totalChem += getChemistryScore(player, sel);
-        }
-        return { name: player, avgChem: Math.round(totalChem / selected.length) };
-    }).filter(p => p.avgChem > 0).sort((a, b) => b.avgChem - a.avgChem).slice(0, 3);
-
-    if (scored.length === 0) {
-        strip.classList.add('hidden');
-        return;
-    }
-
-    strip.classList.remove('hidden');
-    strip.innerHTML = `<span class="text-violet-400 text-[10px] font-semibold mr-1.5">Best chemistry:</span>` +
-        scored.map(p => {
-            const pos = getPlayerPosition(p.name);
-            const posTag = pos ? `<span class="text-gray-500 text-[9px]">${pos.substring(0, 1)}</span> ` : '';
-            return `<button onclick="togglePlayerOnField('${escapeHtml(p.name.replace(/'/g, "\\'"))}')" class="chem-rec-chip">
-                ${posTag}<span class="text-white">${escapeHtml(p.name.split(' ')[0])}</span>
-                <span class="chem-rec-score">${p.avgChem}</span>
-            </button>`;
-        }).join('');
+    if (window.__analyticsRender) window.__analyticsRender.updateChemistryRecommendations();
 }
-
-function suggestLine() {
-    const allPlayers = getPresentPlayers();
-    if (allPlayers.length < 7) {
-        showToast('Need at least 7 players to suggest a line', 'error');
-        return;
-    }
-
-    const impact = getPlayerImpactData();
-    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
-    const hasGameData = _pointHistory.length > 0;
-    const pageRank = computePageRank();
-
-    // Determine context: are we on O or D?
-    // If score is available, suggest based on who receives next
-    const lastPoint = _pointHistory.length > 0 ? _pointHistory[_pointHistory.length - 1] : null;
-    const suggestSide = lastPoint?.result === 'scored' ? 'defense' : lastPoint?.result === 'scored-against' ? 'offense' : null;
-
-    // Score each player individually
-    const playerScores = {};
-    const playerReasons = {};
-    allPlayers.forEach(player => {
-        const stats = gameState.playerStats[player] || {};
-        const imp = impact[player] || { pointsPlayed: 0, pointsScored: 0, pointsAgainst: 0 };
-        const pp = Math.max(1, imp.pointsPlayed);
-
-        // Rest factor: favor players who have played less this game
-        const avgPts = _pointHistory.length > 0 ? _pointHistory.length / Math.max(1, allPlayers.length) * 7 : 0;
-        const restFactor = avgPts > 0 ? Math.max(0, 1 - (imp.pointsPlayed / avgPts) * 0.5) : 0.5;
-
-        // Performance factor from current game
-        const plusMinus = hasGameData ? (imp.pointsScored - imp.pointsAgainst) / pp : 0;
-        const offContrib = ((stats.goals || 0) + (stats.assists || 0) + (stats.hockeyAssists || 0)) / pp;
-        const defContrib = (stats.blocks || 0) / pp;
-        const turnPenalty = (stats.turnovers || 0) / pp;
-
-        // PER bonus from career stats
-        const per = computePlayerPER(player);
-        const perBonus = per > 0 ? Math.min(per / 20, 1) * 0.5 : 0;
-
-        // Hub score bonus (PageRank): favor central playmakers
-        const hubBonus = (pageRank[player] || 0) / 100 * 0.3;
-
-        // Context-aware scoring: weight offense or defense based on situation
-        let contextBonus = 0;
-        if (suggestSide === 'offense') {
-            contextBonus = offContrib * 0.5 - defContrib * 0.2;
-        } else if (suggestSide === 'defense') {
-            contextBonus = defContrib * 0.5 - offContrib * 0.1;
-        }
-
-        playerScores[player] = (plusMinus * 2) + (offContrib * 1.5) + (defContrib * 1) - (turnPenalty * 1) + (restFactor * 1.5) + perBonus + hubBonus + contextBonus;
-
-        // Track reason for selection
-        const reasons = [];
-        if (restFactor > 0.7) reasons.push('rested');
-        if (plusMinus > 0.3) reasons.push('+/-');
-        if (offContrib > 0.5) reasons.push('offense');
-        if (defContrib > 0.3) reasons.push('defense');
-        if (perBonus > 0.3) reasons.push('PER');
-        if (hubBonus > 0.2) reasons.push('hub');
-        playerReasons[player] = reasons;
-    });
-
-    // Greedy selection: pick best player, then add players maximizing chemistry + individual score
-    const sorted = [...allPlayers].sort((a, b) => (playerScores[b] || 0) - (playerScores[a] || 0));
-    const selected = [sorted[0]];
-
-    while (selected.length < 7) {
-        let bestCandidate = null;
-        let bestScore = -Infinity;
-
-        for (const candidate of allPlayers) {
-            if (selected.includes(candidate)) continue;
-            let score = playerScores[candidate] || 0;
-
-            // Add O/D context-aware chemistry bonus with already-selected players
-            if (hasChemData) {
-                let chemSum = 0;
-                for (const sel of selected) {
-                    chemSum += getChemistryScore(candidate, sel, suggestSide === 'offense' ? 'off' : suggestSide === 'defense' ? 'def' : undefined);
-                }
-                const chemBonus = (chemSum / selected.length) * 0.05;
-                score += chemBonus;
-                if (chemBonus > 0.5 && !playerReasons[candidate].includes('chemistry')) {
-                    playerReasons[candidate].push('chemistry');
-                }
-            }
-
-            // Position balance bonus
-            const pos = getPlayerPosition(candidate);
-            const selectedPositions = selected.map(p => getPlayerPosition(p));
-            const handlers = selectedPositions.filter(p => p === 'Handler').length;
-            const cutters = selectedPositions.filter(p => p === 'Cutter').length;
-            if (pos === 'Handler' && handlers < 3) score += 0.3;
-            else if (pos === 'Cutter' && cutters < 4) score += 0.2;
-            else if (pos === 'Hybrid') score += 0.1;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestCandidate = candidate;
-            }
-        }
-
-        if (bestCandidate) selected.push(bestCandidate);
-        else break;
-    }
-
-    // Apply the suggestion
-    gameState.onFieldPlayers = selected.slice(0, 7);
-    updateLineSelectionGrid();
-    saveToStorage();
-
-    // Build reasoning summary
-    const posBreakdown = selected.reduce((acc, p) => {
-        const pos = getPlayerPosition(p) || 'Unknown';
-        acc[pos] = (acc[pos] || 0) + 1;
-        return acc;
-    }, {});
-    const posStr = Object.entries(posBreakdown).map(([k, v]) => `${v}${k[0]}`).join(' ');
-    const chemCount = selected.filter(p => (playerReasons[p] || []).includes('chemistry')).length;
-    const restCount = selected.filter(p => (playerReasons[p] || []).includes('rested')).length;
-
-    let reason = posStr;
-    if (suggestSide) reason = (suggestSide === 'offense' ? 'O-line' : 'D-line') + ': ' + reason;
-    if (chemCount > 0) reason += ` | ${chemCount} chem`;
-    if (restCount > 0) reason += ` | ${restCount} rested`;
-    showToast(`Suggested: ${reason}`, 'success');
-
-    // Show suggestion details panel
-    showSuggestionDetails(selected, playerReasons);
-    vibrate(30);
+async function suggestLine() {
+    if (window.__analyticsRender) await window.__analyticsRender.suggestLine();
 }
-
-function showSuggestionDetails(selected, reasons) {
-    const strip = document.getElementById('chemistry-recommendations');
-    if (!strip) return;
-
-    strip.classList.remove('hidden');
-    const pills = selected.map(p => {
-        const pos = getPlayerPosition(p);
-        const posTag = pos ? `<span class="text-gray-500 text-[9px]">${pos.substring(0, 1)}</span> ` : '';
-        const reasonTags = (reasons[p] || []).slice(0, 2).map(r => {
-            const cls = r === 'chemistry' ? 'text-violet-400' : r === 'rested' ? 'text-cyan-400' : r === '+/-' ? 'text-emerald-400' : 'text-amber-400';
-            return `<span class="${cls} text-[8px]">${r}</span>`;
-        }).join(' ');
-        return `<span class="chem-rec-chip chem-rec-selected">${posTag}<span class="text-white">${escapeHtml(p.split(' ')[0])}</span> ${reasonTags}</span>`;
-    }).join('');
-
-    strip.innerHTML = `<span class="text-violet-400 text-[10px] font-semibold mr-1.5">Suggested line:</span>${pills}`;
+function showSuggestionDetails(sel, reasons) {
+    if (window.__analyticsRender) window.__analyticsRender.showSuggestionDetails(sel, reasons);
 }
-
-function renderChemistryTab() {
-    const container = document.getElementById('analysis-content');
-    if (!container) return;
-
-    const pairs = computePlayerChemistry(8);
-    if (pairs.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Complete a game to see cross-game chemistry</div>';
-        return;
-    }
-
-    const maxScore = pairs[0].chemistryScore || 1;
-    const onField = new Set(gameState.onFieldPlayers);
-
-    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2">${chemistryData.gamesAnalyzed} game${chemistryData.gamesAnalyzed !== 1 ? 's' : ''} analyzed &middot; Break bonus weighted 2&times;</div>` +
-        pairs.map(p => {
-            const pct = Math.round((p.chemistryScore / maxScore) * 100);
-            const pm = p.scoredTogether - p.allowedTogether;
-            const pmClass = pm > 0 ? 'plus-minus-pos' : pm < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
-            const pmStr = pm > 0 ? '+' + pm : '' + pm;
-            const onFieldBoth = onField.has(p.player1) && onField.has(p.player2);
-            const highlight = onFieldBoth ? ' border-l-2 border-emerald-400 pl-2' : '';
-            // O/D split badges
-            const offBadge = p.offChemistry > 0 ? `<span class="text-amber-400 text-[9px]" title="O-line chemistry">O${p.offChemistry}</span>` : '';
-            const defBadge = p.defChemistry > 0 ? `<span class="text-red-400 text-[9px]" title="D-line chemistry">D${p.defChemistry}</span>` : '';
-            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5${highlight}">
-                <div class="flex-shrink-0 w-28 sm:w-36 truncate">
-                    <span class="text-white font-medium">${escapeHtml(p.player1.split(' ')[0])}</span>
-                    <span class="text-violet-400 mx-0.5">&amp;</span>
-                    <span class="text-white font-medium">${escapeHtml(p.player2.split(' ')[0])}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="stat-bar"><div class="stat-bar-fill chemistry-bar" style="width:${pct}%"></div></div>
-                </div>
-                <div class="flex-shrink-0 flex items-center gap-1.5 text-gray-400 whitespace-nowrap">
-                    <span class="${pmClass} font-semibold">${pmStr}</span>
-                    ${offBadge}${defBadge}
-                    <span class="text-violet-400 font-medium">${p.chemistryScore}</span>
-                    <span class="text-gray-600 text-[10px]">${p.pointsTogether}pt</span>
-                </div>
-            </div>`;
-        }).join('');
-}
-
-// ==================== DASHBOARD CHEMISTRY WIDGET ====================
-
 function renderDashboardChemistry() {
-    const container = document.getElementById('chemistry-content');
-    if (!container) return;
-
-    loadChemistryData();
-
-    if (chemistryData.gamesAnalyzed === 0) {
-        container.innerHTML = `<div class="text-center py-8">
-            <div class="w-16 h-16 mx-auto bg-violet-500/10 rounded-2xl flex items-center justify-center mb-3">
-                <i data-lucide="heart-handshake" class="w-8 h-8 text-violet-400"></i>
-            </div>
-            <p class="text-gray-400 text-sm">Play and complete games to build chemistry data</p>
-            <p class="text-gray-500 text-xs mt-1">Player pairing analytics will appear here after your first game</p>
-        </div>`;
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-        return;
-    }
-
-    const activeTab = document.querySelector('#chemistry-tabs .analysis-tab.active')?.dataset.tab || 'top-pairs';
-
-    switch (activeTab) {
-        case 'top-pairs': renderDashboardTopPairs(container); break;
-        case 'best-lines': renderDashboardBestLines(container); break;
-        case 'player-chem': renderDashboardPlayerChemistry(container); break;
-        case 'recommended': renderDashboardRecommended(container); break;
-    }
+    if (window.__analyticsRender) window.__analyticsRender.renderDashboardChemistry();
 }
-
 function switchChemistryTab(tab) {
-    const tabs = document.querySelectorAll('#chemistry-tabs .analysis-tab');
-    tabs.forEach(t => t.classList.toggle('active', (t.dataset.tab || '') === tab));
-    renderDashboardChemistry();
+    if (window.__analyticsRender) window.__analyticsRender.switchChemistryTab(tab);
 }
-
-function renderDashboardTopPairs(container) {
-    const pairs = computeCrossGamePairings(10);
-    if (pairs.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">No pairing data yet</div>';
-        return;
-    }
-    const maxComp = pairs[0].completions || 1;
-    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2 flex justify-between"><span>Across ${chemistryData.gamesAnalyzed} games</span><span>Thrower &rarr; Receiver</span></div>` +
-        pairs.map(p => {
-            const pct = Math.round((p.completions / maxComp) * 100);
-            const goalTag = p.goals > 0 ? `<span class="text-emerald-400 font-semibold ml-1">${p.goals}G</span>` : '';
-            const tvTag = p.avgThrowValue ? `<span class="${p.avgThrowValue > 0 ? 'text-cyan-400' : 'text-red-400'} text-[10px] ml-1" title="Avg yards gained">${p.avgThrowValue > 0 ? '+' : ''}${p.avgThrowValue}y</span>` : '';
-            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5">
-                <div class="flex-shrink-0 w-32 sm:w-44 truncate">
-                    <span class="text-white font-medium">${escapeHtml(p.thrower.split(' ')[0])}</span>
-                    <span class="text-gray-500 mx-0.5">&rarr;</span>
-                    <span class="text-white font-medium">${escapeHtml(p.receiver.split(' ')[0])}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
-                </div>
-                <div class="flex-shrink-0 text-gray-400 whitespace-nowrap text-xs">
-                    ${p.completions}${goalTag}${tvTag}
-                    <span class="text-gray-600 ml-1">${p.games}g</span>
-                </div>
-            </div>`;
-        }).join('');
-}
-
-function renderDashboardBestLines(container) {
-    const lines = computeCrossGameLines(8);
-    if (lines.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">No line data yet</div>';
-        return;
-    }
-    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2">Best 7-player combinations across ${chemistryData.gamesAnalyzed} games</div>` +
-        lines.map(l => {
-            const diff = l.plusMinus;
-            const diffClass = diff > 0 ? 'plus-minus-pos' : diff < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
-            const diffStr = diff > 0 ? '+' + diff : '' + diff;
-            const names = (l.players || []).map(n => escapeHtml(n.split(' ')[0])).join(', ');
-            return `<div class="py-2 border-b border-white/5">
-                <div class="flex items-center justify-between mb-1">
-                    <div class="flex items-center gap-2">
-                        <span class="${diffClass} font-bold text-sm">${diffStr}</span>
-                        <span class="text-gray-400 text-xs">${l.played} pts</span>
-                    </div>
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="text-emerald-400">${l.scored} scored</span>
-                        <span class="text-gray-600">/</span>
-                        <span class="text-red-400">${l.scoredAgainst} allowed</span>
-                    </div>
-                </div>
-                <div class="text-gray-500 text-[10px] truncate" title="${(l.players || []).map(n => escapeHtml(n)).join(', ')}">${names}</div>
-            </div>`;
-        }).join('');
-}
-
-function renderDashboardPlayerChemistry(container) {
-    const pairs = computePlayerChemistry(12);
-    if (pairs.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">No chemistry data yet</div>';
-        return;
-    }
-    const maxScore = pairs[0].chemistryScore || 1;
-    container.innerHTML = `<div class="text-[10px] text-gray-500 mb-2 flex justify-between"><span>Players who win together &middot; Break bonus 2&times;</span><span>Overall / O / D</span></div>` +
-        pairs.map(p => {
-            const pct = Math.round((p.chemistryScore / maxScore) * 100);
-            const pm = p.scoredTogether - p.allowedTogether;
-            const pmClass = pm > 0 ? 'plus-minus-pos' : pm < 0 ? 'plus-minus-neg' : 'plus-minus-zero';
-            const pmStr = pm > 0 ? '+' + pm : '' + pm;
-            const wr = Math.round(p.winRate * 100);
-            const offBadge = p.offChemistry > 0 ? `<span class="text-amber-400 text-[9px]">O${p.offChemistry}</span>` : '';
-            const defBadge = p.defChemistry > 0 ? `<span class="text-red-400 text-[9px]">D${p.defChemistry}</span>` : '';
-            return `<div class="flex items-center gap-2 py-1.5 border-b border-white/5">
-                <div class="flex-shrink-0 w-32 sm:w-44 truncate">
-                    <span class="text-white font-medium">${escapeHtml(p.player1.split(' ')[0])}</span>
-                    <span class="text-violet-400 mx-0.5">&amp;</span>
-                    <span class="text-white font-medium">${escapeHtml(p.player2.split(' ')[0])}</span>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <div class="stat-bar"><div class="stat-bar-fill chemistry-bar" style="width:${pct}%"></div></div>
-                </div>
-                <div class="flex-shrink-0 flex items-center gap-1.5 text-xs whitespace-nowrap">
-                    <span class="${pmClass} font-semibold">${pmStr}</span>
-                    <span class="text-cyan-400">${wr}%</span>
-                    ${offBadge}${defBadge}
-                    <span class="text-violet-400 font-bold">${p.chemistryScore}</span>
-                </div>
-            </div>`;
-        }).join('');
-}
-
-function renderDashboardRecommended(container) {
-    // Build recommended starting 7 from roster + chemistry data
-    const roster = getCurrentRoster();
-    if (roster.length < 7) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Need at least 7 players on roster</div>';
-        return;
-    }
-
-    const hasChemData = Object.keys(chemistryData.playerPairs).length > 0;
-    if (!hasChemData) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">Play more games to generate recommendations</div>';
-        return;
-    }
-
-    // Score each player using career stats + PER + chemistry
-    const playerScores = {};
-    const playerTags = {};
-    roster.forEach(player => {
-        const career = careerStats.players[player] || {};
-        const gp = Math.max(1, career.gamesPlayed || 1);
-        const offRate = ((career.goals || 0) + (career.assists || 0) + (career.hockeyAssists || 0)) / gp;
-        const defRate = (career.blocks || 0) / gp;
-        const turnRate = (career.turnovers || 0) / gp;
-        const per = computePlayerPER(player);
-        const perBonus = per > 0 ? Math.min(per / 20, 1) * 0.5 : 0;
-        playerScores[player] = (offRate * 2) + (defRate * 1.5) - (turnRate * 1) + perBonus;
-        playerTags[player] = [];
-        if (offRate > 0.5) playerTags[player].push('offense');
-        if (defRate > 0.3) playerTags[player].push('defense');
-        if (per > 5) playerTags[player].push('PER');
-        if ((career.gamesPlayed || 0) >= 3) playerTags[player].push('veteran');
-    });
-
-    // Greedy selection with chemistry
-    const sorted = [...roster].sort((a, b) => (playerScores[b] || 0) - (playerScores[a] || 0));
-    const selected = [sorted[0]];
-
-    while (selected.length < 7 && selected.length < roster.length) {
-        let bestCandidate = null;
-        let bestScore = -Infinity;
-
-        for (const candidate of roster) {
-            if (selected.includes(candidate)) continue;
-            let score = playerScores[candidate] || 0;
-
-            // Chemistry with already-selected
-            let chemSum = 0;
-            for (const sel of selected) {
-                chemSum += getChemistryScore(candidate, sel);
-            }
-            const chemBonus = (chemSum / selected.length) * 0.05;
-            score += chemBonus;
-            if (chemBonus > 0.3 && !playerTags[candidate].includes('chemistry')) {
-                playerTags[candidate].push('chemistry');
-            }
-
-            // Position balance
-            const pos = getPlayerPosition(candidate);
-            const selectedPositions = selected.map(p => getPlayerPosition(p));
-            const handlers = selectedPositions.filter(p => p === 'Handler').length;
-            const cutters = selectedPositions.filter(p => p === 'Cutter').length;
-            if (pos === 'Handler' && handlers < 3) score += 0.3;
-            else if (pos === 'Cutter' && cutters < 4) score += 0.2;
-            else if (pos === 'Hybrid') score += 0.1;
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestCandidate = candidate;
-            }
-        }
-
-        if (bestCandidate) selected.push(bestCandidate);
-        else break;
-    }
-
-    // Find top 3 chemistry pairs within the selected line
-    const linePairs = [];
-    for (let i = 0; i < selected.length; i++) {
-        for (let j = i + 1; j < selected.length; j++) {
-            const score = getChemistryScore(selected[i], selected[j]);
-            if (score > 0) linePairs.push({ p1: selected[i], p2: selected[j], score: Math.round(score) });
-        }
-    }
-    linePairs.sort((a, b) => b.score - a.score);
-    const topPairs = linePairs.slice(0, 3);
-
-    // Render
-    const posBreakdown = selected.reduce((acc, p) => {
-        const pos = getPlayerPosition(p) || '?';
-        acc[pos] = (acc[pos] || 0) + 1;
-        return acc;
-    }, {});
-    const posStr = Object.entries(posBreakdown).map(([k, v]) => `${v} ${k}${v > 1 ? 's' : ''}`).join(', ');
-
-    container.innerHTML = `
-        <div class="mb-3">
-            <div class="text-[10px] text-gray-500 mb-2">Recommended starting 7 based on career stats &amp; chemistry</div>
-            <div class="text-[10px] text-gray-600 mb-3">${posStr}</div>
-            <div class="grid grid-cols-1 gap-1.5">
-                ${selected.map((p, i) => {
-                    const pos = getPlayerPosition(p);
-                    const posTag = pos ? `<span class="text-gray-500 text-[10px] w-6">${pos === 'Hybrid' ? 'HY' : pos.substring(0, 1)}</span>` : '<span class="w-6"></span>';
-                    const tags = (playerTags[p] || []).map(t => {
-                        const cls = t === 'chemistry' ? 'bg-violet-500/20 text-violet-400' : t === 'offense' ? 'bg-amber-500/20 text-amber-400' : t === 'defense' ? 'bg-purple-500/20 text-purple-400' : 'bg-cyan-500/20 text-cyan-400';
-                        return `<span class="text-[9px] px-1.5 py-0.5 rounded-full ${cls}">${t}</span>`;
-                    }).join('');
-                    return `<div class="flex items-center gap-2 py-1.5 px-2 rounded-lg ${i < 7 ? 'bg-white/5' : ''}">
-                        <span class="text-gray-600 text-[10px] w-4">${i + 1}.</span>
-                        ${posTag}
-                        <span class="text-white font-medium text-xs flex-1">${escapeHtml(p)}</span>
-                        <div class="flex gap-1">${tags}</div>
-                    </div>`;
-                }).join('')}
-            </div>
-        </div>
-        ${topPairs.length > 0 ? `
-        <div class="mt-3 pt-3 border-t border-white/5">
-            <div class="text-[10px] text-gray-500 mb-2">Top chemistry pairs in this line</div>
-            ${topPairs.map(pair => {
-                return `<div class="flex items-center gap-2 py-1 text-xs">
-                    <span class="text-white">${escapeHtml(pair.p1.split(' ')[0])}</span>
-                    <span class="text-violet-400">&amp;</span>
-                    <span class="text-white">${escapeHtml(pair.p2.split(' ')[0])}</span>
-                    <span class="text-violet-400 font-semibold ml-auto">${pair.score}</span>
-                </div>`;
-            }).join('')}
-        </div>` : ''}`;
-}
-
 function getCurrentRoster() {
     // Get roster from active team or saved roster
     if (teamsData.currentTeamId && teamsData.teams[teamsData.currentTeamId]) {
@@ -12039,15 +11693,15 @@ function createDemoTeam(teamName = 'Demo Squad') {
         { name: 'Peyton Harris', position: 'Cutter', number: 22 },
         { name: 'Logan Clark', position: 'Hybrid', number: 23 },
         { name: 'Charlie Lewis', position: 'Handler', number: 24 },
-        { name: 'Dakota Robinson', position: 'Cutter', number: 25 }
+        { name: 'Dakota Robinson', position: 'Cutter', number: 25 },
     ];
 
     // Create the team
     const newTeam = createEmptyTeam(teamName);
-    newTeam.roster = demoPlayers.map(p => p.name);
+    newTeam.roster = demoPlayers.map((p) => p.name);
 
     // Register players with positions and numbers
-    demoPlayers.forEach(p => {
+    demoPlayers.forEach((p) => {
         // Create player in registry
         let player = getPlayerByName(p.name);
         if (!player) {
@@ -12059,8 +11713,16 @@ function createDemoTeam(teamName = 'Demo Squad') {
 
         // Initialize career stats for team
         newTeam.careerStats.players[p.name] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
-            yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0, gamesPlayed: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
+            gamesPlayed: 0,
         };
     });
 
@@ -12073,10 +11735,17 @@ function createDemoTeam(teamName = 'Demo Squad') {
     // Update roster for gameplay
     savedRoster = [...newTeam.roster];
     gameState.players = [...newTeam.roster];
-    newTeam.roster.forEach(player => {
+    newTeam.roster.forEach((player) => {
         gameState.playerStats[player] = {
-            goals: 0, assists: 0, hockeyAssists: 0, blocks: 0, turnovers: 0,
-            yardsThrown: 0, yardsCaught: 0, throws: 0, catches: 0
+            goals: 0,
+            assists: 0,
+            hockeyAssists: 0,
+            blocks: 0,
+            turnovers: 0,
+            yardsThrown: 0,
+            yardsCaught: 0,
+            throws: 0,
+            catches: 0,
         };
     });
     saveRoster();

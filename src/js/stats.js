@@ -42,7 +42,7 @@ export function createEmptyPlayerStats() {
         yardsThrown: 0,
         yardsCaught: 0,
         throws: 0,
-        catches: 0
+        catches: 0,
     };
 }
 
@@ -57,7 +57,7 @@ export function createEmptyTeamStats() {
         turnovers: 0,
         turnoversGained: 0,
         totalYardsThrown: 0,
-        totalYardsCaught: 0
+        totalYardsCaught: 0,
     };
 }
 
@@ -69,15 +69,15 @@ export function createEmptyTeamStats() {
  */
 export function calculateDistance(startPos, endPos) {
     if (!startPos || !endPos) return 0;
-    
+
     // Convert percentage to yards
     // Field is 120 yards long (with end zones), 40 yards wide
     const xYards = Math.abs(endPos.x - startPos.x) * (GAME_CONSTANTS.FIELD_WIDTH_YARDS / 100);
     const yYards = Math.abs(endPos.y - startPos.y) * (GAME_CONSTANTS.FIELD_LENGTH_YARDS / 100);
-    
+
     // Calculate Euclidean distance
     const distance = Math.sqrt(xYards * xYards + yYards * yYards);
-    
+
     return Math.round(distance);
 }
 
@@ -89,7 +89,7 @@ export function calculateDistance(startPos, endPos) {
 export function isInEndzone(y) {
     const ENDZONE_PERCENT = GAME_CONSTANTS.ENDZONE_PERCENT;
     if (y <= ENDZONE_PERCENT) return 'their';
-    if (y >= (100 - ENDZONE_PERCENT)) return 'our';
+    if (y >= 100 - ENDZONE_PERCENT) return 'our';
     return null;
 }
 
@@ -115,7 +115,7 @@ export function incrementPlayerStat(stats, stat, amount = 1) {
  */
 export function mergePlayerStats(base, addition) {
     const result = { ...base };
-    Object.keys(addition).forEach(key => {
+    Object.keys(addition).forEach((key) => {
         if (typeof result[key] === 'number' && typeof addition[key] === 'number') {
             result[key] += addition[key];
         }
@@ -156,7 +156,7 @@ export function getLeaderboard(playerStats, stat, limit = 10) {
     return Object.entries(playerStats)
         .map(([player, stats]) => ({
             player,
-            value: stats[stat] || 0
+            value: stats[stat] || 0,
         }))
         .sort((a, b) => b.value - a.value)
         .slice(0, limit);
@@ -170,27 +170,30 @@ export function getLeaderboard(playerStats, stat, limit = 10) {
 export function calculateAggregateStats(playerStats) {
     const totals = createEmptyPlayerStats();
     let playerCount = 0;
-    
-    Object.values(playerStats).forEach(stats => {
+
+    Object.values(playerStats).forEach((stats) => {
         playerCount++;
-        Object.keys(totals).forEach(key => {
+        Object.keys(totals).forEach((key) => {
             if (typeof stats[key] === 'number') {
                 totals[key] += stats[key];
             }
         });
     });
-    
+
     return {
         totals,
         playerCount,
-        averages: playerCount > 0 ? {
-            goals: (totals.goals / playerCount).toFixed(1),
-            assists: (totals.assists / playerCount).toFixed(1),
-            blocks: (totals.blocks / playerCount).toFixed(1),
-            turnovers: (totals.turnovers / playerCount).toFixed(1),
-            yardsThrown: Math.round(totals.yardsThrown / playerCount),
-            yardsCaught: Math.round(totals.yardsCaught / playerCount)
-        } : null
+        averages:
+            playerCount > 0
+                ? {
+                      goals: (totals.goals / playerCount).toFixed(1),
+                      assists: (totals.assists / playerCount).toFixed(1),
+                      blocks: (totals.blocks / playerCount).toFixed(1),
+                      turnovers: (totals.turnovers / playerCount).toFixed(1),
+                      yardsThrown: Math.round(totals.yardsThrown / playerCount),
+                      yardsCaught: Math.round(totals.yardsCaught / playerCount),
+                  }
+                : null,
     };
 }
 
@@ -214,10 +217,10 @@ export function formatYards(yards) {
 export function calculateEfficiency(stats) {
     const totalActions = stats.throws + stats.catches + stats.blocks;
     if (totalActions === 0) return 0;
-    
+
     const positiveActions = stats.catches + stats.blocks + stats.goals + stats.assists;
     const negativeActions = stats.turnovers;
-    
+
     const efficiency = ((positiveActions - negativeActions) / totalActions) * 100;
     return Math.max(0, Math.min(100, Math.round(efficiency + 50))); // Normalize to 0-100
 }
@@ -230,12 +233,12 @@ export function calculateEfficiency(stats) {
  */
 export function generateGameSummary(teamStats, playerStats) {
     const aggregate = calculateAggregateStats(playerStats);
-    
+
     // Find top performers
     const topScorer = getLeaderboard(playerStats, 'goals', 1)[0];
     const topAssister = getLeaderboard(playerStats, 'assists', 1)[0];
     const topBlocker = getLeaderboard(playerStats, 'blocks', 1)[0];
-    
+
     return {
         score: `${teamStats.score} - ${teamStats.opponentScore}`,
         isWin: teamStats.score > teamStats.opponentScore,
@@ -246,7 +249,7 @@ export function generateGameSummary(teamStats, playerStats) {
         topScorer: topScorer ? `${topScorer.player} (${topScorer.value})` : 'N/A',
         topAssister: topAssister ? `${topAssister.player} (${topAssister.value})` : 'N/A',
         topBlocker: topBlocker ? `${topBlocker.player} (${topBlocker.value})` : 'N/A',
-        playersUsed: aggregate.playerCount
+        playersUsed: aggregate.playerCount,
     };
 }
 
@@ -256,17 +259,19 @@ export function generateGameSummary(teamStats, playerStats) {
  * @returns {{wins: number, losses: number, ties: number, winPercentage: number}}
  */
 export function calculateRecord(games) {
-    let wins = 0, losses = 0, ties = 0;
-    
-    games.forEach(game => {
+    let wins = 0,
+        losses = 0,
+        ties = 0;
+
+    games.forEach((game) => {
         if (game.ourScore > game.opponentScore) wins++;
         else if (game.ourScore < game.opponentScore) losses++;
         else ties++;
     });
-    
+
     const totalGames = wins + losses + ties;
     const winPercentage = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
-    
+
     return { wins, losses, ties, winPercentage };
 }
 

@@ -9,9 +9,37 @@
     "preview": "vite preview",
     "test": "node --test src/tests/*.cjs",
     "test:api": "cd api && node --test --test-concurrency=1 tests/*.test.cjs",
-    "test:all": "npm test && npm run test:api"
+    "test:all": "npm test && npm run test:api",
+    "cap:build": "npm run build && npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:run:ios": "npx cap run ios",
+    "lint": "eslint src/js/ script.js --max-warnings 50",
+    "lint:fix": "eslint src/js/ script.js --fix",
+    "format": "prettier --write 'src/js/**/*.js' script.js styles.css"
   },
   "devDependencies": {
-    "vite": "^6.1.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3",
+    "vite": "^6.1.0",
+    "vite-plugin-pwa": "^1.2.0",
+    "workbox-cacheable-response": "^7.4.0",
+    "workbox-expiration": "^7.4.0",
+    "workbox-precaching": "^7.4.0",
+    "workbox-routing": "^7.4.0",
+    "workbox-strategies": "^7.4.0"
+  },
+  "dependencies": {
+    "@capacitor/cli": "^8.1.0",
+    "@capacitor/core": "^8.1.0",
+    "@capacitor/haptics": "^8.0.0",
+    "@capacitor/ios": "^8.1.0",
+    "@capacitor/network": "^8.0.0",
+    "@capacitor/splash-screen": "^8.0.0",
+    "@capacitor/status-bar": "^8.0.0",
+    "comlink": "^4.4.2",
+    "dexie": "^4.3.0"
   }
 }

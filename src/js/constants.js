@@ -21,7 +21,7 @@ export const GAME_CONSTANTS = {
     BRICK_MARK_PERCENT: 26.6,
     MAX_LINE_SIZE: 7,
     MAX_UNDO_HISTORY: 20,
-    DEFAULT_SCORE_DISTANCE: 20
+    DEFAULT_SCORE_DISTANCE: 20,
 };
 
 /**
@@ -33,7 +33,7 @@ export const FIELD_DIMENSIONS = {
     playingFieldLength: 64,
     endZoneDepth: 18,
     width: 37,
-    brickMarkDistance: 10
+    brickMarkDistance: 10,
 };
 
 /**
@@ -57,7 +57,7 @@ export const STORAGE_KEYS = {
     PLAYER_POSITIONS: 'ultistats_player_positions',
     PLAYER_REGISTRY: 'ultistats_player_registry',
     CUSTOM_POSITIONS: 'ultistats_custom_positions',
-    GAME_SETUP: 'ultistats_game_setup'
+    GAME_SETUP: 'ultistats_game_setup',
 };
 
 /**
@@ -78,7 +78,7 @@ export const HAPTIC_PATTERNS = {
     block: [50, 30, 50],
     error: [200],
     select: [15],
-    undo: [40, 40]
+    undo: [40, 40],
 };
 
 /**
@@ -94,7 +94,7 @@ export const API_CONFIG = {
     },
     get GOOGLE_API_KEY() {
         return window.ULTISTATS_CONFIG?.GOOGLE_API_KEY || '';
-    }
+    },
 };
 
 /**
@@ -102,7 +102,7 @@ export const API_CONFIG = {
  */
 export const GOOGLE_SHEETS_CONFIG = {
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
-    SCOPES: 'https://www.googleapis.com/auth/spreadsheets'
+    SCOPES: 'https://www.googleapis.com/auth/spreadsheets',
 };
 
 /**
@@ -115,7 +115,7 @@ export const ROUTES = {
     '/dashboard': 'dashboard',
     '/game': 'game',
     '/stats': 'stats',
-    '/settings': 'settings'
+    '/settings': 'settings',
 };
 
 /**
@@ -126,7 +126,7 @@ export const DEFAULT_SETTINGS = {
     darkMode: true,
     hapticEnabled: true,
     soundEnabled: false,
-    confirmDestructive: true
+    confirmDestructive: true,
 };
 
 /**
@@ -141,5 +141,5 @@ export const ACTION_TYPES = {
     BLOCK: 'block',
     TURNOVER: 'turnover',
     DROP: 'drop',
-    SYSTEM: 'system'
+    SYSTEM: 'system',
 };

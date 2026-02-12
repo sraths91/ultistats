@@ -1,7 +1,7 @@
 /**
  * @fileoverview Main entry point for UltiStats modules
  * @module ultistats
- * 
+ *
  * This file exports all modules for use in the application.
  * It can be used with ES modules in modern browsers or bundled with a tool like Vite.
  */
@@ -17,16 +17,16 @@ export * as game from './game.js';
 export * as utils from './utils.js';
 
 // Named exports for commonly used items
-export { 
-    GAME_CONSTANTS, 
-    FIELD_DIMENSIONS, 
-    STORAGE_KEYS, 
+export {
+    GAME_CONSTANTS,
+    FIELD_DIMENSIONS,
+    STORAGE_KEYS,
     POSITIONS,
     HAPTIC_PATTERNS,
     API_CONFIG,
     ROUTES,
     DEFAULT_SETTINGS,
-    ACTION_TYPES
+    ACTION_TYPES,
 } from './constants.js';
 
 export {
@@ -39,7 +39,7 @@ export {
     safeElement,
     createElement,
     refreshIcons,
-    getContentAreaCoordinates
+    getContentAreaCoordinates,
 } from './ui.js';
 
 export {
@@ -48,18 +48,10 @@ export {
     calculateDistance,
     isInEndzone,
     getLeaderboard,
-    calculateRecord
+    calculateRecord,
 } from './stats.js';
 
-export {
-    initAuth,
-    isAuthenticated,
-    getCurrentUser,
-    getCurrentTeam,
-    login,
-    logout,
-    register
-} from './auth.js';
+export { initAuth, isAuthenticated, getCurrentUser, getCurrentTeam, login, logout, register } from './auth.js';
 
 export {
     getGameState,
@@ -72,17 +64,10 @@ export {
     recordTurnover,
     recordBlock,
     togglePlayerOnField,
-    selectLastLine
+    selectLastLine,
 } from './game.js';
 
-export {
-    generateUUID,
-    debounce,
-    throttle,
-    deepClone,
-    formatDate,
-    isEmpty
-} from './utils.js';
+export { generateUUID, debounce, throttle, deepClone, formatDate, isEmpty } from './utils.js';
 
 import { loadAppSettings } from './ui.js';
 import { initAuth } from './auth.js';

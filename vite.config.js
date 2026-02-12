@@ -1,10 +1,11 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { copyFileSync, mkdirSync, existsSync } from 'fs';
+import { VitePWA } from 'vite-plugin-pwa';
 
 // Plugin to copy static files that Vite doesn't process
 function copyStaticFiles() {
-  const files = ['script.js', 'sw.js', 'manifest.json', 'config.js'];
+  const files = ['script.js', 'manifest.json', 'config.js'];
   return {
     name: 'copy-static-files',
     closeBundle() {
@@ -34,7 +35,19 @@ export default defineConfig({
       },
     },
   },
-  plugins: [copyStaticFiles()],
+  plugins: [
+    copyStaticFiles(),
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw-source.js',
+      injectRegister: false,
+      manifest: false,
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,json,png,svg,ico,woff,woff2}'],
+      },
+    }),
+  ],
   server: {
     port: 3000,
     proxy: {

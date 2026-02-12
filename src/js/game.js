@@ -50,7 +50,7 @@ export function createInitialGameState() {
             opponentTeam: '',
             date: '',
             sheetId: '',
-            isActive: false
+            isActive: false,
         },
         playerStats: {},
         teamStats: stats.createEmptyTeamStats(),
@@ -76,7 +76,7 @@ export function createInitialGameState() {
         gameTimerSeconds: 0,
         gameTimerRunning: false,
         gameTimerInterval: null,
-        pointNumber: 1
+        pointNumber: 1,
     };
 }
 
@@ -216,7 +216,7 @@ export function toggleAttendance(player) {
  */
 export function togglePlayerOnField(player) {
     const index = gameState.onFieldPlayers.indexOf(player);
-    
+
     if (index > -1) {
         gameState.onFieldPlayers.splice(index, 1);
         return true;
@@ -224,7 +224,7 @@ export function togglePlayerOnField(player) {
         gameState.onFieldPlayers.push(player);
         return true;
     }
-    
+
     return false;
 }
 
@@ -244,22 +244,22 @@ export function selectLastLine() {
         showToast('No previous line to select');
         return false;
     }
-    
-    const availablePlayers = lastUsedLine.filter(p => gameState.presentPlayers.includes(p));
-    
+
+    const availablePlayers = lastUsedLine.filter((p) => gameState.presentPlayers.includes(p));
+
     if (availablePlayers.length === 0) {
         showToast('Previous players not available');
         return false;
     }
-    
+
     gameState.onFieldPlayers = [...availablePlayers];
-    
+
     if (availablePlayers.length < 7) {
         showToast(`${availablePlayers.length}/7 from last line available`);
     } else {
         showToast('Last line selected');
     }
-    
+
     vibrate(30);
     return true;
 }
@@ -275,18 +275,18 @@ export function startPoint() {
         showToast('Select exactly 7 players');
         return false;
     }
-    
+
     // Save current line for "Last Line" button
     lastUsedLine = [...gameState.onFieldPlayers];
-    
+
     gameState.pointInProgress = true;
     gameState.discPosition = null;
     gameState.currentThrower = null;
     gameState.pointThrows = 0;
     gameState.possessionThrows = 0;
-    
+
     vibrate([30, 20, 30]);
-    
+
     if (startingPossession === 'offense') {
         logAction(`Point started (Offense) with: ${gameState.onFieldPlayers.join(', ')}`, 'system');
         return true;
@@ -304,7 +304,7 @@ export function startPoint() {
 export function endPoint(reason) {
     gameState.pointInProgress = false;
     gameState.totalPointThrows.push(gameState.pointThrows);
-    
+
     if (reason === 'score') {
         gameState.pointNumber++;
         hapticFeedback('score');
@@ -339,21 +339,21 @@ export function recordThrow(thrower, receiver, distance, startPos, endPos) {
         gameState.playerStats[thrower].throws++;
         gameState.playerStats[thrower].yardsThrown += distance;
     }
-    
+
     // Update receiver stats
     if (gameState.playerStats[receiver]) {
         gameState.playerStats[receiver].catches++;
         gameState.playerStats[receiver].yardsCaught += distance;
     }
-    
+
     // Update team stats
     gameState.teamStats.totalYardsThrown += distance;
     gameState.teamStats.totalYardsCaught += distance;
-    
+
     // Increment throw counts
     gameState.pointThrows++;
     gameState.possessionThrows++;
-    
+
     logAction(`${thrower} → ${receiver} (${distance} yds)`, 'throw');
 }
 
@@ -370,26 +370,26 @@ export function recordGoal(thrower, scorer, distance) {
         gameState.playerStats[scorer].catches++;
         gameState.playerStats[scorer].yardsCaught += distance;
     }
-    
+
     // Update thrower stats (assist)
     if (gameState.playerStats[thrower]) {
         gameState.playerStats[thrower].assists++;
         gameState.playerStats[thrower].throws++;
         gameState.playerStats[thrower].yardsThrown += distance;
     }
-    
+
     // Check for hockey assist
     if (gameState.previousThrower && gameState.previousThrower !== thrower) {
         if (gameState.playerStats[gameState.previousThrower]) {
             gameState.playerStats[gameState.previousThrower].hockeyAssists++;
         }
     }
-    
+
     // Update team stats
     gameState.teamStats.score++;
     gameState.teamStats.totalYardsThrown += distance;
     gameState.teamStats.totalYardsCaught += distance;
-    
+
     logAction(`🎯 GOAL! ${thrower} → ${scorer}`, 'goal');
     hapticFeedback('score');
     playSound('score');
@@ -413,12 +413,12 @@ export function recordTurnover(player, type, position) {
     if (gameState.playerStats[player]) {
         gameState.playerStats[player].turnovers++;
     }
-    
+
     gameState.teamStats.turnovers++;
     gameState.currentThrower = null;
     gameState.discPosition = position;
     gameState.possessionThrows = 0;
-    
+
     logAction(`❌ Turnover: ${player} (${type})`, 'turnover');
     hapticFeedback('turnover');
     playSound('turnover');
@@ -433,10 +433,10 @@ export function recordBlock(player, position) {
     if (gameState.playerStats[player]) {
         gameState.playerStats[player].blocks++;
     }
-    
+
     gameState.teamStats.turnoversGained++;
     gameState.discPosition = position;
-    
+
     logAction(`🛡️ Block by ${player}`, 'block');
     hapticFeedback('block');
     playSound('block');
@@ -450,7 +450,7 @@ export function recordOpponentTurnover(position) {
     gameState.teamStats.turnoversGained++;
     gameState.discPosition = position;
     gameState.possessionThrows = 0;
-    
+
     logAction('Opponent turnover - we have the disc', 'system');
 }
 
@@ -467,11 +467,11 @@ export function logAction(message, type = 'info') {
         message,
         type,
         timestamp: new Date().toISOString(),
-        pointNumber: gameState.pointNumber
+        pointNumber: gameState.pointNumber,
     };
-    
+
     gameState.actions.unshift(action);
-    
+
     // Keep only last 100 actions in memory
     if (gameState.actions.length > 100) {
         gameState.actions = gameState.actions.slice(0, 100);
@@ -487,21 +487,21 @@ export function undoLastAction() {
         showToast('Nothing to undo');
         return false;
     }
-    
+
     const previousState = gameState.actionHistory.pop();
-    
+
     // Restore relevant state
     gameState.playerStats = previousState.playerStats;
     gameState.teamStats = previousState.teamStats;
     gameState.currentThrower = previousState.currentThrower;
     gameState.discPosition = previousState.discPosition;
     gameState.pointThrows = previousState.pointThrows;
-    
+
     // Remove last action from log
     if (gameState.actions.length > 0) {
         gameState.actions.shift();
     }
-    
+
     hapticFeedback('undo');
     showToast('Action undone');
     return true;
@@ -516,11 +516,11 @@ export function saveStateForUndo() {
         teamStats: { ...gameState.teamStats },
         currentThrower: gameState.currentThrower,
         discPosition: gameState.discPosition ? { ...gameState.discPosition } : null,
-        pointThrows: gameState.pointThrows
+        pointThrows: gameState.pointThrows,
     };
-    
+
     gameState.actionHistory.push(stateCopy);
-    
+
     // Keep only MAX_UNDO_HISTORY states
     if (gameState.actionHistory.length > GAME_CONSTANTS.MAX_UNDO_HISTORY) {
         gameState.actionHistory.shift();
@@ -573,19 +573,19 @@ export function loadGameState() {
  */
 export function initializeFromSetup(setup) {
     if (!setup) return;
-    
+
     gameState.currentGame = {
         id: setup.id || Date.now().toString(),
         ourTeam: setup.teamName || '',
         opponentTeam: setup.opponentName || '',
         date: setup.date || new Date().toISOString().split('T')[0],
         sheetId: setup.sheetId || '',
-        isActive: true
+        isActive: true,
     };
-    
+
     if (setup.players && setup.players.length > 0) {
         gameState.players = [...setup.players];
-        setup.players.forEach(player => initializePlayerStats(player));
+        setup.players.forEach((player) => initializePlayerStats(player));
     }
 }
 

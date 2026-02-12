@@ -29,7 +29,7 @@ async function apiRequest(endpoint, options = {}) {
     const method = (options.method || 'GET').toUpperCase();
 
     const defaultHeaders = {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
     };
     // Add CSRF token for state-changing requests
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -42,27 +42,27 @@ async function apiRequest(endpoint, options = {}) {
             credentials: 'include',
             headers: {
                 ...defaultHeaders,
-                ...options.headers
-            }
+                ...options.headers,
+            },
         });
-        
+
         const data = await response.json().catch(() => null);
-        
+
         if (!response.ok) {
             return {
                 ok: false,
                 data: null,
-                error: data?.error || `Request failed with status ${response.status}`
+                error: data?.error || `Request failed with status ${response.status}`,
             };
         }
-        
+
         return { ok: true, data, error: null };
     } catch (error) {
         console.error(`API request failed [${endpoint}]:`, error);
         return {
             ok: false,
             data: null,
-            error: error.message || 'Network error'
+            error: error.message || 'Network error',
         };
     }
 }
@@ -79,7 +79,7 @@ async function apiRequest(endpoint, options = {}) {
 export async function register(email, password, name) {
     return apiRequest('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify({ email, password, name }),
     });
 }
 
@@ -92,7 +92,7 @@ export async function register(email, password, name) {
 export async function login(email, password) {
     return apiRequest('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
     });
 }
 
@@ -112,7 +112,7 @@ export async function getProfile() {
 export async function requestPasswordReset(email) {
     return apiRequest('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({ email })
+        body: JSON.stringify({ email }),
     });
 }
 
@@ -134,7 +134,7 @@ export async function getTeams() {
 export async function createTeam(name) {
     return apiRequest('/teams', {
         method: 'POST',
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ name }),
     });
 }
 
@@ -156,7 +156,7 @@ export async function getTeam(teamId) {
 export async function updateTeam(teamId, updates) {
     return apiRequest(`/teams/${teamId}`, {
         method: 'PUT',
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
     });
 }
 
@@ -167,7 +167,7 @@ export async function updateTeam(teamId, updates) {
  */
 export async function deleteTeam(teamId) {
     return apiRequest(`/teams/${teamId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
     });
 }
 
@@ -181,7 +181,7 @@ export async function deleteTeam(teamId) {
 export async function inviteToTeam(teamId, email, role = 'coach') {
     return apiRequest(`/teams/${teamId}/invite`, {
         method: 'POST',
-        body: JSON.stringify({ email, role })
+        body: JSON.stringify({ email, role }),
     });
 }
 
@@ -194,7 +194,7 @@ export async function inviteToTeam(teamId, email, role = 'coach') {
 export async function updateRoster(teamId, roster) {
     return apiRequest(`/teams/${teamId}/roster`, {
         method: 'PUT',
-        body: JSON.stringify({ roster })
+        body: JSON.stringify({ roster }),
     });
 }
 
@@ -218,7 +218,7 @@ export async function getGames(teamId) {
 export async function createGame(teamId, gameData) {
     return apiRequest(`/teams/${teamId}/games`, {
         method: 'POST',
-        body: JSON.stringify(gameData)
+        body: JSON.stringify(gameData),
     });
 }
 
@@ -231,7 +231,7 @@ export async function createGame(teamId, gameData) {
 export async function updateGame(gameId, updates) {
     return apiRequest(`/games/${gameId}`, {
         method: 'PUT',
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
     });
 }
 
@@ -244,7 +244,7 @@ export async function updateGame(gameId, updates) {
 export async function endGame(gameId, finalStats) {
     return apiRequest(`/games/${gameId}/end`, {
         method: 'POST',
-        body: JSON.stringify(finalStats)
+        body: JSON.stringify(finalStats),
     });
 }
 
@@ -257,9 +257,7 @@ export async function endGame(gameId, finalStats) {
  * @returns {Promise<APIResponse>}
  */
 export async function getPlayerStats(teamId, playerId = null) {
-    const endpoint = playerId 
-        ? `/teams/${teamId}/stats/players/${playerId}`
-        : `/teams/${teamId}/stats/players`;
+    const endpoint = playerId ? `/teams/${teamId}/stats/players/${playerId}` : `/teams/${teamId}/stats/players`;
     return apiRequest(endpoint);
 }
 
@@ -281,7 +279,7 @@ export async function getTeamStats(teamId) {
 export async function syncStats(teamId, stats) {
     return apiRequest(`/teams/${teamId}/stats/sync`, {
         method: 'POST',
-        body: JSON.stringify(stats)
+        body: JSON.stringify(stats),
     });
 }
 
@@ -303,7 +301,7 @@ export async function getTournaments() {
 export async function createTournament(tournamentData) {
     return apiRequest('/tournaments', {
         method: 'POST',
-        body: JSON.stringify(tournamentData)
+        body: JSON.stringify(tournamentData),
     });
 }
 
@@ -325,7 +323,7 @@ export async function getTournament(tournamentId) {
 export async function updateTournament(tournamentId, updates) {
     return apiRequest(`/tournaments/${tournamentId}`, {
         method: 'PUT',
-        body: JSON.stringify(updates)
+        body: JSON.stringify(updates),
     });
 }
 
@@ -346,7 +344,7 @@ export async function getPendingInvitations() {
  */
 export async function acceptInvitation(invitationId) {
     return apiRequest(`/invitations/${invitationId}/accept`, {
-        method: 'POST'
+        method: 'POST',
     });
 }
 
@@ -357,6 +355,6 @@ export async function acceptInvitation(invitationId) {
  */
 export async function declineInvitation(invitationId) {
     return apiRequest(`/invitations/${invitationId}/decline`, {
-        method: 'POST'
+        method: 'POST',
     });
 }

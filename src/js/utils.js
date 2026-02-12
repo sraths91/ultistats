@@ -8,9 +8,9 @@
  * @returns {string}
  */
 export function generateUUID() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
         return v.toString(16);
     });
 }
@@ -45,7 +45,7 @@ export function throttle(func, limit) {
         if (!inThrottle) {
             func(...args);
             inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
+            setTimeout(() => (inThrottle = false), limit);
         }
     };
 }
@@ -58,10 +58,10 @@ export function throttle(func, limit) {
 export function deepClone(obj) {
     if (obj === null || typeof obj !== 'object') return obj;
     if (obj instanceof Date) return new Date(obj.getTime());
-    if (obj instanceof Array) return obj.map(item => deepClone(item));
+    if (obj instanceof Array) return obj.map((item) => deepClone(item));
     if (typeof obj === 'object') {
         const cloned = {};
-        Object.keys(obj).forEach(key => {
+        Object.keys(obj).forEach((key) => {
             cloned[key] = deepClone(obj[key]);
         });
         return cloned;
@@ -81,7 +81,7 @@ export function formatDate(date, options = {}) {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
-        ...options
+        ...options,
     });
 }
 
@@ -94,7 +94,7 @@ export function formatDuration(seconds) {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
-    
+
     if (hrs > 0) {
         return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
@@ -120,7 +120,7 @@ export function getInitials(name) {
     if (!name) return '';
     return name
         .split(' ')
-        .map(word => word.charAt(0).toUpperCase())
+        .map((word) => word.charAt(0).toUpperCase())
         .slice(0, 2)
         .join('');
 }
@@ -180,7 +180,7 @@ export function randomInt(min, max) {
  * @returns {Function}
  */
 export function tryCatch(fn, errorMessage = 'An error occurred') {
-    return async function(...args) {
+    return async function (...args) {
         try {
             return await fn.apply(this, args);
         } catch (error) {
@@ -196,7 +196,7 @@ export function tryCatch(fn, errorMessage = 'An error occurred') {
  */
 export function createEventEmitter() {
     const listeners = {};
-    
+
     return {
         on(event, callback) {
             if (!listeners[event]) listeners[event] = [];
@@ -205,11 +205,11 @@ export function createEventEmitter() {
         },
         off(event, callback) {
             if (!listeners[event]) return;
-            listeners[event] = listeners[event].filter(cb => cb !== callback);
+            listeners[event] = listeners[event].filter((cb) => cb !== callback);
         },
         emit(event, ...args) {
             if (!listeners[event]) return;
-            listeners[event].forEach(callback => callback(...args));
+            listeners[event].forEach((callback) => callback(...args));
         },
         once(event, callback) {
             const unsubscribe = this.on(event, (...args) => {
@@ -217,7 +217,7 @@ export function createEventEmitter() {
                 callback(...args);
             });
             return unsubscribe;
-        }
+        },
     };
 }
 
@@ -227,7 +227,7 @@ export function createEventEmitter() {
  * @returns {Promise<void>}
  */
 export function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -239,7 +239,7 @@ export function wait(ms) {
  */
 export async function retry(fn, maxRetries = 3, initialDelay = 1000) {
     let lastError;
-    
+
     for (let i = 0; i < maxRetries; i++) {
         try {
             return await fn();
@@ -250,6 +250,6 @@ export async function retry(fn, maxRetries = 3, initialDelay = 1000) {
             }
         }
     }
-    
+
     throw lastError;
 }

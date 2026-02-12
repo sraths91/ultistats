@@ -14,20 +14,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                }
-            }
-        };
-
         // Bypass auth: inject fake tokens and game setup so script.js doesn't redirect
         (function() {
             if (!localStorage.getItem('ultistats_auth_token')) {
                 localStorage.setItem('ultistats_auth_token', 'test-token');
+            }
+            // loadAuthState() checks for ultistats_auth_user, so set it for auth to succeed
+            if (!localStorage.getItem('ultistats_auth_user')) {
+                localStorage.setItem('ultistats_auth_user', JSON.stringify({ id: 'test-user', name: 'Test User', email: 'test@test.com' }));
             }
 
             // Create a demo team if none exists
@@ -88,10 +82,14 @@
                 localStorage.setItem(teamsKey, JSON.stringify(teamsData));
             }
 
-            // Ensure roster is saved
+            // Ensure roster and current team are saved
             const currentTeam = teamsData.teams[teamsData.currentTeamId];
             if (currentTeam) {
                 localStorage.setItem('ultistats_roster', JSON.stringify(currentTeam.roster));
+                // loadAuthState() reads ultistats_current_team to populate currentTeam
+                if (!localStorage.getItem('ultistats_current_team')) {
+                    localStorage.setItem('ultistats_current_team', JSON.stringify(currentTeam));
+                }
             }
 
             // Create game setup if none exists
@@ -563,6 +561,7 @@
         window.isGamePage = true;
         window.isDashboardPage = false;
     </script>
+    <script type="module" src="/src/js/app-init.js"></script>
     <script src="script.js"></script>
     <script type="module" src="/src/js/pages/game.js"></script>
 </body>

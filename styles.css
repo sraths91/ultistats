@@ -1,11 +1,56 @@
 /* Custom styles for Ultimate Frisbee Stats Tracker */
 
+/* ==================== Design Tokens ==================== */
+:root {
+    /* Color channels (use with rgba/rgb) */
+    --color-violet: 139, 92, 246;
+    --color-emerald: 16, 185, 129;
+    --color-cyan: 6, 182, 212;
+    --color-pink: 236, 72, 153;
+
+    /* Touch target sizes */
+    --touch-target-min: 44px;
+    --touch-target-md: 48px;
+    --touch-target-lg: 56px;
+
+    /* Border radius */
+    --radius-sm: 3px;
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-pill: 9999px;
+
+    /* Transition speeds */
+    --transition-fast: 0.15s;
+    --transition-normal: 0.2s;
+    --transition-slow: 0.3s;
+
+    /* Scrollbar */
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    --scrollbar-width: 6px;
+}
+
+/* iOS safe area insets for notch/Dynamic Island */
+body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
 /* Animated background blobs */
 @keyframes blob {
-    0% { transform: translate(0px, 0px) scale(1); }
-    33% { transform: translate(30px, -50px) scale(1.1); }
-    66% { transform: translate(-20px, 20px) scale(0.9); }
-    100% { transform: translate(0px, 0px) scale(1); }
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
 }
 
 .animate-blob {
@@ -51,7 +96,7 @@
     stroke: white;
     stroke-width: 0.1;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal) ease;
     filter: drop-shadow(0 0 2px rgba(244, 114, 182, 0.5));
 }
 
@@ -92,21 +137,21 @@
 
 /* Modern player card */
 .player-card {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3) 0%, rgba(236, 72, 153, 0.3) 100%);
+    background: linear-gradient(135deg, rgba(var(--color-violet), 0.3) 0%, rgba(var(--color-pink), 0.3) 100%);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: white;
     padding: 1rem;
     border-radius: 1rem;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all var(--transition-slow) ease;
     backdrop-filter: blur(10px);
 }
 
 .player-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 10px 30px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 10px 30px rgba(var(--color-violet), 0.3);
     border-color: rgba(255, 255, 255, 0.2);
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.4) 0%, rgba(236, 72, 153, 0.4) 100%);
+    background: linear-gradient(135deg, rgba(var(--color-violet), 0.4) 0%, rgba(var(--color-pink), 0.4) 100%);
 }
 
 .player-card.selected {
@@ -149,8 +194,8 @@
 }
 
 .action-log-item.score {
-    border-left-color: #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    border-left-color: rgb(var(--color-emerald));
+    background: rgba(var(--color-emerald), 0.1);
 }
 
 .action-log-item.turnover-gained {
@@ -180,12 +225,12 @@
 
 .custom-scrollbar::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    border-radius: var(--radius-sm);
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
@@ -198,18 +243,22 @@
         max-width: 100%;
         padding: 0 1rem;
     }
-    
+
     #field-svg {
         cursor: crosshair;
     }
-    
+
     .click-point {
         r: 0.5;
     }
 }
 
-/* Prevent double-tap zoom on all game page interactive elements */
-#field-container,
+/* Pointer Events: disable browser touch handling on field for custom gestures */
+#field-container {
+    touch-action: none;
+}
+
+/* Prevent double-tap zoom on other game page interactive elements */
 #field-section,
 #quick-actions,
 #quick-player-select,
@@ -222,7 +271,9 @@
 
 /* Touch-friendly interface */
 @media (pointer: coarse) {
-    button, select, input {
+    button,
+    select,
+    input {
         min-height: 48px;
         font-size: 16px;
     }
@@ -238,14 +289,18 @@
     width: 20px;
     height: 20px;
     border: 3px solid rgba(255, 255, 255, 0.1);
-    border-top: 3px solid #10b981;
+    border-top: 3px solid rgb(var(--color-emerald));
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Stats table styling for dark theme */
@@ -263,13 +318,13 @@
 }
 
 /* Date input styling for dark theme */
-input[type="date"]::-webkit-calendar-picker-indicator {
+input[type='date']::-webkit-calendar-picker-indicator {
     filter: invert(1);
     opacity: 0.6;
     cursor: pointer;
 }
 
-input[type="date"]::-webkit-calendar-picker-indicator:hover {
+input[type='date']::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
 }
 
@@ -280,14 +335,21 @@ select option {
 }
 
 /* Focus states */
-input:focus, select:focus, button:focus {
+input:focus,
+select:focus,
+button:focus {
     outline: none;
 }
 
 /* Pulse animation for live indicator */
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
 }
 
 .animate-pulse {
@@ -446,33 +508,35 @@ input:focus, select:focus, button:focus {
     .player-card {
         min-height: 80px;
     }
-    
-    select, input, button {
+
+    select,
+    input,
+    button {
         min-height: 48px;
     }
-    
+
     /* Larger field click points for touch */
     .click-point {
         r: 1.2;
     }
-    
+
     .turnover-marker {
         width: 24px;
         height: 24px;
     }
-    
+
     /* Enhanced touch targets for game page buttons */
     #quick-actions button {
         min-height: 52px;
         min-width: 80px;
         padding: 12px 16px;
     }
-    
+
     #quick-player-select button {
         min-height: 56px;
         padding: 10px 14px;
     }
-    
+
     /* Larger attendance grid buttons */
     #attendance-grid button,
     #line-selection-grid button {
@@ -488,7 +552,8 @@ input:focus, select:focus, button:focus {
     }
 
     /* Score display: larger tap targets */
-    #our-score, #opponent-score {
+    #our-score,
+    #opponent-score {
         min-width: 48px;
         min-height: 48px;
         display: flex;
@@ -502,7 +567,8 @@ input:focus, select:focus, button:focus {
     }
 
     /* Secondary action row spacing */
-    #undo-btn, #undo-btn + button {
+    #undo-btn,
+    #undo-btn + button {
         min-height: 48px;
     }
 }
@@ -524,7 +590,8 @@ input:focus, select:focus, button:focus {
 }
 
 /* Injury modal buttons */
-.injury-out-btn, .injury-in-btn {
+.injury-out-btn,
+.injury-in-btn {
     min-height: 44px;
     touch-action: manipulation;
 }
@@ -540,11 +607,18 @@ input:focus, select:focus, button:focus {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.leaderboard-tab, .sort-btn {
+.leaderboard-tab,
+.sort-btn {
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
 }
@@ -554,11 +628,11 @@ input:focus, select:focus, button:focus {
     .sort-btn {
         flex-shrink: 0;
     }
-    
+
     .leaderboard-row .flex.gap-4 {
         gap: 0.5rem;
     }
-    
+
     .leaderboard-row .text-sm {
         font-size: 0.7rem;
     }
@@ -573,28 +647,29 @@ input:focus, select:focus, button:focus {
     transform: scale(0.98);
 }
 
-#game-history-list {
+/* Thin scrollbar (shared pattern) */
+#game-history-list,
+#game-detail-modal .max-h-64,
+#tournament-team-selection,
+#import-status-list {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
 }
-
-#game-history-list::-webkit-scrollbar {
-    width: 6px;
+#game-history-list::-webkit-scrollbar,
+#tournament-team-selection::-webkit-scrollbar,
+#import-status-list::-webkit-scrollbar {
+    width: var(--scrollbar-width);
 }
-
-#game-history-list::-webkit-scrollbar-track {
+#game-history-list::-webkit-scrollbar-track,
+#tournament-team-selection::-webkit-scrollbar-track,
+#import-status-list::-webkit-scrollbar-track {
     background: transparent;
 }
-
-#game-history-list::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-}
-
-/* Game detail modal scrollable area */
-#game-detail-modal .max-h-64 {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+#game-history-list::-webkit-scrollbar-thumb,
+#tournament-team-selection::-webkit-scrollbar-thumb,
+#import-status-list::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: var(--radius-sm);
 }
 
 /* Improved field section sticky header */
@@ -620,8 +695,15 @@ input:focus, select:focus, button:focus {
 }
 
 @keyframes possessionPulse {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.6; transform: scale(1.2); }
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
 }
 
 /* Improved quick action buttons */
@@ -655,9 +737,15 @@ input:focus, select:focus, button:focus {
 
 /* Score display animation on change */
 @keyframes scoreChange {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.2); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
+    }
 }
 
 .score-changed {
@@ -666,13 +754,17 @@ input:focus, select:focus, button:focus {
 
 /* Endzone highlight on tap */
 .endzone-highlight {
-    fill: rgba(16, 185, 129, 0.4);
+    fill: rgba(var(--color-emerald), 0.4);
     animation: endzoneGlow 0.5s ease-out;
 }
 
 @keyframes endzoneGlow {
-    0% { fill: rgba(16, 185, 129, 0.6); }
-    100% { fill: rgba(16, 185, 129, 0.2); }
+    0% {
+        fill: rgba(var(--color-emerald), 0.6);
+    }
+    100% {
+        fill: rgba(var(--color-emerald), 0.2);
+    }
 }
 
 /* ==================== LIGHT MODE THEME ==================== */
@@ -726,12 +818,12 @@ body.light-mode select option {
 }
 
 body.light-mode .player-card {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
-    border-color: rgba(139, 92, 246, 0.2);
+    background: linear-gradient(135deg, rgba(var(--color-violet), 0.15) 0%, rgba(var(--color-pink), 0.15) 100%);
+    border-color: rgba(var(--color-violet), 0.2);
 }
 
 body.light-mode .player-card:hover {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25) 0%, rgba(236, 72, 153, 0.25) 100%);
+    background: linear-gradient(135deg, rgba(var(--color-violet), 0.25) 0%, rgba(var(--color-pink), 0.25) 100%);
 }
 
 body.light-mode .action-log-item {
@@ -822,22 +914,26 @@ body.outdoor-mode #quick-actions button {
     font-size: 0.9375rem;
     border-width: 2px;
 }
-body.outdoor-mode #quick-actions button:nth-child(1) { /* Goal */
-    background: rgba(16, 185, 129, 0.25) !important;
+body.outdoor-mode #quick-actions button:nth-child(1) {
+    /* Goal */
+    background: rgba(var(--color-emerald), 0.25) !important;
     color: #047857 !important;
     border-color: #047857 !important;
 }
-body.outdoor-mode #quick-actions button:nth-child(2) { /* Turnover */
+body.outdoor-mode #quick-actions button:nth-child(2) {
+    /* Turnover */
     background: rgba(239, 68, 68, 0.2) !important;
     color: #b91c1c !important;
     border-color: #b91c1c !important;
 }
-body.outdoor-mode #quick-actions button:nth-child(3) { /* Block */
+body.outdoor-mode #quick-actions button:nth-child(3) {
+    /* Block */
     background: rgba(147, 51, 234, 0.2) !important;
     color: #7e22ce !important;
     border-color: #7e22ce !important;
 }
-body.outdoor-mode #quick-actions button:nth-child(4) { /* Opp Score */
+body.outdoor-mode #quick-actions button:nth-child(4) {
+    /* Opp Score */
     background: rgba(249, 115, 22, 0.2) !important;
     color: #c2410c !important;
     border-color: #c2410c !important;
@@ -907,7 +1003,7 @@ body.outdoor-mode #quick-throw-toggle {
 
 /* Quick-throw toggle animation */
 #quick-throw-toggle {
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal) ease;
 }
 #quick-throw-toggle:active {
     transform: scale(0.95);
@@ -918,8 +1014,13 @@ body.outdoor-mode #quick-throw-toggle {
     animation: syncPulse 2s ease-in-out infinite;
 }
 @keyframes syncPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.6; }
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
 }
 
 /* Smart-ordered receiver highlight in popup */
@@ -933,7 +1034,7 @@ body.outdoor-mode #quick-throw-toggle {
     top: 25%;
     bottom: 25%;
     width: 3px;
-    background: #10b981;
+    background: rgb(var(--color-emerald));
     border-radius: 2px;
 }
 
@@ -942,12 +1043,14 @@ body.outdoor-mode #quick-throw-toggle {
 #haptic-toggle-dot,
 #sound-toggle-dot,
 #confirm-toggle-dot {
-    transition: all 0.2s ease;
+    transition: all var(--transition-normal) ease;
 }
 
 /* Section transitions */
 .section-transition {
-    transition: opacity 0.25s ease, transform 0.25s ease;
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
 }
 .section-transition.section-hidden {
     opacity: 0;
@@ -985,7 +1088,7 @@ body.outdoor-mode #quick-throw-toggle {
 }
 
 .step-indicator span:first-child {
-    transition: all 0.3s ease;
+    transition: all var(--transition-slow) ease;
 }
 
 .step-indicator span:last-child {
@@ -1004,48 +1107,14 @@ body.outdoor-mode #quick-throw-toggle {
     justify-content: center;
 }
 
-/* Team selection grid */
-#tournament-team-selection {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
-}
-
-#tournament-team-selection::-webkit-scrollbar {
-    width: 6px;
-}
-
-#tournament-team-selection::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-#tournament-team-selection::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.2);
-    border-radius: 3px;
-}
-
-/* Import status list */
-#import-status-list {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
-}
-
-#import-status-list::-webkit-scrollbar {
-    width: 6px;
-}
-
-#import-status-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-#import-status-list::-webkit-scrollbar-thumb {
-    background-color: rgba(255,255,255,0.2);
-    border-radius: 3px;
-}
-
 /* Spinner animation */
 @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .animate-spin {
@@ -1060,7 +1129,7 @@ body.outdoor-mode #quick-throw-toggle {
     color: #9ca3af;
 }
 .analysis-tab.active {
-    background: rgba(139, 92, 246, 0.3);
+    background: rgba(var(--color-violet), 0.3);
     color: #c4b5fd;
 }
 .analysis-tab:hover:not(.active) {
@@ -1070,21 +1139,27 @@ body.outdoor-mode #quick-throw-toggle {
 /* CSS bar charts */
 .stat-bar {
     height: 6px;
-    border-radius: 3px;
-    background: rgba(139, 92, 246, 0.15);
+    border-radius: var(--radius-sm);
+    background: rgba(var(--color-violet), 0.15);
     overflow: hidden;
 }
 .stat-bar-fill {
     height: 100%;
-    border-radius: 3px;
-    background: #8b5cf6;
+    border-radius: var(--radius-sm);
+    background: rgb(var(--color-violet));
     transition: width 0.3s ease;
 }
 
 /* Plus/minus coloring */
-.plus-minus-pos { color: #34d399; }
-.plus-minus-neg { color: #f87171; }
-.plus-minus-zero { color: #9ca3af; }
+.plus-minus-pos {
+    color: #34d399;
+}
+.plus-minus-neg {
+    color: #f87171;
+}
+.plus-minus-zero {
+    color: #9ca3af;
+}
 
 /* Outdoor mode: analysis panel */
 body.outdoor-mode #stats-analysis .bg-white\/5 {
@@ -1105,7 +1180,7 @@ body.outdoor-mode .analysis-tab {
     color: #374151 !important;
 }
 body.outdoor-mode .analysis-tab.active {
-    background: rgba(139, 92, 246, 0.4) !important;
+    background: rgba(var(--color-violet), 0.4) !important;
     color: #5b21b6 !important;
 }
 body.outdoor-mode .stat-bar {
@@ -1114,20 +1189,26 @@ body.outdoor-mode .stat-bar {
 body.outdoor-mode .stat-bar-fill {
     background: #7c3aed;
 }
-body.outdoor-mode .plus-minus-pos { color: #047857 !important; }
-body.outdoor-mode .plus-minus-neg { color: #b91c1c !important; }
-body.outdoor-mode .plus-minus-zero { color: #6b7280 !important; }
+body.outdoor-mode .plus-minus-pos {
+    color: #047857 !important;
+}
+body.outdoor-mode .plus-minus-neg {
+    color: #b91c1c !important;
+}
+body.outdoor-mode .plus-minus-zero {
+    color: #6b7280 !important;
+}
 
 /* Outdoor mode: analysis button */
 body.outdoor-mode #stats-analysis-btn {
-    background: rgba(139, 92, 246, 0.2) !important;
+    background: rgba(var(--color-violet), 0.2) !important;
     color: #5b21b6 !important;
     border-color: rgba(91, 33, 182, 0.4) !important;
 }
 
 /* Chemistry bar variant */
 .stat-bar-fill.chemistry-bar {
-    background: linear-gradient(90deg, #8b5cf6, #d946ef);
+    background: linear-gradient(90deg, rgb(var(--color-violet)), #d946ef);
 }
 
 body.outdoor-mode .stat-bar-fill.chemistry-bar {
@@ -1150,10 +1231,19 @@ body.outdoor-mode #team-chemistry .text-gray-500 {
 
 /* Mobile responsive: analysis panel */
 @media (max-width: 640px) {
-    #analysis-content { max-height: 200px; }
-    #chemistry-content { max-height: 200px; }
-    .analysis-pair-row { flex-direction: column; gap: 0.25rem; }
-    .analysis-pair-row .flex-shrink-0:first-child { width: 100% !important; }
+    #analysis-content {
+        max-height: 200px;
+    }
+    #chemistry-content {
+        max-height: 200px;
+    }
+    .analysis-pair-row {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .analysis-pair-row .flex-shrink-0:first-child {
+        width: 100% !important;
+    }
 }
 
 /* ==================== Chemistry Indicators ==================== */
@@ -1173,16 +1263,16 @@ body.outdoor-mode #team-chemistry .text-gray-500 {
     pointer-events: none;
 }
 .chem-badge-high {
-    background: rgba(139, 92, 246, 0.9);
+    background: rgba(var(--color-violet), 0.9);
     color: #fff;
-    box-shadow: 0 0 6px rgba(139, 92, 246, 0.5);
+    box-shadow: 0 0 6px rgba(var(--color-violet), 0.5);
 }
 .chem-badge-mid {
-    background: rgba(139, 92, 246, 0.5);
+    background: rgba(var(--color-violet), 0.5);
     color: #e9d5ff;
 }
 .chem-badge-low {
-    background: rgba(139, 92, 246, 0.25);
+    background: rgba(var(--color-violet), 0.25);
     color: #c4b5fd;
 }
 
@@ -1193,11 +1283,11 @@ body.outdoor-mode #team-chemistry .text-gray-500 {
 
 /* Chemistry glow on player buttons */
 .chem-high {
-    border: 1px solid rgba(139, 92, 246, 0.5) !important;
-    box-shadow: 0 0 8px rgba(139, 92, 246, 0.2);
+    border: 1px solid rgba(var(--color-violet), 0.5) !important;
+    box-shadow: 0 0 8px rgba(var(--color-violet), 0.2);
 }
 .chem-mid {
-    border: 1px solid rgba(139, 92, 246, 0.25) !important;
+    border: 1px solid rgba(var(--color-violet), 0.25) !important;
 }
 
 /* Chemistry recommendation chips */
@@ -1207,21 +1297,21 @@ body.outdoor-mode #team-chemistry .text-gray-500 {
     gap: 3px;
     font-size: 0.65rem;
     padding: 2px 8px;
-    border-radius: 9999px;
-    background: rgba(139, 92, 246, 0.15);
-    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: var(--radius-pill);
+    background: rgba(var(--color-violet), 0.15);
+    border: 1px solid rgba(var(--color-violet), 0.3);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast) ease;
     white-space: nowrap;
 }
 .chem-rec-chip:hover {
-    background: rgba(139, 92, 246, 0.3);
-    border-color: rgba(139, 92, 246, 0.5);
+    background: rgba(var(--color-violet), 0.3);
+    border-color: rgba(var(--color-violet), 0.5);
 }
 .chem-rec-selected {
     cursor: default;
-    background: rgba(139, 92, 246, 0.1);
-    border-color: rgba(139, 92, 246, 0.2);
+    background: rgba(var(--color-violet), 0.1);
+    border-color: rgba(var(--color-violet), 0.2);
 }
 .chem-rec-score {
     font-weight: 700;
@@ -1255,13 +1345,13 @@ body.outdoor-mode .chem-rec-chip:hover {
 .sort-pill {
     font-size: 0.7rem;
     padding: 0.25rem 0.6rem;
-    border-radius: 9999px;
+    border-radius: var(--radius-pill);
     font-weight: 500;
     background: rgba(255, 255, 255, 0.06);
     color: #9ca3af;
     border: 1px solid rgba(255, 255, 255, 0.08);
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all var(--transition-fast) ease;
     white-space: nowrap;
 }
 .sort-pill:hover:not(.active) {
@@ -1269,9 +1359,9 @@ body.outdoor-mode .chem-rec-chip:hover {
     color: #d1d5db;
 }
 .sort-pill.active {
-    background: rgba(6, 182, 212, 0.25);
+    background: rgba(var(--color-cyan), 0.25);
     color: #67e8f9;
-    border-color: rgba(6, 182, 212, 0.4);
+    border-color: rgba(var(--color-cyan), 0.4);
 }
 
 /* Sort pill stat annotation */
@@ -1291,9 +1381,9 @@ body.outdoor-mode .sort-pill:hover:not(.active) {
     background: rgba(0, 0, 0, 0.1) !important;
 }
 body.outdoor-mode .sort-pill.active {
-    background: rgba(6, 182, 212, 0.3) !important;
+    background: rgba(var(--color-cyan), 0.3) !important;
     color: #0e7490 !important;
-    border-color: rgba(6, 182, 212, 0.5) !important;
+    border-color: rgba(var(--color-cyan), 0.5) !important;
 }
 
 /* ==================== Advanced Analytics Indicators ==================== */
@@ -1302,7 +1392,7 @@ body.outdoor-mode .sort-pill.active {
 .od-badge {
     font-size: 9px;
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     font-weight: 600;
     line-height: 1.2;
 }
@@ -1316,14 +1406,18 @@ body.outdoor-mode .sort-pill.active {
 }
 
 /* Throw value indicator */
-.throw-value-pos { color: #22d3ee; }
-.throw-value-neg { color: #f87171; }
+.throw-value-pos {
+    color: #22d3ee;
+}
+.throw-value-neg {
+    color: #f87171;
+}
 
 /* PER tag */
 .per-tag {
     font-size: 9px;
     padding: 1px 4px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     background: rgba(249, 115, 22, 0.15);
     color: #f97316;
     font-weight: 600;
@@ -1333,8 +1427,8 @@ body.outdoor-mode .sort-pill.active {
 .hub-tag {
     font-size: 9px;
     padding: 1px 4px;
-    border-radius: 4px;
-    background: rgba(236, 72, 153, 0.15);
+    border-radius: var(--radius-sm);
+    background: rgba(var(--color-pink), 0.15);
     color: #ec4899;
     font-weight: 600;
 }
@@ -1353,11 +1447,15 @@ body.outdoor-mode .per-tag {
     color: #c2410c;
 }
 body.outdoor-mode .hub-tag {
-    background: rgba(236, 72, 153, 0.2);
+    background: rgba(var(--color-pink), 0.2);
     color: #be185d;
 }
-body.outdoor-mode .throw-value-pos { color: #0e7490 !important; }
-body.outdoor-mode .throw-value-neg { color: #b91c1c !important; }
+body.outdoor-mode .throw-value-pos {
+    color: #0e7490 !important;
+}
+body.outdoor-mode .throw-value-neg {
+    color: #b91c1c !important;
+}
 
 /* Mobile: sort pills scroll */
 @media (max-width: 640px) {
@@ -1367,5 +1465,19 @@ body.outdoor-mode .throw-value-neg { color: #b91c1c !important; }
         -webkit-overflow-scrolling: touch;
         scrollbar-width: none;
     }
-    #sort-buttons::-webkit-scrollbar { display: none; }
+    #sort-buttons::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+/* ==================== Reduced Motion ==================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
